@@ -1,0 +1,10 @@
+# Replace these commented examples with real teams after repository creation.
+# * @organization/platform-team
+# /src/agents/monitoring/ @organization/monitoring-team
+# /src/agents/diagnosis/ @organization/diagnosis-team
+# /src/agents/security_quality/ @organization/security-team
+# /src/agents/deployment_recovery/ @organization/deployment-team
+# /src/agents/resource_optimization/ @organization/resource-team
+# /src/agents/mlops_lifecycle/ @organization/mlops-team
+# /src/contracts/ @organization/platform-team
+# /infrastructure/ @organization/platform-team

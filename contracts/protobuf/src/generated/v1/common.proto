@@ -1,0 +1,19 @@
+syntax = "proto3";
+package devops_mlops.v1;
+
+import "google/protobuf/timestamp.proto";
+
+message IncidentRequest { string incident_id = 1; }
+message StoredRecord { string record_id = 1; uint64 context_version = 2; }
+message VersionedDocument {
+  string schema_version = 1;
+  bytes json_document = 2; // Validate against the matching JSON contract.
+}
+message EvidenceReference {
+  string evidence_id = 1;
+  string incident_id = 2;
+  string source = 3;
+  string object_uri = 4;
+  string checksum_sha256 = 5;
+  google.protobuf.Timestamp observed_at = 6;
+}

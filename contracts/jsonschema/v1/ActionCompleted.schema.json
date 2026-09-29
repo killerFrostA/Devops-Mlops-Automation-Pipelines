@@ -1,0 +1,63 @@
+{
+  "$defs": {
+    "JsonValue": {}
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "action_id": {
+      "title": "Action Id",
+      "type": "string"
+    },
+    "action_version": {
+      "minimum": 1,
+      "title": "Action Version",
+      "type": "integer"
+    },
+    "execution_evidence_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Execution Evidence Refs",
+      "type": "array"
+    },
+    "post_state": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Post State",
+      "type": "object"
+    },
+    "pre_state": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Pre State",
+      "type": "object"
+    },
+    "status": {
+      "enum": [
+        "SUCCESS",
+        "FAILED",
+        "BLOCKED"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "verification_requested": {
+      "default": true,
+      "title": "Verification Requested",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "action_id",
+    "action_version",
+    "status",
+    "pre_state",
+    "post_state",
+    "execution_evidence_refs"
+  ],
+  "title": "ActionCompleted",
+  "type": "object"
+}

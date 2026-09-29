@@ -1,0 +1,198 @@
+{
+  "$defs": {
+    "ActionIntent": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/ActionType"
+        },
+        "action_id": {
+          "minLength": 1,
+          "title": "Action Id",
+          "type": "string"
+        },
+        "action_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Action Version",
+          "type": "integer"
+        },
+        "environment": {
+          "$ref": "#/$defs/Environment"
+        },
+        "incident_id": {
+          "minLength": 1,
+          "title": "Incident Id",
+          "type": "string"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Parameters",
+          "type": "object"
+        },
+        "preconditions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Preconditions",
+          "type": "array"
+        },
+        "target": {
+          "$ref": "#/$defs/ActionTarget"
+        },
+        "verification_profile": {
+          "minLength": 1,
+          "title": "Verification Profile",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action_id",
+        "incident_id",
+        "action",
+        "environment",
+        "target",
+        "parameters",
+        "verification_profile"
+      ],
+      "title": "ActionIntent",
+      "type": "object"
+    },
+    "ActionTarget": {
+      "additionalProperties": false,
+      "properties": {
+        "namespace": {
+          "minLength": 1,
+          "title": "Namespace",
+          "type": "string"
+        },
+        "service": {
+          "minLength": 1,
+          "title": "Service",
+          "type": "string"
+        }
+      },
+      "required": [
+        "service",
+        "namespace"
+      ],
+      "title": "ActionTarget",
+      "type": "object"
+    },
+    "ActionType": {
+      "enum": [
+        "DEPLOY",
+        "ROLLING_RESTART",
+        "ROLLBACK",
+        "CANARY",
+        "BLUE_GREEN_SWITCH",
+        "TRAFFIC_SHIFT",
+        "SCALE_REPLICAS",
+        "PROMOTE_MODEL"
+      ],
+      "title": "ActionType",
+      "type": "string"
+    },
+    "Environment": {
+      "enum": [
+        "local",
+        "test",
+        "staging",
+        "production"
+      ],
+      "title": "Environment",
+      "type": "string"
+    },
+    "Hypothesis": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "probability": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Probability",
+          "type": "number"
+        },
+        "rank": {
+          "minimum": 1,
+          "title": "Rank",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "rank",
+        "code",
+        "probability",
+        "evidence_refs"
+      ],
+      "title": "Hypothesis",
+      "type": "object"
+    },
+    "JsonValue": {}
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "diagnosis_id": {
+      "title": "Diagnosis Id",
+      "type": "string"
+    },
+    "hypotheses": {
+      "items": {
+        "$ref": "#/$defs/Hypothesis"
+      },
+      "title": "Hypotheses",
+      "type": "array"
+    },
+    "limitations": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "primary_root_cause": {
+      "title": "Primary Root Cause",
+      "type": "string"
+    },
+    "rationale_summary": {
+      "title": "Rationale Summary",
+      "type": "string"
+    },
+    "recommended_actions": {
+      "items": {
+        "$ref": "#/$defs/ActionIntent"
+      },
+      "title": "Recommended Actions",
+      "type": "array"
+    },
+    "requires_additional_evidence": {
+      "default": false,
+      "title": "Requires Additional Evidence",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "diagnosis_id",
+    "hypotheses",
+    "primary_root_cause",
+    "recommended_actions",
+    "rationale_summary"
+  ],
+  "title": "DiagnosisCompleted",
+  "type": "object"
+}

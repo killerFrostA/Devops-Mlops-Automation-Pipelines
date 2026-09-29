@@ -1,0 +1,37 @@
+{
+  "message_id": "MSG-example-001",
+  "schema_version": "1.0",
+  "correlation_id": "INC-example-001",
+  "causation_id": null,
+  "trace_id": "TRACE-example-001",
+  "source": "example-fixture",
+  "target": "orchestrator",
+  "topic": "monitoring.anomaly.detected",
+  "message_type": "ANOMALY_DETECTED",
+  "priority": "P2",
+  "severity": "MEDIUM",
+  "timestamp": "2026-09-29T12:00:00Z",
+  "deadline": null,
+  "environment": "test",
+  "service": {
+    "service_id": "fraud-api",
+    "namespace": "sandbox",
+    "version": "v2"
+  },
+  "evidence_refs": [
+    "EVD-synthetic-001"
+  ],
+  "confidence": null,
+  "requires_ack": true,
+  "idempotency_key": "example:monitoring.anomaly.detected:v1",
+  "payload": {
+    "anomaly_id": "ANM-example-001",
+    "detector": "synthetic-threshold",
+    "anomaly_score": 0.9,
+    "signals": {
+      "memory_pct": 94,
+      "error_rate": 0.17
+    },
+    "verification_required_after_action": true
+  }
+}

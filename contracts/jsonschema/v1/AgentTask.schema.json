@@ -1,0 +1,116 @@
+{
+  "$defs": {
+    "AgentId": {
+      "enum": [
+        "monitoring-agent",
+        "diagnosis-agent",
+        "security-quality-agent",
+        "deployment-recovery-agent",
+        "resource-optimization-agent",
+        "mlops-lifecycle-agent"
+      ],
+      "title": "AgentId",
+      "type": "string"
+    },
+    "Environment": {
+      "enum": [
+        "local",
+        "test",
+        "staging",
+        "production"
+      ],
+      "title": "Environment",
+      "type": "string"
+    },
+    "JsonValue": {},
+    "TaskContext": {
+      "additionalProperties": false,
+      "description": "Bounded disclosure supplied by the orchestrator, never a full context snapshot.",
+      "properties": {
+        "constraints": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Constraints",
+          "type": "array"
+        },
+        "environment": {
+          "$ref": "#/$defs/Environment"
+        },
+        "evidence_refs": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "namespace": {
+          "minLength": 1,
+          "title": "Namespace",
+          "type": "string"
+        },
+        "service_id": {
+          "minLength": 1,
+          "title": "Service Id",
+          "type": "string"
+        },
+        "signals": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Signals",
+          "type": "object"
+        }
+      },
+      "required": [
+        "service_id",
+        "namespace",
+        "environment"
+      ],
+      "title": "TaskContext",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "agent_id": {
+      "$ref": "#/$defs/AgentId"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "incident_id": {
+      "minLength": 1,
+      "title": "Incident Id",
+      "type": "string"
+    },
+    "objective": {
+      "minLength": 1,
+      "title": "Objective",
+      "type": "string"
+    },
+    "task_context": {
+      "$ref": "#/$defs/TaskContext"
+    },
+    "task_id": {
+      "minLength": 1,
+      "title": "Task Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "task_id",
+    "incident_id",
+    "agent_id",
+    "objective",
+    "task_context",
+    "deadline"
+  ],
+  "title": "AgentTask",
+  "type": "object"
+}

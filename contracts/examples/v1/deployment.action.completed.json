@@ -1,0 +1,36 @@
+{
+  "message_id": "MSG-example-006",
+  "schema_version": "1.0",
+  "correlation_id": "INC-example-001",
+  "causation_id": null,
+  "trace_id": "TRACE-example-001",
+  "source": "example-fixture",
+  "target": "orchestrator",
+  "topic": "deployment.action.completed",
+  "message_type": "ACTION_COMPLETED",
+  "priority": "P2",
+  "severity": "MEDIUM",
+  "timestamp": "2026-09-29T12:00:00Z",
+  "deadline": null,
+  "environment": "test",
+  "service": {
+    "service_id": "fraud-api",
+    "namespace": "sandbox",
+    "version": "v2"
+  },
+  "evidence_refs": [
+    "EVD-synthetic-001"
+  ],
+  "confidence": null,
+  "requires_ack": true,
+  "idempotency_key": "example:deployment.action.completed:v1",
+  "payload": {
+    "action_id": "ACT-example-001",
+    "action_version": 1,
+    "status": "BLOCKED",
+    "pre_state": {},
+    "post_state": {},
+    "execution_evidence_refs": [],
+    "verification_requested": false
+  }
+}

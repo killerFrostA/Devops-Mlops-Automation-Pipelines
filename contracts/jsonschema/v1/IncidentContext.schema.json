@@ -1,0 +1,183 @@
+{
+  "$defs": {
+    "AgentId": {
+      "enum": [
+        "monitoring-agent",
+        "diagnosis-agent",
+        "security-quality-agent",
+        "deployment-recovery-agent",
+        "resource-optimization-agent",
+        "mlops-lifecycle-agent"
+      ],
+      "title": "AgentId",
+      "type": "string"
+    },
+    "AgentResult": {
+      "additionalProperties": false,
+      "description": "Execution status, kept separate from the future specialist domain output.",
+      "properties": {
+        "agent_id": {
+          "$ref": "#/$defs/AgentId"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence"
+        },
+        "evidence_refs": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "incident_id": {
+          "minLength": 1,
+          "title": "Incident Id",
+          "type": "string"
+        },
+        "rationale_summary": {
+          "title": "Rationale Summary",
+          "type": "string"
+        },
+        "result_id": {
+          "minLength": 1,
+          "title": "Result Id",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/ResultStatus"
+        },
+        "task_id": {
+          "minLength": 1,
+          "title": "Task Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "result_id",
+        "task_id",
+        "incident_id",
+        "agent_id",
+        "status",
+        "rationale_summary"
+      ],
+      "title": "AgentResult",
+      "type": "object"
+    },
+    "Environment": {
+      "enum": [
+        "local",
+        "test",
+        "staging",
+        "production"
+      ],
+      "title": "Environment",
+      "type": "string"
+    },
+    "EvidenceReference": {
+      "additionalProperties": false,
+      "properties": {
+        "checksum_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Checksum Sha256",
+          "type": "string"
+        },
+        "evidence_id": {
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "incident_id": {
+          "title": "Incident Id",
+          "type": "string"
+        },
+        "object_uri": {
+          "title": "Object Uri",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "incident_id",
+        "source",
+        "object_uri",
+        "checksum_sha256",
+        "observed_at"
+      ],
+      "title": "EvidenceReference",
+      "type": "object"
+    },
+    "ResultStatus": {
+      "enum": [
+        "NOT_IMPLEMENTED",
+        "SUCCEEDED",
+        "FAILED"
+      ],
+      "title": "ResultStatus",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "agent_results": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/AgentResult"
+      },
+      "title": "Agent Results",
+      "type": "array"
+    },
+    "environment": {
+      "$ref": "#/$defs/Environment"
+    },
+    "evidence_refs": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/EvidenceReference"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "incident_id": {
+      "title": "Incident Id",
+      "type": "string"
+    },
+    "status": {
+      "title": "Status",
+      "type": "string"
+    },
+    "version": {
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "incident_id",
+    "version",
+    "environment",
+    "status"
+  ],
+  "title": "IncidentContext",
+  "type": "object"
+}

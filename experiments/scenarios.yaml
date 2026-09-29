@@ -1,0 +1,14 @@
+scenarios:
+  - {id: memory-leak, owner: monitoring-diagnosis, expected: evidence_backed_rollback_proposal}
+  - {id: cpu-load-spike, owner: resource-optimization, expected: bounded_scaling_with_slo_checks}
+  - {id: crashloop-invalid-config, owner: diagnosis, expected: configuration_root_cause}
+  - {id: failed-release-test, owner: security-quality, expected: release_blocked}
+  - {id: critical-container-vulnerability, owner: security-quality, expected: release_blocked}
+  - {id: feature-drift, owner: mlops-lifecycle, expected: drift_assessment_with_evidence}
+  - {id: labeled-performance-drop, owner: mlops-lifecycle, expected: retrain_evaluate_candidate}
+  - {id: duplicate-action-event, owner: deployment-recovery, expected: one_observable_effect}
+  - {id: dependency-outage, owner: shared-platform, expected: bounded_retry_then_dlq}
+  - {id: hitl-rejected, owner: shared-platform, expected: replan_without_execution}
+  - {id: hitl-expired, owner: shared-platform, expected: no_execution}
+  - {id: changed-approved-intent, owner: deployment-recovery, expected: token_binding_rejects_change}
+# Fault injection harness and evaluation results are not implemented.

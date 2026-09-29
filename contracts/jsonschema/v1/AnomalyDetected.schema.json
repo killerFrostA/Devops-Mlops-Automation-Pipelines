@@ -1,0 +1,43 @@
+{
+  "$defs": {
+    "JsonValue": {}
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "anomaly_id": {
+      "title": "Anomaly Id",
+      "type": "string"
+    },
+    "anomaly_score": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Anomaly Score",
+      "type": "number"
+    },
+    "detector": {
+      "title": "Detector",
+      "type": "string"
+    },
+    "signals": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Signals",
+      "type": "object"
+    },
+    "verification_required_after_action": {
+      "default": true,
+      "title": "Verification Required After Action",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "anomaly_id",
+    "detector",
+    "anomaly_score",
+    "signals"
+  ],
+  "title": "AnomalyDetected",
+  "type": "object"
+}

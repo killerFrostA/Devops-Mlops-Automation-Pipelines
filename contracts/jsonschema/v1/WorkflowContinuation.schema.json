@@ -1,0 +1,206 @@
+{
+  "$defs": {
+    "ActionIntent": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/ActionType"
+        },
+        "action_id": {
+          "minLength": 1,
+          "title": "Action Id",
+          "type": "string"
+        },
+        "action_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Action Version",
+          "type": "integer"
+        },
+        "environment": {
+          "$ref": "#/$defs/Environment"
+        },
+        "incident_id": {
+          "minLength": 1,
+          "title": "Incident Id",
+          "type": "string"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Parameters",
+          "type": "object"
+        },
+        "preconditions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Preconditions",
+          "type": "array"
+        },
+        "target": {
+          "$ref": "#/$defs/ActionTarget"
+        },
+        "verification_profile": {
+          "minLength": 1,
+          "title": "Verification Profile",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action_id",
+        "incident_id",
+        "action",
+        "environment",
+        "target",
+        "parameters",
+        "verification_profile"
+      ],
+      "title": "ActionIntent",
+      "type": "object"
+    },
+    "ActionRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "approval_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approval Id"
+        },
+        "approval_token": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approval Token"
+        },
+        "idempotency_key": {
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "intent": {
+          "$ref": "#/$defs/ActionIntent"
+        },
+        "policy_decision": {
+          "$ref": "#/$defs/PolicyDecision"
+        }
+      },
+      "required": [
+        "intent",
+        "policy_decision",
+        "idempotency_key"
+      ],
+      "title": "ActionRequest",
+      "type": "object"
+    },
+    "ActionTarget": {
+      "additionalProperties": false,
+      "properties": {
+        "namespace": {
+          "minLength": 1,
+          "title": "Namespace",
+          "type": "string"
+        },
+        "service": {
+          "minLength": 1,
+          "title": "Service",
+          "type": "string"
+        }
+      },
+      "required": [
+        "service",
+        "namespace"
+      ],
+      "title": "ActionTarget",
+      "type": "object"
+    },
+    "ActionType": {
+      "enum": [
+        "DEPLOY",
+        "ROLLING_RESTART",
+        "ROLLBACK",
+        "CANARY",
+        "BLUE_GREEN_SWITCH",
+        "TRAFFIC_SHIFT",
+        "SCALE_REPLICAS",
+        "PROMOTE_MODEL"
+      ],
+      "title": "ActionType",
+      "type": "string"
+    },
+    "Environment": {
+      "enum": [
+        "local",
+        "test",
+        "staging",
+        "production"
+      ],
+      "title": "Environment",
+      "type": "string"
+    },
+    "JsonValue": {},
+    "PolicyDecision": {
+      "enum": [
+        "AUTO",
+        "APPROVAL_REQUIRED",
+        "BLOCK"
+      ],
+      "title": "PolicyDecision",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "action_request": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ActionRequest"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "incident_id": {
+      "title": "Incident Id",
+      "type": "string"
+    },
+    "next_step": {
+      "enum": [
+        "EXECUTE_ACTION",
+        "REPLAN",
+        "CLOSE"
+      ],
+      "title": "Next Step",
+      "type": "string"
+    },
+    "reason": {
+      "title": "Reason",
+      "type": "string"
+    }
+  },
+  "required": [
+    "incident_id",
+    "next_step",
+    "reason"
+  ],
+  "title": "WorkflowContinuation",
+  "type": "object"
+}

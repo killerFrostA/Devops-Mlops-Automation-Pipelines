@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifact_digest": {
+      "title": "Artifact Digest",
+      "type": "string"
+    },
+    "assessment_id": {
+      "title": "Assessment Id",
+      "type": "string"
+    },
+    "blocking_reasons": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Blocking Reasons",
+      "type": "array"
+    },
+    "commit": {
+      "title": "Commit",
+      "type": "string"
+    },
+    "decision": {
+      "enum": [
+        "ALLOW",
+        "ALLOW_WITH_WARNING",
+        "BLOCK"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "policy_version": {
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "warnings": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "assessment_id",
+    "commit",
+    "artifact_digest",
+    "decision",
+    "evidence_refs",
+    "policy_version"
+  ],
+  "title": "ReleaseAssessment",
+  "type": "object"
+}

@@ -1,0 +1,87 @@
+{
+  "$defs": {
+    "AgentId": {
+      "enum": [
+        "monitoring-agent",
+        "diagnosis-agent",
+        "security-quality-agent",
+        "deployment-recovery-agent",
+        "resource-optimization-agent",
+        "mlops-lifecycle-agent"
+      ],
+      "title": "AgentId",
+      "type": "string"
+    },
+    "ResultStatus": {
+      "enum": [
+        "NOT_IMPLEMENTED",
+        "SUCCEEDED",
+        "FAILED"
+      ],
+      "title": "ResultStatus",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Execution status, kept separate from the future specialist domain output.",
+  "properties": {
+    "agent_id": {
+      "$ref": "#/$defs/AgentId"
+    },
+    "confidence": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Confidence"
+    },
+    "evidence_refs": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "incident_id": {
+      "minLength": 1,
+      "title": "Incident Id",
+      "type": "string"
+    },
+    "rationale_summary": {
+      "title": "Rationale Summary",
+      "type": "string"
+    },
+    "result_id": {
+      "minLength": 1,
+      "title": "Result Id",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/ResultStatus"
+    },
+    "task_id": {
+      "minLength": 1,
+      "title": "Task Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "result_id",
+    "task_id",
+    "incident_id",
+    "agent_id",
+    "status",
+    "rationale_summary"
+  ],
+  "title": "AgentResult",
+  "type": "object"
+}

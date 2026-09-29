@@ -1,0 +1,15 @@
+# Design specification; implement on Context/HITL servers and infrastructure ACLs.
+context:
+  orchestrator:
+    - GetIncidentContext
+    - GetLatestAgentResults
+    - RecordDecision
+    - RecordHITLDecision
+  specialist_agents: [AppendAgentResult, AppendEvidence]
+hitl:
+  orchestrator: [CreateApproval, ResolveApproval, GetApprovalState]
+  specialist_agents: []
+execution:
+  dashboard: []
+  diagnosis-agent: []
+  security-quality-agent: []

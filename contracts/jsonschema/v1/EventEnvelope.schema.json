@@ -1,0 +1,1140 @@
+{
+  "$defs": {
+    "ActionCompleted": {
+      "additionalProperties": false,
+      "properties": {
+        "action_id": {
+          "title": "Action Id",
+          "type": "string"
+        },
+        "action_version": {
+          "minimum": 1,
+          "title": "Action Version",
+          "type": "integer"
+        },
+        "execution_evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Execution Evidence Refs",
+          "type": "array"
+        },
+        "post_state": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Post State",
+          "type": "object"
+        },
+        "pre_state": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Pre State",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "SUCCESS",
+            "FAILED",
+            "BLOCKED"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "verification_requested": {
+          "default": true,
+          "title": "Verification Requested",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "action_id",
+        "action_version",
+        "status",
+        "pre_state",
+        "post_state",
+        "execution_evidence_refs"
+      ],
+      "title": "ActionCompleted",
+      "type": "object"
+    },
+    "ActionIntent": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/ActionType"
+        },
+        "action_id": {
+          "minLength": 1,
+          "title": "Action Id",
+          "type": "string"
+        },
+        "action_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Action Version",
+          "type": "integer"
+        },
+        "environment": {
+          "$ref": "#/$defs/Environment"
+        },
+        "incident_id": {
+          "minLength": 1,
+          "title": "Incident Id",
+          "type": "string"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Parameters",
+          "type": "object"
+        },
+        "preconditions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Preconditions",
+          "type": "array"
+        },
+        "target": {
+          "$ref": "#/$defs/ActionTarget"
+        },
+        "verification_profile": {
+          "minLength": 1,
+          "title": "Verification Profile",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action_id",
+        "incident_id",
+        "action",
+        "environment",
+        "target",
+        "parameters",
+        "verification_profile"
+      ],
+      "title": "ActionIntent",
+      "type": "object"
+    },
+    "ActionRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "approval_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approval Id"
+        },
+        "approval_token": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approval Token"
+        },
+        "idempotency_key": {
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "intent": {
+          "$ref": "#/$defs/ActionIntent"
+        },
+        "policy_decision": {
+          "$ref": "#/$defs/PolicyDecision"
+        }
+      },
+      "required": [
+        "intent",
+        "policy_decision",
+        "idempotency_key"
+      ],
+      "title": "ActionRequest",
+      "type": "object"
+    },
+    "ActionTarget": {
+      "additionalProperties": false,
+      "properties": {
+        "namespace": {
+          "minLength": 1,
+          "title": "Namespace",
+          "type": "string"
+        },
+        "service": {
+          "minLength": 1,
+          "title": "Service",
+          "type": "string"
+        }
+      },
+      "required": [
+        "service",
+        "namespace"
+      ],
+      "title": "ActionTarget",
+      "type": "object"
+    },
+    "ActionType": {
+      "enum": [
+        "DEPLOY",
+        "ROLLING_RESTART",
+        "ROLLBACK",
+        "CANARY",
+        "BLUE_GREEN_SWITCH",
+        "TRAFFIC_SHIFT",
+        "SCALE_REPLICAS",
+        "PROMOTE_MODEL"
+      ],
+      "title": "ActionType",
+      "type": "string"
+    },
+    "AnomalyDetected": {
+      "additionalProperties": false,
+      "properties": {
+        "anomaly_id": {
+          "title": "Anomaly Id",
+          "type": "string"
+        },
+        "anomaly_score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Anomaly Score",
+          "type": "number"
+        },
+        "detector": {
+          "title": "Detector",
+          "type": "string"
+        },
+        "signals": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Signals",
+          "type": "object"
+        },
+        "verification_required_after_action": {
+          "default": true,
+          "title": "Verification Required After Action",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "anomaly_id",
+        "detector",
+        "anomaly_score",
+        "signals"
+      ],
+      "title": "AnomalyDetected",
+      "type": "object"
+    },
+    "ApprovalRequested": {
+      "additionalProperties": false,
+      "properties": {
+        "action_fingerprint": {
+          "title": "Action Fingerprint",
+          "type": "string"
+        },
+        "approval_id": {
+          "title": "Approval Id",
+          "type": "string"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "title": "Expires At",
+          "type": "string"
+        },
+        "intent": {
+          "$ref": "#/$defs/ActionIntent"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "approval_id",
+        "intent",
+        "action_fingerprint",
+        "reason",
+        "expires_at"
+      ],
+      "title": "ApprovalRequested",
+      "type": "object"
+    },
+    "ApprovalResolved": {
+      "additionalProperties": false,
+      "properties": {
+        "action_id": {
+          "title": "Action Id",
+          "type": "string"
+        },
+        "action_version": {
+          "minimum": 1,
+          "title": "Action Version",
+          "type": "integer"
+        },
+        "approval_id": {
+          "title": "Approval Id",
+          "type": "string"
+        },
+        "approver_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approver Id"
+        },
+        "comment": {
+          "title": "Comment",
+          "type": "string"
+        },
+        "decision": {
+          "enum": [
+            "APPROVED",
+            "REJECTED",
+            "EXPIRED"
+          ],
+          "title": "Decision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "approval_id",
+        "action_id",
+        "action_version",
+        "decision",
+        "comment"
+      ],
+      "title": "ApprovalResolved",
+      "type": "object"
+    },
+    "DiagnosisCompleted": {
+      "additionalProperties": false,
+      "properties": {
+        "diagnosis_id": {
+          "title": "Diagnosis Id",
+          "type": "string"
+        },
+        "hypotheses": {
+          "items": {
+            "$ref": "#/$defs/Hypothesis"
+          },
+          "title": "Hypotheses",
+          "type": "array"
+        },
+        "limitations": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "primary_root_cause": {
+          "title": "Primary Root Cause",
+          "type": "string"
+        },
+        "rationale_summary": {
+          "title": "Rationale Summary",
+          "type": "string"
+        },
+        "recommended_actions": {
+          "items": {
+            "$ref": "#/$defs/ActionIntent"
+          },
+          "title": "Recommended Actions",
+          "type": "array"
+        },
+        "requires_additional_evidence": {
+          "default": false,
+          "title": "Requires Additional Evidence",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "diagnosis_id",
+        "hypotheses",
+        "primary_root_cause",
+        "recommended_actions",
+        "rationale_summary"
+      ],
+      "title": "DiagnosisCompleted",
+      "type": "object"
+    },
+    "Environment": {
+      "enum": [
+        "local",
+        "test",
+        "staging",
+        "production"
+      ],
+      "title": "Environment",
+      "type": "string"
+    },
+    "Hypothesis": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "probability": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Probability",
+          "type": "number"
+        },
+        "rank": {
+          "minimum": 1,
+          "title": "Rank",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "rank",
+        "code",
+        "probability",
+        "evidence_refs"
+      ],
+      "title": "Hypothesis",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "ModelHealthAssessed": {
+      "additionalProperties": false,
+      "properties": {
+        "assessment_id": {
+          "title": "Assessment Id",
+          "type": "string"
+        },
+        "dataset_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Ref"
+        },
+        "decision": {
+          "enum": [
+            "HEALTHY",
+            "COLLECT_LABELS",
+            "RETRAIN_AND_EVALUATE"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "drift_detected": {
+          "title": "Drift Detected",
+          "type": "boolean"
+        },
+        "drift_score": {
+          "minimum": 0,
+          "title": "Drift Score",
+          "type": "number"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "model_name": {
+          "title": "Model Name",
+          "type": "string"
+        },
+        "model_version": {
+          "title": "Model Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "assessment_id",
+        "model_name",
+        "model_version",
+        "drift_detected",
+        "drift_score",
+        "decision",
+        "evidence_refs"
+      ],
+      "title": "ModelHealthAssessed",
+      "type": "object"
+    },
+    "PolicyDecision": {
+      "enum": [
+        "AUTO",
+        "APPROVAL_REQUIRED",
+        "BLOCK"
+      ],
+      "title": "PolicyDecision",
+      "type": "string"
+    },
+    "Priority": {
+      "enum": [
+        "P0",
+        "P1",
+        "P2",
+        "P3"
+      ],
+      "title": "Priority",
+      "type": "string"
+    },
+    "RecoveryVerified": {
+      "additionalProperties": false,
+      "properties": {
+        "action_id": {
+          "title": "Action Id",
+          "type": "string"
+        },
+        "checks": {
+          "additionalProperties": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "UNKNOWN"
+            ],
+            "type": "string"
+          },
+          "title": "Checks",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "RECOVERED",
+            "NOT_RECOVERED",
+            "INCONCLUSIVE"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "verification_id": {
+          "title": "Verification Id",
+          "type": "string"
+        },
+        "window": {
+          "title": "Window",
+          "type": "string"
+        }
+      },
+      "required": [
+        "verification_id",
+        "action_id",
+        "window",
+        "status",
+        "checks"
+      ],
+      "title": "RecoveryVerified",
+      "type": "object"
+    },
+    "ReleaseAssessment": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_digest": {
+          "title": "Artifact Digest",
+          "type": "string"
+        },
+        "assessment_id": {
+          "title": "Assessment Id",
+          "type": "string"
+        },
+        "blocking_reasons": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Blocking Reasons",
+          "type": "array"
+        },
+        "commit": {
+          "title": "Commit",
+          "type": "string"
+        },
+        "decision": {
+          "enum": [
+            "ALLOW",
+            "ALLOW_WITH_WARNING",
+            "BLOCK"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "policy_version": {
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "warnings": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "assessment_id",
+        "commit",
+        "artifact_digest",
+        "decision",
+        "evidence_refs",
+        "policy_version"
+      ],
+      "title": "ReleaseAssessment",
+      "type": "object"
+    },
+    "ResourceRecommendation": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_action": {
+          "$ref": "#/$defs/ActionIntent"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "constraints": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Constraints",
+          "type": "array"
+        },
+        "observation_window": {
+          "title": "Observation Window",
+          "type": "string"
+        },
+        "recommendation_id": {
+          "title": "Recommendation Id",
+          "type": "string"
+        },
+        "rollback_condition": {
+          "title": "Rollback Condition",
+          "type": "string"
+        }
+      },
+      "required": [
+        "recommendation_id",
+        "candidate_action",
+        "confidence",
+        "observation_window",
+        "rollback_condition",
+        "constraints"
+      ],
+      "title": "ResourceRecommendation",
+      "type": "object"
+    },
+    "ServiceIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "namespace": {
+          "minLength": 1,
+          "title": "Namespace",
+          "type": "string"
+        },
+        "service_id": {
+          "minLength": 1,
+          "title": "Service Id",
+          "type": "string"
+        },
+        "version": {
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "service_id",
+        "namespace",
+        "version"
+      ],
+      "title": "ServiceIdentity",
+      "type": "object"
+    },
+    "Severity": {
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "CRITICAL"
+      ],
+      "title": "Severity",
+      "type": "string"
+    },
+    "WorkflowContinuation": {
+      "additionalProperties": false,
+      "properties": {
+        "action_request": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActionRequest"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "incident_id": {
+          "title": "Incident Id",
+          "type": "string"
+        },
+        "next_step": {
+          "enum": [
+            "EXECUTE_ACTION",
+            "REPLAN",
+            "CLOSE"
+          ],
+          "title": "Next Step",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "incident_id",
+        "next_step",
+        "reason"
+      ],
+      "title": "WorkflowContinuation",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "topic": {
+            "const": "approval.requested"
+          }
+        },
+        "required": [
+          "topic"
+        ]
+      },
+      "then": {
+        "properties": {
+          "message_type": {
+            "const": "APPROVAL_REQUESTED"
+          },
+          "payload": {
+            "$ref": "#/$defs/ApprovalRequested"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "topic": {
+            "const": "approval.resolved"
+          }
+        },
+        "required": [
+          "topic"
+        ]
+      },
+      "then": {
+        "properties": {
+          "message_type": {
+            "const": "APPROVAL_RESOLVED"
+          },
+          "payload": {
+            "$ref": "#/$defs/ApprovalResolved"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "topic": {
+            "const": "deployment.action.completed"
+          }
+        },
+        "required": [
+          "topic"
+        ]
+      },
+      "then": {
+        "properties": {
+          "message_type": {
+            "const": "ACTION_COMPLETED"
+          },
+          "payload": {
+            "$ref": "#/$defs/ActionCompleted"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "topic": {
+            "const": "deployment.action.requested"
+          }
+        },
+        "required": [
+          "topic"
+        ]
+      },
+      "then": {
+        "properties": {
+          "message_type": {
+            "const": "ACTION_REQUESTED"
+          },
+          "payload": {
+            "$ref": "#/$defs/ActionRequest"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "topic": {
+            "const": "diagnosis.completed"
+          }
+        },
+        "required": [
+          "topic"
+        ]
+      },
+      "then": {
+        "properties": {
+          "message_type": {
+            "const": "DIAGNOSIS_COMPLETED"
+          },
+          "payload": {
+            "$ref": "#/$defs/DiagnosisCompleted"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "topic": {
+            "const": "mlops.model.health.assessed"
+          }
+        },
+        "required": [
+          "topic"
+        ]
+      },
+      "then": {
+        "properties": {
+          "message_type": {
+            "const": "MODEL_HEALTH_ASSESSED"
+          },
+          "payload": {
+            "$ref": "#/$defs/ModelHealthAssessed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "topic": {
+            "const": "monitoring.anomaly.detected"
+          }
+        },
+        "required": [
+          "topic"
+        ]
+      },
+      "then": {
+        "properties": {
+          "message_type": {
+            "const": "ANOMALY_DETECTED"
+          },
+          "payload": {
+            "$ref": "#/$defs/AnomalyDetected"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "topic": {
+            "const": "monitoring.recovery.verified"
+          }
+        },
+        "required": [
+          "topic"
+        ]
+      },
+      "then": {
+        "properties": {
+          "message_type": {
+            "const": "RECOVERY_VERIFIED"
+          },
+          "payload": {
+            "$ref": "#/$defs/RecoveryVerified"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "topic": {
+            "const": "quality.release.assessed"
+          }
+        },
+        "required": [
+          "topic"
+        ]
+      },
+      "then": {
+        "properties": {
+          "message_type": {
+            "const": "RELEASE_ASSESSMENT"
+          },
+          "payload": {
+            "$ref": "#/$defs/ReleaseAssessment"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "topic": {
+            "const": "resource.recommendation.created"
+          }
+        },
+        "required": [
+          "topic"
+        ]
+      },
+      "then": {
+        "properties": {
+          "message_type": {
+            "const": "RESOURCE_RECOMMENDATION"
+          },
+          "payload": {
+            "$ref": "#/$defs/ResourceRecommendation"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "topic": {
+            "const": "workflow.continuation"
+          }
+        },
+        "required": [
+          "topic"
+        ]
+      },
+      "then": {
+        "properties": {
+          "message_type": {
+            "const": "WORKFLOW_CONTINUATION"
+          },
+          "payload": {
+            "$ref": "#/$defs/WorkflowContinuation"
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "causation_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Causation Id"
+    },
+    "confidence": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Confidence"
+    },
+    "correlation_id": {
+      "minLength": 1,
+      "title": "Correlation Id",
+      "type": "string"
+    },
+    "deadline": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Deadline"
+    },
+    "environment": {
+      "$ref": "#/$defs/Environment"
+    },
+    "evidence_refs": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "idempotency_key": {
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "message_id": {
+      "title": "Message Id",
+      "type": "string"
+    },
+    "message_type": {
+      "title": "Message Type",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Payload",
+      "type": "object"
+    },
+    "priority": {
+      "$ref": "#/$defs/Priority"
+    },
+    "requires_ack": {
+      "default": true,
+      "title": "Requires Ack",
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "service": {
+      "$ref": "#/$defs/ServiceIdentity"
+    },
+    "severity": {
+      "$ref": "#/$defs/Severity"
+    },
+    "source": {
+      "minLength": 1,
+      "title": "Source",
+      "type": "string"
+    },
+    "target": {
+      "minLength": 1,
+      "title": "Target",
+      "type": "string"
+    },
+    "timestamp": {
+      "format": "date-time",
+      "title": "Timestamp",
+      "type": "string"
+    },
+    "topic": {
+      "enum": [
+        "approval.requested",
+        "approval.resolved",
+        "deployment.action.completed",
+        "deployment.action.requested",
+        "diagnosis.completed",
+        "mlops.model.health.assessed",
+        "monitoring.anomaly.detected",
+        "monitoring.recovery.verified",
+        "quality.release.assessed",
+        "resource.recommendation.created",
+        "workflow.continuation"
+      ],
+      "title": "Topic",
+      "type": "string"
+    },
+    "trace_id": {
+      "minLength": 1,
+      "title": "Trace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "correlation_id",
+    "trace_id",
+    "source",
+    "target",
+    "topic",
+    "message_type",
+    "priority",
+    "severity",
+    "environment",
+    "service",
+    "idempotency_key",
+    "payload"
+  ],
+  "title": "EventEnvelope",
+  "type": "object"
+}

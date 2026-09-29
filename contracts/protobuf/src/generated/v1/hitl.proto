@@ -1,0 +1,35 @@
+syntax = "proto3";
+package devops_mlops.v1;
+
+import "google/protobuf/timestamp.proto";
+import "src/generated/v1/common.proto";
+
+service HITLService {
+  rpc CreateApproval(CreateApprovalRequest) returns (ApprovalState);
+  rpc ResolveApproval(ResolveApprovalRequest) returns (ApprovalState);
+  rpc GetApprovalState(GetApprovalStateRequest) returns (ApprovalState);
+}
+message CreateApprovalRequest {
+  string incident_id = 1;
+  string action_id = 2;
+  uint64 action_version = 3;
+  string action_fingerprint = 4;
+  VersionedDocument exact_intent = 5;
+  google.protobuf.Timestamp expires_at = 6;
+  string reason = 7;
+}
+enum HumanDecision { HUMAN_DECISION_UNSPECIFIED = 0; APPROVE = 1; REJECT = 2; }
+message ResolveApprovalRequest {
+  string approval_id = 1;
+  HumanDecision decision = 2;
+  string comment = 3;
+  // Authenticated operator identity comes from verified delegation, not a trusted free-text field.
+}
+message GetApprovalStateRequest { string approval_id = 1; }
+message ApprovalState {
+  string approval_id = 1;
+  string state = 2;
+  string action_fingerprint = 3;
+  string approval_token = 4; // Sensitive: never log or put in general audit events.
+  google.protobuf.Timestamp expires_at = 5;
+}

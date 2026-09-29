@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: platform-api
+  labels: {app.kubernetes.io/name: platform-api, app.kubernetes.io/part-of: devops-mlops-automation-pipelines}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: platform-api}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: platform-api, app.kubernetes.io/part-of: devops-mlops-automation-pipelines}
+    spec:
+      serviceAccountName: platform-api
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: api
+          image: devops-mlops-automation-pipelines:local
+          imagePullPolicy: IfNotPresent
+          ports: [{name: http, containerPort: 8000}]
+          env:
+            - {name: PIDS_ENVIRONMENT, value: local}
+            - {name: PIDS_RUNTIME_MODE, value: skeleton}
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: 500m, memory: 512Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          livenessProbe:
+            httpGet: {path: /health/live, port: http}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: {path: /health/ready, port: http}
+            initialDelaySeconds: 3
+            periodSeconds: 10

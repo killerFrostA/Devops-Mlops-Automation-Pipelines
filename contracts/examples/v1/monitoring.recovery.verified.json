@@ -1,0 +1,36 @@
+{
+  "message_id": "MSG-example-002",
+  "schema_version": "1.0",
+  "correlation_id": "INC-example-001",
+  "causation_id": null,
+  "trace_id": "TRACE-example-001",
+  "source": "example-fixture",
+  "target": "orchestrator",
+  "topic": "monitoring.recovery.verified",
+  "message_type": "RECOVERY_VERIFIED",
+  "priority": "P2",
+  "severity": "MEDIUM",
+  "timestamp": "2026-09-29T12:00:00Z",
+  "deadline": null,
+  "environment": "test",
+  "service": {
+    "service_id": "fraud-api",
+    "namespace": "sandbox",
+    "version": "v2"
+  },
+  "evidence_refs": [
+    "EVD-synthetic-001"
+  ],
+  "confidence": null,
+  "requires_ack": true,
+  "idempotency_key": "example:monitoring.recovery.verified:v1",
+  "payload": {
+    "verification_id": "VER-example-001",
+    "action_id": "ACT-example-001",
+    "window": "10m",
+    "status": "INCONCLUSIVE",
+    "checks": {
+      "error_rate": "UNKNOWN"
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "message_id": "MSG-example-008",
+  "schema_version": "1.0",
+  "correlation_id": "INC-example-001",
+  "causation_id": null,
+  "trace_id": "TRACE-example-001",
+  "source": "example-fixture",
+  "target": "orchestrator",
+  "topic": "mlops.model.health.assessed",
+  "message_type": "MODEL_HEALTH_ASSESSED",
+  "priority": "P2",
+  "severity": "MEDIUM",
+  "timestamp": "2026-09-29T12:00:00Z",
+  "deadline": null,
+  "environment": "test",
+  "service": {
+    "service_id": "fraud-api",
+    "namespace": "sandbox",
+    "version": "v2"
+  },
+  "evidence_refs": [
+    "EVD-synthetic-001"
+  ],
+  "confidence": null,
+  "requires_ack": true,
+  "idempotency_key": "example:mlops.model.health.assessed:v1",
+  "payload": {
+    "assessment_id": "MHA-example-001",
+    "model_name": "fraud-detection",
+    "model_version": "v1",
+    "drift_detected": true,
+    "drift_score": 0.37,
+    "decision": "RETRAIN_AND_EVALUATE",
+    "evidence_refs": [
+      "EVD-synthetic-001"
+    ],
+    "dataset_ref": "DATA-synthetic-001"
+  }
+}

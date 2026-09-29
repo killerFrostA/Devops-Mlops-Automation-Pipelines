@@ -1,0 +1,12 @@
+name: Bug report
+description: Report a reproducible implementation or contract failure
+title: "[Bug] "
+body:
+  - type: textarea
+    id: reproduction
+    attributes: {label: Reproduction, description: Include command, environment and synthetic inputs.}
+    validations: {required: true}
+  - type: textarea
+    id: expected
+    attributes: {label: Expected and observed behavior}
+    validations: {required: true}

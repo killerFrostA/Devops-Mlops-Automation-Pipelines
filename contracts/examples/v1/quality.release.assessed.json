@@ -1,0 +1,41 @@
+{
+  "message_id": "MSG-example-004",
+  "schema_version": "1.0",
+  "correlation_id": "INC-example-001",
+  "causation_id": null,
+  "trace_id": "TRACE-example-001",
+  "source": "example-fixture",
+  "target": "orchestrator",
+  "topic": "quality.release.assessed",
+  "message_type": "RELEASE_ASSESSMENT",
+  "priority": "P2",
+  "severity": "MEDIUM",
+  "timestamp": "2026-09-29T12:00:00Z",
+  "deadline": null,
+  "environment": "test",
+  "service": {
+    "service_id": "fraud-api",
+    "namespace": "sandbox",
+    "version": "v2"
+  },
+  "evidence_refs": [
+    "EVD-synthetic-001"
+  ],
+  "confidence": null,
+  "requires_ack": true,
+  "idempotency_key": "example:quality.release.assessed:v1",
+  "payload": {
+    "assessment_id": "REL-example-001",
+    "commit": "example-only",
+    "artifact_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "decision": "BLOCK",
+    "blocking_reasons": [
+      "Synthetic evidence is not release authorization"
+    ],
+    "warnings": [],
+    "evidence_refs": [
+      "EVD-synthetic-001"
+    ],
+    "policy_version": "skeleton-deny-all-v1"
+  }
+}

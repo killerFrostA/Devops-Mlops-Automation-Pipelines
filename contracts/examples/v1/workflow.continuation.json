@@ -1,0 +1,33 @@
+{
+  "message_id": "MSG-example-011",
+  "schema_version": "1.0",
+  "correlation_id": "INC-example-001",
+  "causation_id": null,
+  "trace_id": "TRACE-example-001",
+  "source": "orchestrator",
+  "target": "orchestrator",
+  "topic": "workflow.continuation",
+  "message_type": "WORKFLOW_CONTINUATION",
+  "priority": "P2",
+  "severity": "MEDIUM",
+  "timestamp": "2026-09-29T12:00:00Z",
+  "deadline": null,
+  "environment": "test",
+  "service": {
+    "service_id": "fraud-api",
+    "namespace": "sandbox",
+    "version": "v2"
+  },
+  "evidence_refs": [
+    "EVD-synthetic-001"
+  ],
+  "confidence": null,
+  "requires_ack": true,
+  "idempotency_key": "example:workflow.continuation:v1",
+  "payload": {
+    "incident_id": "INC-example-001",
+    "next_step": "REPLAN",
+    "action_request": null,
+    "reason": "Synthetic rejection"
+  }
+}

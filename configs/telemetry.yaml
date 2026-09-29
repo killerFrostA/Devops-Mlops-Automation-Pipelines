@@ -1,0 +1,14 @@
+service_namespace: devops-mlops-automation-pipelines
+correlation_fields: [correlation_id, causation_id, trace_id, message_id, action_id]
+forbidden_log_fields: [approval_token, postgres_dsn, redis_url, credentials, raw_features]
+platform_metrics:
+  - agent_task_duration_seconds
+  - agent_task_failures_total
+  - kafka_consumer_lag
+  - grpc_request_duration_seconds
+  - context_operation_duration_seconds
+  - hitl_wait_duration_seconds
+  - hitl_expirations_total
+  - policy_decisions_total
+  - action_verification_total
+# Instrumentation/exporter wiring is pending.

@@ -1,0 +1,18 @@
+syntax = "proto3";
+package devops_mlops.v1;
+
+import "google/protobuf/timestamp.proto";
+import "src/generated/v1/common.proto";
+
+service MonitoringService {
+  rpc GetMetricWindow(WindowRequest) returns (VersionedDocument);
+  rpc GetRecentLogs(WindowRequest) returns (VersionedDocument);
+  rpc GetServiceHealth(ServiceRequest) returns (VersionedDocument);
+}
+message ServiceRequest { string service_id = 1; string namespace = 2; }
+message WindowRequest {
+  ServiceRequest service = 1;
+  google.protobuf.Timestamp start = 2;
+  google.protobuf.Timestamp end = 3;
+  uint32 max_records = 4; // Server applies its own upper bound.
+}

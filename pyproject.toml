@@ -1,0 +1,78 @@
+[build-system]
+requires = ["setuptools>=77,<85"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "Devops-Mlops-Automation-Pipelines"
+version = "0.1.0"
+description = "Six-agent DevOps / MLOps platform — interface-first repository skeleton"
+readme = "README.md"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "pydantic>=2.9,<3",
+  "pydantic-settings>=2.6,<3",
+  "uvicorn>=0.30,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "build>=1.2,<2",
+  "setuptools>=77,<85",
+  "httpx>=0.28,<1",
+  "mypy>=1.15,<3",
+  "pytest>=8.3,<10",
+  "pytest-cov>=6,<8",
+  "ruff>=0.11,<1",
+  "jsonschema>=4.23,<5",
+  "PyYAML>=6,<7",
+]
+orchestration = ["langgraph>=1,<2"]
+messaging = ["confluent-kafka>=2.8,<3", "grpcio>=1.70,<2", "grpcio-tools>=1.70,<2"]
+storage = ["sqlalchemy>=2.0,<3", "alembic>=1.14,<2", "psycopg[binary]>=3.2,<4", "redis>=5,<8", "qdrant-client>=1.13,<2", "boto3>=1.36,<2"]
+observability = ["opentelemetry-api>=1.30,<2", "opentelemetry-sdk>=1.30,<2", "prometheus-client>=0.21,<1"]
+ml = ["scikit-learn>=1.6,<2", "mlflow>=3,<4", "evidently>=0.7,<1"]
+
+[project.scripts]
+devops-mlops = "src.cli:main"
+
+[project.urls]
+Repository = "https://github.com/killerFrostA/Devops-Mlops-Automation-Pipelines"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src", "src.*"]
+namespaces = false
+
+[tool.setuptools.package-data]
+src = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+  "integration: interactions between local components",
+  "contract: public schema and boundary validation",
+  "e2e: future deployed end-to-end scenarios",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = [".scratch", "src/generated"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src"]
+exclude = ["src/generated"]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true

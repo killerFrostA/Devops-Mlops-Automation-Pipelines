@@ -1,0 +1,56 @@
+{
+  "message_id": "MSG-example-007",
+  "schema_version": "1.0",
+  "correlation_id": "INC-example-001",
+  "causation_id": null,
+  "trace_id": "TRACE-example-001",
+  "source": "example-fixture",
+  "target": "orchestrator",
+  "topic": "resource.recommendation.created",
+  "message_type": "RESOURCE_RECOMMENDATION",
+  "priority": "P2",
+  "severity": "MEDIUM",
+  "timestamp": "2026-09-29T12:00:00Z",
+  "deadline": null,
+  "environment": "test",
+  "service": {
+    "service_id": "fraud-api",
+    "namespace": "sandbox",
+    "version": "v2"
+  },
+  "evidence_refs": [
+    "EVD-synthetic-001"
+  ],
+  "confidence": null,
+  "requires_ack": true,
+  "idempotency_key": "example:resource.recommendation.created:v1",
+  "payload": {
+    "recommendation_id": "RES-example-001",
+    "candidate_action": {
+      "action_id": "ACT-example-002",
+      "action_version": 1,
+      "incident_id": "INC-example-001",
+      "action": "SCALE_REPLICAS",
+      "environment": "test",
+      "target": {
+        "service": "fraud-api",
+        "namespace": "sandbox"
+      },
+      "parameters": {
+        "replicas": 4,
+        "min": 2,
+        "max": 8
+      },
+      "preconditions": [
+        "context_version==1"
+      ],
+      "verification_profile": "fraud-api-slo-example"
+    },
+    "confidence": 0.8,
+    "observation_window": "15m",
+    "rollback_condition": "latency fails to improve",
+    "constraints": [
+      "replicas<=8"
+    ]
+  }
+}

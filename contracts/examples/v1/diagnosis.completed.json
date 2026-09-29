@@ -1,0 +1,66 @@
+{
+  "message_id": "MSG-example-003",
+  "schema_version": "1.0",
+  "correlation_id": "INC-example-001",
+  "causation_id": null,
+  "trace_id": "TRACE-example-001",
+  "source": "example-fixture",
+  "target": "orchestrator",
+  "topic": "diagnosis.completed",
+  "message_type": "DIAGNOSIS_COMPLETED",
+  "priority": "P2",
+  "severity": "MEDIUM",
+  "timestamp": "2026-09-29T12:00:00Z",
+  "deadline": null,
+  "environment": "test",
+  "service": {
+    "service_id": "fraud-api",
+    "namespace": "sandbox",
+    "version": "v2"
+  },
+  "evidence_refs": [
+    "EVD-synthetic-001"
+  ],
+  "confidence": null,
+  "requires_ack": true,
+  "idempotency_key": "example:diagnosis.completed:v1",
+  "payload": {
+    "diagnosis_id": "RCA-example-001",
+    "hypotheses": [
+      {
+        "rank": 1,
+        "code": "MEMORY_LEAK_POST_DEPLOY",
+        "probability": 0.86,
+        "evidence_refs": [
+          "EVD-synthetic-001"
+        ]
+      }
+    ],
+    "primary_root_cause": "MEMORY_LEAK_POST_DEPLOY",
+    "recommended_actions": [
+      {
+        "action_id": "ACT-example-001",
+        "action_version": 1,
+        "incident_id": "INC-example-001",
+        "action": "ROLLBACK",
+        "environment": "test",
+        "target": {
+          "service": "fraud-api",
+          "namespace": "sandbox"
+        },
+        "parameters": {
+          "from_version": "v2",
+          "to_version": "v1",
+          "strategy": "rolling"
+        },
+        "preconditions": [
+          "context_version==1"
+        ],
+        "verification_profile": "fraud-api-slo-example"
+      }
+    ],
+    "rationale_summary": "Synthetic fixture: memory growth followed a test deployment",
+    "limitations": [],
+    "requires_additional_evidence": false
+  }
+}

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: devops-mlops-automation-pipelines-local
+  labels:
+    app.kubernetes.io/part-of: devops-mlops-automation-pipelines
+    pod-security.kubernetes.io/enforce: restricted

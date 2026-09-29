@@ -1,0 +1,16 @@
+name: Implementation task
+description: Implement a component against a reviewed contract and acceptance criterion
+title: "[Component] "
+body:
+  - type: input
+    id: backlog
+    attributes: {label: Backlog ID, placeholder: PLAT-003}
+    validations: {required: true}
+  - type: textarea
+    id: behavior
+    attributes: {label: Required behavior, description: Describe inputs and expected outputs.}
+    validations: {required: true}
+  - type: textarea
+    id: acceptance
+    attributes: {label: Acceptance evidence, description: Include error and authorization paths where applicable.}
+    validations: {required: true}

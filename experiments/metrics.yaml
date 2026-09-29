@@ -1,0 +1,9 @@
+metrics:
+  mttd_seconds: {start: fault_started_at, end: anomaly_detected_at, objective: BO1}
+  mttr_seconds: {start: fault_started_at, end: recovery_verified_at, objective: BO1}
+  rca_top1_accuracy: {numerator: correct_primary_causes, denominator: diagnosed_incidents, objective: DSO2}
+  autonomous_resolution_rate: {numerator: resolved_without_hitl, denominator: resolved_incidents, objective: BO3}
+  false_action_rate: {numerator: incorrect_actions, denominator: executed_actions, objective: BO3}
+  audit_completeness: {numerator: fully_linked_decisions, denominator: all_decisions, objective: BO6}
+  drift_detection_delay_seconds: {start: drift_started_at, end: drift_detected_at, objective: DSO4}
+# Define zero-denominator handling, datasets, confidence intervals and targets before reporting.

@@ -1,0 +1,20 @@
+schema_version: "1.0"
+delivery: at-least-once
+partition_key: correlation_id
+development_partitions: 3
+development_replication_factor: 1
+retry_suffix: .retry
+dlq_suffix: .dlq
+topics:
+  monitoring.anomaly.detected: {producer: monitoring-agent, consumers: [orchestrator, diagnosis-agent]}
+  monitoring.recovery.verified: {producer: monitoring-agent, consumers: [orchestrator]}
+  diagnosis.completed: {producer: diagnosis-agent, consumers: [orchestrator]}
+  quality.release.assessed: {producer: security-quality-agent, consumers: [orchestrator, deployment-recovery-agent]}
+  deployment.action.requested: {producer: orchestrator, consumers: [deployment-recovery-agent]}
+  deployment.action.completed: {producer: deployment-recovery-agent, consumers: [orchestrator, monitoring-agent]}
+  resource.recommendation.created: {producer: resource-optimization-agent, consumers: [orchestrator]}
+  mlops.model.health.assessed: {producer: mlops-lifecycle-agent, consumers: [orchestrator]}
+  approval.requested: {producer: orchestrator, consumers: [audit-consumer]}
+  approval.resolved: {producer: orchestrator, consumers: [audit-consumer, context-service]}
+  workflow.continuation: {producer: orchestrator, consumers: [deployment-recovery-agent]}
+# Intended ACL/topic design; no Python consumer reads this configuration yet.

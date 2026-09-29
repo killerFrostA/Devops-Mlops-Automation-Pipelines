@@ -1,0 +1,35 @@
+{
+  "message_id": "MSG-example-010",
+  "schema_version": "1.0",
+  "correlation_id": "INC-example-001",
+  "causation_id": null,
+  "trace_id": "TRACE-example-001",
+  "source": "orchestrator",
+  "target": "orchestrator",
+  "topic": "approval.resolved",
+  "message_type": "APPROVAL_RESOLVED",
+  "priority": "P2",
+  "severity": "MEDIUM",
+  "timestamp": "2026-09-29T12:00:00Z",
+  "deadline": null,
+  "environment": "test",
+  "service": {
+    "service_id": "fraud-api",
+    "namespace": "sandbox",
+    "version": "v2"
+  },
+  "evidence_refs": [
+    "EVD-synthetic-001"
+  ],
+  "confidence": null,
+  "requires_ack": true,
+  "idempotency_key": "example:approval.resolved:v1",
+  "payload": {
+    "approval_id": "APR-example-001",
+    "action_id": "ACT-example-001",
+    "action_version": 1,
+    "decision": "REJECTED",
+    "approver_id": "synthetic-operator",
+    "comment": "Example only"
+  }
+}

@@ -1,0 +1,33 @@
+syntax = "proto3";
+package devops_mlops.v1;
+
+import "src/generated/v1/common.proto";
+
+service ContextService {
+  // Only authenticated orchestrator identity may call these methods.
+  rpc GetIncidentContext(IncidentRequest) returns (VersionedDocument);
+  rpc GetLatestAgentResults(IncidentRequest) returns (VersionedDocument);
+  rpc RecordDecision(RecordDecisionRequest) returns (StoredRecord);
+  rpc RecordHITLDecision(RecordHITLDecisionRequest) returns (StoredRecord);
+  // Agents receive append-only access; server must derive identity from authentication.
+  rpc AppendAgentResult(AppendAgentResultRequest) returns (StoredRecord);
+  rpc AppendEvidence(EvidenceReference) returns (StoredRecord);
+}
+message AppendAgentResultRequest {
+  string incident_id = 1;
+  string task_id = 2;
+  string idempotency_key = 3;
+  VersionedDocument result = 4;
+}
+message RecordDecisionRequest {
+  string incident_id = 1;
+  uint64 expected_context_version = 2;
+  string idempotency_key = 3;
+  VersionedDocument decision = 4;
+}
+message RecordHITLDecisionRequest {
+  string incident_id = 1;
+  string approval_id = 2;
+  string idempotency_key = 3;
+  VersionedDocument decision = 4;
+}

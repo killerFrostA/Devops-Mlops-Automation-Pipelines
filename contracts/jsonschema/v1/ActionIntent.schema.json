@@ -1,0 +1,110 @@
+{
+  "$defs": {
+    "ActionTarget": {
+      "additionalProperties": false,
+      "properties": {
+        "namespace": {
+          "minLength": 1,
+          "title": "Namespace",
+          "type": "string"
+        },
+        "service": {
+          "minLength": 1,
+          "title": "Service",
+          "type": "string"
+        }
+      },
+      "required": [
+        "service",
+        "namespace"
+      ],
+      "title": "ActionTarget",
+      "type": "object"
+    },
+    "ActionType": {
+      "enum": [
+        "DEPLOY",
+        "ROLLING_RESTART",
+        "ROLLBACK",
+        "CANARY",
+        "BLUE_GREEN_SWITCH",
+        "TRAFFIC_SHIFT",
+        "SCALE_REPLICAS",
+        "PROMOTE_MODEL"
+      ],
+      "title": "ActionType",
+      "type": "string"
+    },
+    "Environment": {
+      "enum": [
+        "local",
+        "test",
+        "staging",
+        "production"
+      ],
+      "title": "Environment",
+      "type": "string"
+    },
+    "JsonValue": {}
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "action": {
+      "$ref": "#/$defs/ActionType"
+    },
+    "action_id": {
+      "minLength": 1,
+      "title": "Action Id",
+      "type": "string"
+    },
+    "action_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Action Version",
+      "type": "integer"
+    },
+    "environment": {
+      "$ref": "#/$defs/Environment"
+    },
+    "incident_id": {
+      "minLength": 1,
+      "title": "Incident Id",
+      "type": "string"
+    },
+    "parameters": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Parameters",
+      "type": "object"
+    },
+    "preconditions": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Preconditions",
+      "type": "array"
+    },
+    "target": {
+      "$ref": "#/$defs/ActionTarget"
+    },
+    "verification_profile": {
+      "minLength": 1,
+      "title": "Verification Profile",
+      "type": "string"
+    }
+  },
+  "required": [
+    "action_id",
+    "incident_id",
+    "action",
+    "environment",
+    "target",
+    "parameters",
+    "verification_profile"
+  ],
+  "title": "ActionIntent",
+  "type": "object"
+}

@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "action_id": {
+      "title": "Action Id",
+      "type": "string"
+    },
+    "checks": {
+      "additionalProperties": {
+        "enum": [
+          "PASS",
+          "FAIL",
+          "UNKNOWN"
+        ],
+        "type": "string"
+      },
+      "title": "Checks",
+      "type": "object"
+    },
+    "status": {
+      "enum": [
+        "RECOVERED",
+        "NOT_RECOVERED",
+        "INCONCLUSIVE"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "verification_id": {
+      "title": "Verification Id",
+      "type": "string"
+    },
+    "window": {
+      "title": "Window",
+      "type": "string"
+    }
+  },
+  "required": [
+    "verification_id",
+    "action_id",
+    "window",
+    "status",
+    "checks"
+  ],
+  "title": "RecoveryVerified",
+  "type": "object"
+}

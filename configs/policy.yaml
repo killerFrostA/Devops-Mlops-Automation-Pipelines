@@ -1,0 +1,14 @@
+version: skeleton-deny-all-v1
+runtime_default: BLOCK
+execution_enabled: false
+# Future policy inputs must be approved and enforced, not simply trusted from event payloads.
+required_inputs:
+  - authenticated_workload_identity
+  - exact_action_fingerprint
+  - context_version_and_freshness
+  - mandatory_evidence
+  - release_gate_when_applicable
+  - risk_and_confidence
+  - approval_binding_and_expiry_when_required
+  - durable_idempotency
+  - independent_verification_profile

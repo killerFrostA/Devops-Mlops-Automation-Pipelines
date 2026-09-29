@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "assessment_id": {
+      "title": "Assessment Id",
+      "type": "string"
+    },
+    "dataset_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Dataset Ref"
+    },
+    "decision": {
+      "enum": [
+        "HEALTHY",
+        "COLLECT_LABELS",
+        "RETRAIN_AND_EVALUATE"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "drift_detected": {
+      "title": "Drift Detected",
+      "type": "boolean"
+    },
+    "drift_score": {
+      "minimum": 0,
+      "title": "Drift Score",
+      "type": "number"
+    },
+    "evidence_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "model_name": {
+      "title": "Model Name",
+      "type": "string"
+    },
+    "model_version": {
+      "title": "Model Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "assessment_id",
+    "model_name",
+    "model_version",
+    "drift_detected",
+    "drift_score",
+    "decision",
+    "evidence_refs"
+  ],
+  "title": "ModelHealthAssessed",
+  "type": "object"
+}
