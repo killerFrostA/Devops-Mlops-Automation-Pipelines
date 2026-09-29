@@ -3,7 +3,15 @@
 import math
 from typing import Annotated, Literal
 
-from pydantic import AwareDatetime, Field, StrictFloat, StrictInt, StrictStr, model_validator
+from pydantic import (
+    AliasChoices,
+    AwareDatetime,
+    Field,
+    StrictFloat,
+    StrictInt,
+    StrictStr,
+    model_validator,
+)
 
 from src.contracts.base import Contract
 from src.contracts.mlops import BinaryLabel, Count, Name, Score
@@ -97,12 +105,14 @@ class BaselineProfile(Contract):
 
 
 class PredictionObservation(Contract):
-    transaction_id: Name
+    observation_id: Name = Field(validation_alias=AliasChoices("observation_id", "transaction_id"))
     model_name: Name
     model_version: Name
     predicted_at: AwareDatetime
     features: dict[Name, FeatureValue]
-    fraud_score: Score
+    positive_class_score: Score = Field(
+        validation_alias=AliasChoices("positive_class_score", "fraud_score")
+    )
     predicted_class: BinaryLabel
 
     @model_validator(mode="after")
@@ -116,7 +126,7 @@ class PredictionObservation(Contract):
 
 
 class LabelObservation(Contract):
-    transaction_id: Name
+    observation_id: Name = Field(validation_alias=AliasChoices("observation_id", "transaction_id"))
     label: BinaryLabel
     confirmed_at: AwareDatetime
 
@@ -141,3 +151,32 @@ class WindowBuildRequest(Contract):
         if self.as_of < self.window_end:
             raise ValueError("as_of must be at or after window_end")
         return self
+
+
+class ModelWindowQuery(Contract):
+    """Select exactly one model version, half-open event window and label cutoff."""
+
+    model_name: Name
+    model_version: Name
+    window_start: AwareDatetime
+    window_end: AwareDatetime
+    as_of: AwareDatetime
+    dataset_ref: Name | None = None
+
+    @model_validator(mode="after")
+    def validate_window(self) -> "ModelWindowQuery":
+        if self.window_end <= self.window_start:
+            raise ValueError("window_end must be later than window_start")
+        if self.as_of < self.window_end:
+            raise ValueError("as_of must be at or after window_end")
+        return self
+
+
+class PredictionBatch(Contract):
+    records: Annotated[tuple[PredictionObservation, ...], Field(max_length=10_000)]
+    evidence_ref: Name
+
+
+class LabelBatch(Contract):
+    records: Annotated[tuple[LabelObservation, ...], Field(max_length=10_000)]
+    evidence_ref: Name

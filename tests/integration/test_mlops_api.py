@@ -91,3 +91,24 @@ def test_cli_builds_health_window_from_prediction_records():
     assert report.assessment.decision == "RETRAIN_AND_EVALUATE"
     assert report.performance.labeled_samples == 60
     assert [item.current_samples for item in report.distributions] == [100, 100, 100]
+
+
+def test_cli_fetches_separate_machine_source_files():
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "src.agents.mlops_lifecycle",
+            "--sources",
+            str(ROOT / "contracts/examples/agent6/local-sources/machine-sources.json"),
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=20,
+    )
+    report = ModelHealthReport.model_validate_json(result.stdout)
+    assert report.assessment.model_name == "machine-failure"
+    assert report.assessment.decision == "RETRAIN_AND_EVALUATE"
+    assert report.performance.labeled_samples == 60

@@ -32,22 +32,22 @@ def build_model_health_input(request: WindowBuildRequest) -> ModelHealthInput:
             baseline.model_version,
         ):
             raise WindowBuildError("Prediction model identity differs from the baseline")
-        if record.transaction_id in by_id:
-            raise WindowBuildError(f"Duplicate prediction transaction_id: {record.transaction_id}")
-        by_id[record.transaction_id] = record
+        if record.observation_id in by_id:
+            raise WindowBuildError(f"Duplicate prediction observation_id: {record.observation_id}")
+        by_id[record.observation_id] = record
 
     labels: dict[str, int] = {}
     for label_record in request.labels:
-        prediction = by_id.get(label_record.transaction_id)
+        prediction = by_id.get(label_record.observation_id)
         if prediction is None or label_record.confirmed_at > request.as_of:
             continue
         if label_record.confirmed_at < prediction.predicted_at:
             raise WindowBuildError(
-                f"Label predates its prediction for transaction_id: {label_record.transaction_id}"
+                f"Label predates its prediction for observation_id: {label_record.observation_id}"
             )
-        if label_record.transaction_id in labels:
-            raise WindowBuildError(f"Duplicate confirmed label: {label_record.transaction_id}")
-        labels[label_record.transaction_id] = label_record.label
+        if label_record.observation_id in labels:
+            raise WindowBuildError(f"Duplicate confirmed label: {label_record.observation_id}")
+        labels[label_record.observation_id] = label_record.label
     if labels and request.labels_evidence_ref is None:
         raise WindowBuildError("Confirmed labels require labels_evidence_ref")
 
@@ -58,7 +58,7 @@ def build_model_health_input(request: WindowBuildRequest) -> ModelHealthInput:
         for record in predictions:
             if isinstance(spec, NumericHistogramSpec):
                 value = (
-                    record.fraud_score
+                    record.positive_class_score
                     if spec.scope == "prediction"
                     else record.features.get(spec.name)
                 )
@@ -90,7 +90,7 @@ def build_model_health_input(request: WindowBuildRequest) -> ModelHealthInput:
         evidence_refs=tuple(evidence),
         performance=LabeledPredictionWindow(
             predictions=tuple(record.predicted_class for record in predictions),
-            labels=tuple(labels.get(record.transaction_id) for record in predictions),
+            labels=tuple(labels.get(record.observation_id) for record in predictions),
             baseline_f1=baseline.baseline_f1,
         ),
         dataset_ref=request.dataset_ref,

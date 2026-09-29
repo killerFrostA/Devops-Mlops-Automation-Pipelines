@@ -1,0 +1,73 @@
+{
+  "reference_id": "machine-baseline-v1",
+  "model_name": "machine-failure",
+  "model_version": "v1",
+  "baseline_f1": 0.9,
+  "evidence_ref": "local-baseline-overridden-by-file-digest",
+  "distributions": [
+    {
+      "spec": {
+        "kind": "numeric",
+        "name": "temperature_c",
+        "scope": "feature",
+        "edges": [
+          50,
+          70,
+          90
+        ],
+        "bins": [
+          "lt-50",
+          "50-70",
+          "70-90",
+          "gte-90"
+        ]
+      },
+      "reference_counts": [
+        25,
+        25,
+        25,
+        25
+      ]
+    },
+    {
+      "spec": {
+        "kind": "numeric",
+        "name": "failure_probability",
+        "scope": "prediction",
+        "edges": [
+          0.3,
+          0.7
+        ],
+        "bins": [
+          "lt-0.3",
+          "0.3-0.7",
+          "gte-0.7"
+        ]
+      },
+      "reference_counts": [
+        70,
+        20,
+        10
+      ]
+    },
+    {
+      "spec": {
+        "kind": "categorical",
+        "name": "machine_type",
+        "scope": "feature",
+        "categories": [
+          "press",
+          "conveyor"
+        ],
+        "other_bin": "__OTHER__",
+        "missing_bin": "__MISSING__"
+      },
+      "reference_counts": [
+        50,
+        30,
+        15,
+        5
+      ]
+    }
+  ]
+}

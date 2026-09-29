@@ -168,15 +168,15 @@
           "title": "Label",
           "type": "integer"
         },
-        "transaction_id": {
+        "observation_id": {
           "maxLength": 128,
           "minLength": 1,
-          "title": "Transaction Id",
+          "title": "Observation Id",
           "type": "string"
         }
       },
       "required": [
-        "transaction_id",
+        "observation_id",
         "label",
         "confirmed_at"
       ],
@@ -277,12 +277,6 @@
           "title": "Features",
           "type": "object"
         },
-        "fraud_score": {
-          "maximum": 1,
-          "minimum": 0,
-          "title": "Fraud Score",
-          "type": "number"
-        },
         "model_name": {
           "maxLength": 128,
           "minLength": 1,
@@ -295,6 +289,18 @@
           "title": "Model Version",
           "type": "string"
         },
+        "observation_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "positive_class_score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Positive Class Score",
+          "type": "number"
+        },
         "predicted_at": {
           "format": "date-time",
           "title": "Predicted At",
@@ -305,21 +311,15 @@
           "minimum": 0,
           "title": "Predicted Class",
           "type": "integer"
-        },
-        "transaction_id": {
-          "maxLength": 128,
-          "minLength": 1,
-          "title": "Transaction Id",
-          "type": "string"
         }
       },
       "required": [
-        "transaction_id",
+        "observation_id",
         "model_name",
         "model_version",
         "predicted_at",
         "features",
-        "fraud_score",
+        "positive_class_score",
         "predicted_class"
       ],
       "title": "PredictionObservation",

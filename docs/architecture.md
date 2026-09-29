@@ -40,7 +40,7 @@ authorization; a Python protocol is not an access-control mechanism.
 | --- | --- | --- |
 | Contracts | Strict event/task/action validation, JSON Schema export, synthetic examples | Compatibility policy and registry integration |
 | Agents 1-5 | Validates task identity/deadline; returns NOT_IMPLEMENTED | Specialist algorithms and tools |
-| Agent 6 | Local record-window builder, PSI/F1 assessment, label quality gates and typed recommendation | Production data adapters, baseline persistence, calibration, durable integration, retraining and promotion |
+| Agent 6 | Local file readers, record-window builder, PSI/F1 assessment and typed recommendation | Production data adapters, baseline persistence, calibration, durable integration, retraining and promotion |
 | HTTP API | Liveness, skeleton readiness, six-agent inventory, local model-health assessment, OpenAPI | Identity, incidents, approvals and UI streams |
 | Orchestrator | Initial analysis route plan and state model | LangGraph runtime, checkpoints and complete workflow |
 | Policy | Deny-all assessment bound to action fingerprint | Approved risk matrix and evidence/freshness gates |

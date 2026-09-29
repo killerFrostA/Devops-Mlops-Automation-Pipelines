@@ -4,9 +4,23 @@ Owner: Member 6. The first implementation assesses model health locally. It meas
 and prediction distribution drift, evaluates binary F1 on available ground truth, and returns
 a typed recommendation. Training, registry operations, persistence and promotion are pending.
 
-## Run the example
+## Run local examples
 
-From the repository root in PowerShell:
+The source-backed machine-failure example reads three separate JSON files: a saved baseline,
+production-like prediction records and later confirmed outcomes. Its query selects model `v1`,
+a one-hour window and a label cutoff. From the repository root in PowerShell:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.agents.mlops_lifecycle --sources contracts/examples/agent6/local-sources/machine-sources.json
+```
+
+The CLI resolves file paths relative to `machine-sources.json`. The three local file adapters
+validate records, select the requested version/window, match labels by observation ID, construct
+histograms and run the health assessment. Its report recommends `RETRAIN_AND_EVALUATE` for this
+synthetic dataset. File content SHA-256 digests identify the exact local inputs in the result;
+they do not constitute a production evidence store. No raw observations are copied into the report.
+
+You can also supply already-prepared health input:
 
 ```powershell
 .\.venv\Scripts\python.exe -m src.agents.mlops_lifecycle --input contracts/examples/agent6/model-health-input.json --policy configs/agent6-health-policy.json
@@ -22,12 +36,16 @@ The record-based example builds the histograms and label alignment first:
 .\.venv\Scripts\python.exe -m src.agents.mlops_lifecycle --records contracts/examples/agent6/observation-window.json
 ```
 
-Its 100 synthetic prediction records include numeric transaction amounts, categorical merchant
-values, fraud scores and predicted classes. Confirmed labels are joined by transaction ID.
+This older synthetic fixture includes numeric transaction amounts, categorical merchant values,
+prediction scores and predicted classes. Confirmed labels are joined by observation ID.
+Legacy `transaction_id` and `fraud_score` field names remain accepted when reading records;
+new records use `observation_id` and `positive_class_score`.
 A label confirmed after `as_of` is excluded; changing `as_of` permits a later assessment.
 The reference bins and counts come from the versioned baseline embedded in this local fixture.
 The record-based CLI path calls `MLOpsLifecycleAgent.assess_observation_window`.
-Only the prepared-statistics path is currently exposed by the local HTTP API.
+The new `--sources` path calls `MLOpsLifecycleAgent.assess_model_window` through injected
+baseline, prediction and label reader interfaces. The local HTTP API accepts only prepared
+statistics; raw-record access is intentionally limited to local CLI examples at this stage.
 
 Start the existing API with `python -m src.cli serve --reload` and open
 `http://127.0.0.1:8000/docs`. Submit the prepared model-health-input.json example to `POST /api/v1/mlops/health/assess`.
@@ -94,11 +112,13 @@ business acceptance criteria. No decision confidence or statistical significance
 - `metrics.py`: PSI and binary confusion counts.
 - `health.py`: policy gates, diagnostics and recommendations.
 - `window_builder.py`: fixed-bin histograms, record filtering and delayed-label matching.
-- `service.py`: bounded task handling, record-window entry point and injected assessor port.
-- `__main__.py`: prepared-input or record-window JSON CLI.
+- `ports.py`: baseline, prediction and label reader interfaces.
+- `local_files.py`: development-only file readers with content-digest provenance.
+- `service.py`: bounded task handling and three assessment entry points.
+- `__main__.py`: prepared-input, record-window or separate-source JSON CLI.
 - `src/contracts/mlops.py` and `src/contracts/mlops_observations.py`: validated public contracts.
-- `tests/unit/test_mlops_health.py`, `tests/unit/test_mlops_window_builder.py` and
-  `tests/integration/test_mlops_api.py`: behavior verification.
+- `tests/unit/test_mlops_health.py`, `tests/unit/test_mlops_window_builder.py`,
+  `tests/unit/test_mlops_sources.py` and `tests/integration/test_mlops_api.py`: behavior verification.
 
 Next: trusted production record-source adapters and persisted baseline lookup; threshold calibration
 with actual fraud data; durable evidence/results and Kafka orchestration; reproducible retraining and

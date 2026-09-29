@@ -4,12 +4,13 @@ import argparse
 import json
 from pathlib import Path
 
+from src.agents.mlops_lifecycle.local_files import LocalSourceConfig
 from src.contracts.actions import ActionIntent, ActionRequest
 from src.contracts.base import Contract
 from src.contracts.context import EvidenceReference, IncidentContext
 from src.contracts.events import EventEnvelope
 from src.contracts.mlops import ModelHealthInput, ModelHealthPolicy, ModelHealthReport
-from src.contracts.mlops_observations import BaselineProfile, WindowBuildRequest
+from src.contracts.mlops_observations import BaselineProfile, ModelWindowQuery, WindowBuildRequest
 from src.contracts.tasks import AgentResult, AgentTask
 from src.contracts.topics import TOPICS
 
@@ -27,6 +28,8 @@ MODELS: tuple[type[Contract], ...] = (
     ModelHealthReport,
     BaselineProfile,
     WindowBuildRequest,
+    ModelWindowQuery,
+    LocalSourceConfig,
 )
 
 

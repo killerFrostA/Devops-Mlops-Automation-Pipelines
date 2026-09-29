@@ -1,0 +1,13 @@
+{
+  "query": {
+    "model_name": "machine-failure",
+    "model_version": "v1",
+    "window_start": "2026-09-29T08:00:00Z",
+    "window_end": "2026-09-29T09:00:00Z",
+    "as_of": "2026-09-29T10:00:00Z",
+    "dataset_ref": "synthetic-machine-window"
+  },
+  "baseline_file": "machine-baseline.json",
+  "predictions_file": "machine-predictions.json",
+  "labels_file": "machine-labels.json"
+}
