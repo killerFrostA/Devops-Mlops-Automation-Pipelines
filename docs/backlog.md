@@ -23,7 +23,7 @@ your issue tracker after approving the interface baseline.
 | A4-001 | Member 4 | Kubernetes/Helm deployment adapter | Exact approved action, pre/post states and idempotency verified |
 | A5-001 | Member 5 | Bounded optimization rules | Replica bounds, SLO constraints and rollback conditions enforced |
 | A5-002 | Member 5 | Resource forecasts | Error and savings measured without breaching SLO |
-| A6-001 | Member 6 | Drift + labeled performance assessment (locally implemented) | PSI/F1 gates verified; trusted adapters and calibration pending |
+| A6-001 | Member 6 | Drift + labeled performance assessment and local window builder | PSI/F1 and record binning verified; production source/baseline adapters and calibration pending |
 | A6-002 | Member 6 | Reproducible training/evaluation + MLflow | Versioned data/model runs; champion/challenger metrics reproducible |
 | A6-003 | Member 6 | Controlled model promotion | Release gate, HITL when needed, canary and rollback linked to Agent 4 |
 | OPS-001 | Shared | Provider-specific infrastructure | Reviewed environment isolation, secrets, backups and capacity |

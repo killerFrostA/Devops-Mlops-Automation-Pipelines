@@ -1,0 +1,1590 @@
+{
+  "baseline": {
+    "reference_id": "synthetic-baseline-v1",
+    "model_name": "fraud-detection",
+    "model_version": "synthetic-v1",
+    "baseline_f1": 0.9,
+    "evidence_ref": "synthetic-baseline-evidence",
+    "distributions": [
+      {
+        "spec": {
+          "kind": "numeric",
+          "name": "transaction_amount",
+          "scope": "feature",
+          "edges": [
+            50,
+            100,
+            500
+          ],
+          "bins": [
+            "lt-50",
+            "50-100",
+            "100-500",
+            "gte-500"
+          ]
+        },
+        "reference_counts": [
+          25,
+          25,
+          25,
+          25
+        ]
+      },
+      {
+        "spec": {
+          "kind": "numeric",
+          "name": "fraud_probability",
+          "scope": "prediction",
+          "edges": [
+            0.3,
+            0.7
+          ],
+          "bins": [
+            "lt-0.3",
+            "0.3-0.7",
+            "gte-0.7"
+          ]
+        },
+        "reference_counts": [
+          70,
+          20,
+          10
+        ]
+      },
+      {
+        "spec": {
+          "kind": "categorical",
+          "name": "merchant_category",
+          "scope": "feature",
+          "categories": [
+            "grocery",
+            "travel"
+          ],
+          "other_bin": "__OTHER__",
+          "missing_bin": "__MISSING__"
+        },
+        "reference_counts": [
+          50,
+          30,
+          15,
+          5
+        ]
+      }
+    ]
+  },
+  "window_start": "2026-09-29T08:00:00Z",
+  "window_end": "2026-09-29T09:00:00Z",
+  "as_of": "2026-09-29T10:00:00Z",
+  "predictions": [
+    {
+      "transaction_id": "TX-001",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:00:00Z",
+      "features": {
+        "transaction_amount": 25,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.98,
+      "predicted_class": 1
+    },
+    {
+      "transaction_id": "TX-002",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:01:00Z",
+      "features": {
+        "transaction_amount": 25,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.98,
+      "predicted_class": 1
+    },
+    {
+      "transaction_id": "TX-003",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:02:00Z",
+      "features": {
+        "transaction_amount": 25,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.98,
+      "predicted_class": 1
+    },
+    {
+      "transaction_id": "TX-004",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:03:00Z",
+      "features": {
+        "transaction_amount": 25,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.98,
+      "predicted_class": 1
+    },
+    {
+      "transaction_id": "TX-005",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:04:00Z",
+      "features": {
+        "transaction_amount": 25,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.98,
+      "predicted_class": 1
+    },
+    {
+      "transaction_id": "TX-006",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:05:00Z",
+      "features": {
+        "transaction_amount": 75,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.98,
+      "predicted_class": 1
+    },
+    {
+      "transaction_id": "TX-007",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:06:00Z",
+      "features": {
+        "transaction_amount": 75,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.98,
+      "predicted_class": 1
+    },
+    {
+      "transaction_id": "TX-008",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:07:00Z",
+      "features": {
+        "transaction_amount": 75,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.98,
+      "predicted_class": 1
+    },
+    {
+      "transaction_id": "TX-009",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:08:00Z",
+      "features": {
+        "transaction_amount": 75,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.98,
+      "predicted_class": 1
+    },
+    {
+      "transaction_id": "TX-010",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:09:00Z",
+      "features": {
+        "transaction_amount": 75,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.98,
+      "predicted_class": 1
+    },
+    {
+      "transaction_id": "TX-011",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:10:00Z",
+      "features": {
+        "transaction_amount": 75,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-012",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:11:00Z",
+      "features": {
+        "transaction_amount": 75,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-013",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:12:00Z",
+      "features": {
+        "transaction_amount": 75,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-014",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:13:00Z",
+      "features": {
+        "transaction_amount": 75,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-015",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:14:00Z",
+      "features": {
+        "transaction_amount": 75,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-016",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:15:00Z",
+      "features": {
+        "transaction_amount": 75,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-017",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:16:00Z",
+      "features": {
+        "transaction_amount": 75,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-018",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:17:00Z",
+      "features": {
+        "transaction_amount": 75,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-019",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:18:00Z",
+      "features": {
+        "transaction_amount": 75,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-020",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:19:00Z",
+      "features": {
+        "transaction_amount": 75,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-021",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:20:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-022",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:21:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-023",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:22:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-024",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:23:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-025",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:24:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-026",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:25:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-027",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:26:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-028",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:27:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-029",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:28:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-030",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:29:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-031",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:30:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-032",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:31:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-033",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:32:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-034",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:33:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-035",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:34:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-036",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:35:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-037",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:36:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-038",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:37:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-039",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:38:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-040",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:39:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "grocery"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-041",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:40:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-042",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:41:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-043",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:42:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-044",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:43:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-045",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:44:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-046",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:45:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-047",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:46:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-048",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:47:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-049",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:48:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-050",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:49:00Z",
+      "features": {
+        "transaction_amount": 250,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.8,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-051",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:50:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-052",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:51:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-053",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:52:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-054",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:53:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-055",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:54:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-056",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:55:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-057",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:56:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-058",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:57:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-059",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:58:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-060",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:59:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-061",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:00:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-062",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:01:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-063",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:02:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-064",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:03:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-065",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:04:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-066",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:05:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-067",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:06:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-068",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:07:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-069",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:08:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-070",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:09:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-071",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:10:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-072",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:11:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-073",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:12:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-074",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:13:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-075",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:14:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "travel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-076",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:15:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "fuel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-077",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:16:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "fuel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-078",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:17:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "fuel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-079",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:18:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "fuel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-080",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:19:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "fuel"
+      },
+      "fraud_score": 0.5,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-081",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:20:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "fuel"
+      },
+      "fraud_score": 0.2,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-082",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:21:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "fuel"
+      },
+      "fraud_score": 0.2,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-083",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:22:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "fuel"
+      },
+      "fraud_score": 0.2,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-084",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:23:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "fuel"
+      },
+      "fraud_score": 0.2,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-085",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:24:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "fuel"
+      },
+      "fraud_score": 0.2,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-086",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:25:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "fuel"
+      },
+      "fraud_score": 0.2,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-087",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:26:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "fuel"
+      },
+      "fraud_score": 0.2,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-088",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:27:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "fuel"
+      },
+      "fraud_score": 0.2,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-089",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:28:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "fuel"
+      },
+      "fraud_score": 0.2,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-090",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:29:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "fuel"
+      },
+      "fraud_score": 0.2,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-091",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:30:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "fuel"
+      },
+      "fraud_score": 0.2,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-092",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:31:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "fuel"
+      },
+      "fraud_score": 0.2,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-093",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:32:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "fuel"
+      },
+      "fraud_score": 0.2,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-094",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:33:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "fuel"
+      },
+      "fraud_score": 0.2,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-095",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:34:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": "fuel"
+      },
+      "fraud_score": 0.2,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-096",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:35:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": null
+      },
+      "fraud_score": 0.2,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-097",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:36:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": null
+      },
+      "fraud_score": 0.2,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-098",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:37:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": null
+      },
+      "fraud_score": 0.2,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-099",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:38:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": null
+      },
+      "fraud_score": 0.2,
+      "predicted_class": 0
+    },
+    {
+      "transaction_id": "TX-100",
+      "model_name": "fraud-detection",
+      "model_version": "synthetic-v1",
+      "predicted_at": "2026-09-29T08:39:00Z",
+      "features": {
+        "transaction_amount": 750,
+        "merchant_category": null
+      },
+      "fraud_score": 0.2,
+      "predicted_class": 0
+    }
+  ],
+  "labels": [
+    {
+      "transaction_id": "TX-001",
+      "label": 1,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-002",
+      "label": 1,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-003",
+      "label": 1,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-004",
+      "label": 1,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-005",
+      "label": 1,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-006",
+      "label": 1,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-007",
+      "label": 1,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-008",
+      "label": 1,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-009",
+      "label": 1,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-010",
+      "label": 1,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-011",
+      "label": 1,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-012",
+      "label": 1,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-013",
+      "label": 1,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-014",
+      "label": 1,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-015",
+      "label": 1,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-016",
+      "label": 1,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-017",
+      "label": 1,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-018",
+      "label": 1,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-019",
+      "label": 1,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-020",
+      "label": 1,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-021",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-022",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-023",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-024",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-025",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-026",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-027",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-028",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-029",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-030",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-031",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-032",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-033",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-034",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-035",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-036",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-037",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-038",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-039",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-040",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-041",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-042",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-043",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-044",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-045",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-046",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-047",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-048",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-049",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-050",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-051",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-052",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-053",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-054",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-055",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-056",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-057",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-058",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-059",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-060",
+      "label": 0,
+      "confirmed_at": "2026-09-29T09:30:00Z"
+    },
+    {
+      "transaction_id": "TX-061",
+      "label": 0,
+      "confirmed_at": "2026-09-30T09:30:00Z"
+    }
+  ],
+  "predictions_evidence_ref": "synthetic-predictions-evidence",
+  "labels_evidence_ref": "synthetic-labels-evidence",
+  "dataset_ref": "synthetic-evaluation-window"
+}

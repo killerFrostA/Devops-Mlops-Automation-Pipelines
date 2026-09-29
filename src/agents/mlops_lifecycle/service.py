@@ -7,8 +7,10 @@ from pydantic import ValidationError
 from src.agents.base import SkeletonAgent
 from src.agents.mlops_lifecycle.health import InsufficientSamplesError, RuleBasedModelHealthAssessor
 from src.agents.mlops_lifecycle.ports import ModelHealthAssessor
+from src.agents.mlops_lifecycle.window_builder import build_model_health_input
 from src.contracts.enums import AgentId, ResultStatus
 from src.contracts.mlops import ModelHealthInput, ModelHealthReport
+from src.contracts.mlops_observations import WindowBuildRequest
 from src.contracts.tasks import AgentResult, AgentTask
 
 
@@ -22,6 +24,9 @@ class MLOpsLifecycleAgent(SkeletonAgent):
 
     async def assess_model_health(self, request: ModelHealthInput) -> ModelHealthReport:
         return await self._assessor.assess(request)
+
+    async def assess_observation_window(self, request: WindowBuildRequest) -> ModelHealthReport:
+        return await self.assess_model_health(build_model_health_input(request))
 
     async def handle(self, task: AgentTask) -> AgentResult:
         if task.agent_id != self.agent_id:

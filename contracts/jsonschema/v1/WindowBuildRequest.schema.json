@@ -1,0 +1,413 @@
+{
+  "$defs": {
+    "BaselineDistribution": {
+      "additionalProperties": false,
+      "properties": {
+        "reference_counts": {
+          "items": {
+            "maximum": 1000000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "title": "Reference Counts",
+          "type": "array"
+        },
+        "spec": {
+          "discriminator": {
+            "mapping": {
+              "categorical": "#/$defs/CategoricalHistogramSpec",
+              "numeric": "#/$defs/NumericHistogramSpec"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/NumericHistogramSpec"
+            },
+            {
+              "$ref": "#/$defs/CategoricalHistogramSpec"
+            }
+          ],
+          "title": "Spec"
+        }
+      },
+      "required": [
+        "spec",
+        "reference_counts"
+      ],
+      "title": "BaselineDistribution",
+      "type": "object"
+    },
+    "BaselineProfile": {
+      "additionalProperties": false,
+      "description": "Versioned reference values; a source adapter must establish provenance.",
+      "properties": {
+        "baseline_f1": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Baseline F1",
+          "type": "number"
+        },
+        "distributions": {
+          "items": {
+            "$ref": "#/$defs/BaselineDistribution"
+          },
+          "maxItems": 200,
+          "minItems": 1,
+          "title": "Distributions",
+          "type": "array"
+        },
+        "evidence_ref": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Evidence Ref",
+          "type": "string"
+        },
+        "model_name": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Model Name",
+          "type": "string"
+        },
+        "model_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Model Version",
+          "type": "string"
+        },
+        "reference_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Reference Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reference_id",
+        "model_name",
+        "model_version",
+        "baseline_f1",
+        "evidence_ref",
+        "distributions"
+      ],
+      "title": "BaselineProfile",
+      "type": "object"
+    },
+    "CategoricalHistogramSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "categories": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 98,
+          "minItems": 1,
+          "title": "Categories",
+          "type": "array"
+        },
+        "kind": {
+          "const": "categorical",
+          "default": "categorical",
+          "title": "Kind",
+          "type": "string"
+        },
+        "missing_bin": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Missing Bin"
+        },
+        "name": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "other_bin": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Other Bin",
+          "type": "string"
+        },
+        "scope": {
+          "const": "feature",
+          "default": "feature",
+          "title": "Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "categories",
+        "other_bin"
+      ],
+      "title": "CategoricalHistogramSpec",
+      "type": "object"
+    },
+    "LabelObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "confirmed_at": {
+          "format": "date-time",
+          "title": "Confirmed At",
+          "type": "string"
+        },
+        "label": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Label",
+          "type": "integer"
+        },
+        "transaction_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Transaction Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "transaction_id",
+        "label",
+        "confirmed_at"
+      ],
+      "title": "LabelObservation",
+      "type": "object"
+    },
+    "NumericHistogramSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "bins": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 100,
+          "minItems": 2,
+          "title": "Bins",
+          "type": "array"
+        },
+        "edges": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 99,
+          "minItems": 1,
+          "title": "Edges",
+          "type": "array"
+        },
+        "kind": {
+          "const": "numeric",
+          "default": "numeric",
+          "title": "Kind",
+          "type": "string"
+        },
+        "missing_bin": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Missing Bin"
+        },
+        "name": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "scope": {
+          "enum": [
+            "feature",
+            "prediction"
+          ],
+          "title": "Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "scope",
+        "edges",
+        "bins"
+      ],
+      "title": "NumericHistogramSpec",
+      "type": "object"
+    },
+    "PredictionObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "features": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "propertyNames": {
+            "maxLength": 128,
+            "minLength": 1
+          },
+          "title": "Features",
+          "type": "object"
+        },
+        "fraud_score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Fraud Score",
+          "type": "number"
+        },
+        "model_name": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Model Name",
+          "type": "string"
+        },
+        "model_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Model Version",
+          "type": "string"
+        },
+        "predicted_at": {
+          "format": "date-time",
+          "title": "Predicted At",
+          "type": "string"
+        },
+        "predicted_class": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Predicted Class",
+          "type": "integer"
+        },
+        "transaction_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Transaction Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "transaction_id",
+        "model_name",
+        "model_version",
+        "predicted_at",
+        "features",
+        "fraud_score",
+        "predicted_class"
+      ],
+      "title": "PredictionObservation",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "as_of": {
+      "format": "date-time",
+      "title": "As Of",
+      "type": "string"
+    },
+    "baseline": {
+      "$ref": "#/$defs/BaselineProfile"
+    },
+    "dataset_ref": {
+      "anyOf": [
+        {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Dataset Ref"
+    },
+    "labels": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/LabelObservation"
+      },
+      "maxItems": 10000,
+      "title": "Labels",
+      "type": "array"
+    },
+    "labels_evidence_ref": {
+      "anyOf": [
+        {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Labels Evidence Ref"
+    },
+    "predictions": {
+      "items": {
+        "$ref": "#/$defs/PredictionObservation"
+      },
+      "maxItems": 10000,
+      "minItems": 1,
+      "title": "Predictions",
+      "type": "array"
+    },
+    "predictions_evidence_ref": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Predictions Evidence Ref",
+      "type": "string"
+    },
+    "window_end": {
+      "format": "date-time",
+      "title": "Window End",
+      "type": "string"
+    },
+    "window_start": {
+      "format": "date-time",
+      "title": "Window Start",
+      "type": "string"
+    }
+  },
+  "required": [
+    "baseline",
+    "window_start",
+    "window_end",
+    "as_of",
+    "predictions",
+    "predictions_evidence_ref"
+  ],
+  "title": "WindowBuildRequest",
+  "type": "object"
+}

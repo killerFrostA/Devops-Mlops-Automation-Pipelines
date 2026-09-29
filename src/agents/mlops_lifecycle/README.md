@@ -16,8 +16,21 @@ The synthetic fixture returns `RETRAIN_AND_EVALUATE`: labeled F1 is approximatel
 against a baseline of 0.9, label coverage is 60%, and both distributions drift. No model is
 trained or deployed by this command.
 
+The record-based example builds the histograms and label alignment first:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.agents.mlops_lifecycle --records contracts/examples/agent6/observation-window.json
+```
+
+Its 100 synthetic prediction records include numeric transaction amounts, categorical merchant
+values, fraud scores and predicted classes. Confirmed labels are joined by transaction ID.
+A label confirmed after `as_of` is excluded; changing `as_of` permits a later assessment.
+The reference bins and counts come from the versioned baseline embedded in this local fixture.
+The record-based CLI path calls `MLOpsLifecycleAgent.assess_observation_window`.
+Only the prepared-statistics path is currently exposed by the local HTTP API.
+
 Start the existing API with `python -m src.cli serve --reload` and open
-`http://127.0.0.1:8000/docs`. Submit the same JSON to `POST /api/v1/mlops/health/assess`.
+`http://127.0.0.1:8000/docs`. Submit the prepared model-health-input.json example to `POST /api/v1/mlops/health/assess`.
 The endpoint returns a full diagnostic report; invalid inputs and undersized histograms return
 HTTP 422. The API currently uses the default policy. The CLI also accepts an explicit JSON policy.
 
@@ -25,9 +38,12 @@ HTTP 422. The API currently uses the default policy. The CLI also accepts an exp
 
 `ModelHealthInput` in `src/contracts/mlops.py` contains model/version/reference identity,
 a timezone-aware time window, histograms, evidence references and optional aligned labels.
-Adapters must derive reference and current histograms using the **same fixed bin definitions**,
-feature preprocessing and missing-value handling. Include missing values as an explicit bin
-where needed. Bin names alone cannot prove that upstream transformations match.
+The local window builder derives current histograms using the baseline's **fixed bin definitions**.
+Numeric bin edges are lower-inclusive: an edge of 50 places 50 in the bin beginning at 50.
+Categorical values outside listed categories enter an explicit other bin. Null or absent feature
+values require an explicit missing bin; otherwise input construction fails. Production source
+adapters must still apply the same feature preprocessing as the baseline. Bin names alone cannot
+prove that upstream transformations match.
 
 Each histogram needs at least 100 observations by default. Feature and prediction histograms
 are evaluated independently. When prediction histograms and labeled predictions are supplied
@@ -77,11 +93,13 @@ business acceptance criteria. No decision confidence or statistical significance
 
 - `metrics.py`: PSI and binary confusion counts.
 - `health.py`: policy gates, diagnostics and recommendations.
-- `service.py`: bounded task handling and injected assessor port.
-- `__main__.py`: JSON input/policy CLI.
-- `src/contracts/mlops.py`: validated input, policy and report contracts.
-- `tests/unit/test_mlops_health.py` and `tests/integration/test_mlops_api.py`: behavior verification.
+- `window_builder.py`: fixed-bin histograms, record filtering and delayed-label matching.
+- `service.py`: bounded task handling, record-window entry point and injected assessor port.
+- `__main__.py`: prepared-input or record-window JSON CLI.
+- `src/contracts/mlops.py` and `src/contracts/mlops_observations.py`: validated public contracts.
+- `tests/unit/test_mlops_health.py`, `tests/unit/test_mlops_window_builder.py` and
+  `tests/integration/test_mlops_api.py`: behavior verification.
 
-Next: trusted histogram/label adapters and baseline storage; threshold calibration with actual
-fraud data; durable evidence/results and Kafka orchestration; reproducible retraining and
+Next: trusted production record-source adapters and persisted baseline lookup; threshold calibration
+with actual fraud data; durable evidence/results and Kafka orchestration; reproducible retraining and
 champion/challenger evaluation; controlled promotion through the orchestrator and Agent 4.

@@ -37,7 +37,8 @@ Open [API documentation](http://127.0.0.1:8000/docs),
 external integrations are disconnected. Approval resolution returns HTTP 501.
 
 Agent 6 now supports local drift and labeled F1 assessment through
-`POST /api/v1/mlops/health/assess` and a JSON CLI.
+`POST /api/v1/mlops/health/assess` and a JSON CLI. The CLI can also build an assessment
+from synthetic transaction-level records using `--records`.
 See [Agent 6 implementation and example](src/agents/mlops_lifecycle/README.md).
 
 ## Six agents, shared coordination

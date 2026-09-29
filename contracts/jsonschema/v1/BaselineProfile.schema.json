@@ -1,0 +1,224 @@
+{
+  "$defs": {
+    "BaselineDistribution": {
+      "additionalProperties": false,
+      "properties": {
+        "reference_counts": {
+          "items": {
+            "maximum": 1000000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "title": "Reference Counts",
+          "type": "array"
+        },
+        "spec": {
+          "discriminator": {
+            "mapping": {
+              "categorical": "#/$defs/CategoricalHistogramSpec",
+              "numeric": "#/$defs/NumericHistogramSpec"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/NumericHistogramSpec"
+            },
+            {
+              "$ref": "#/$defs/CategoricalHistogramSpec"
+            }
+          ],
+          "title": "Spec"
+        }
+      },
+      "required": [
+        "spec",
+        "reference_counts"
+      ],
+      "title": "BaselineDistribution",
+      "type": "object"
+    },
+    "CategoricalHistogramSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "categories": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 98,
+          "minItems": 1,
+          "title": "Categories",
+          "type": "array"
+        },
+        "kind": {
+          "const": "categorical",
+          "default": "categorical",
+          "title": "Kind",
+          "type": "string"
+        },
+        "missing_bin": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Missing Bin"
+        },
+        "name": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "other_bin": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Other Bin",
+          "type": "string"
+        },
+        "scope": {
+          "const": "feature",
+          "default": "feature",
+          "title": "Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "categories",
+        "other_bin"
+      ],
+      "title": "CategoricalHistogramSpec",
+      "type": "object"
+    },
+    "NumericHistogramSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "bins": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 100,
+          "minItems": 2,
+          "title": "Bins",
+          "type": "array"
+        },
+        "edges": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 99,
+          "minItems": 1,
+          "title": "Edges",
+          "type": "array"
+        },
+        "kind": {
+          "const": "numeric",
+          "default": "numeric",
+          "title": "Kind",
+          "type": "string"
+        },
+        "missing_bin": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Missing Bin"
+        },
+        "name": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "scope": {
+          "enum": [
+            "feature",
+            "prediction"
+          ],
+          "title": "Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "scope",
+        "edges",
+        "bins"
+      ],
+      "title": "NumericHistogramSpec",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Versioned reference values; a source adapter must establish provenance.",
+  "properties": {
+    "baseline_f1": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Baseline F1",
+      "type": "number"
+    },
+    "distributions": {
+      "items": {
+        "$ref": "#/$defs/BaselineDistribution"
+      },
+      "maxItems": 200,
+      "minItems": 1,
+      "title": "Distributions",
+      "type": "array"
+    },
+    "evidence_ref": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Evidence Ref",
+      "type": "string"
+    },
+    "model_name": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Model Name",
+      "type": "string"
+    },
+    "model_version": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Model Version",
+      "type": "string"
+    },
+    "reference_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Reference Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "reference_id",
+    "model_name",
+    "model_version",
+    "baseline_f1",
+    "evidence_ref",
+    "distributions"
+  ],
+  "title": "BaselineProfile",
+  "type": "object"
+}

@@ -9,6 +9,7 @@ from src.contracts.base import Contract
 from src.contracts.context import EvidenceReference, IncidentContext
 from src.contracts.events import EventEnvelope
 from src.contracts.mlops import ModelHealthInput, ModelHealthPolicy, ModelHealthReport
+from src.contracts.mlops_observations import BaselineProfile, WindowBuildRequest
 from src.contracts.tasks import AgentResult, AgentTask
 from src.contracts.topics import TOPICS
 
@@ -24,6 +25,8 @@ MODELS: tuple[type[Contract], ...] = (
     ModelHealthInput,
     ModelHealthPolicy,
     ModelHealthReport,
+    BaselineProfile,
+    WindowBuildRequest,
 )
 
 

@@ -70,3 +70,24 @@ def test_cli_runs_example_with_explicit_policy():
     report = ModelHealthReport.model_validate_json(result.stdout)
     assert report.assessment.decision == "RETRAIN_AND_EVALUATE"
     assert report.policy.version == "agent6-health-v1"
+
+
+def test_cli_builds_health_window_from_prediction_records():
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "src.agents.mlops_lifecycle",
+            "--records",
+            str(ROOT / "contracts/examples/agent6/observation-window.json"),
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=20,
+    )
+    report = ModelHealthReport.model_validate_json(result.stdout)
+    assert report.assessment.decision == "RETRAIN_AND_EVALUATE"
+    assert report.performance.labeled_samples == 60
+    assert [item.current_samples for item in report.distributions] == [100, 100, 100]
