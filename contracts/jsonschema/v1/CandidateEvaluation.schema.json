@@ -1,0 +1,264 @@
+{
+  "$defs": {
+    "ClassificationMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "accuracy": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Accuracy",
+          "type": "number"
+        },
+        "f1": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "F1",
+          "type": "number"
+        },
+        "false_negatives": {
+          "maximum": 1000000000000,
+          "minimum": 0,
+          "title": "False Negatives",
+          "type": "integer"
+        },
+        "false_positives": {
+          "maximum": 1000000000000,
+          "minimum": 0,
+          "title": "False Positives",
+          "type": "integer"
+        },
+        "p95_latency_ms": {
+          "minimum": 0,
+          "title": "P95 Latency Ms",
+          "type": "number"
+        },
+        "precision": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Precision",
+          "type": "number"
+        },
+        "recall": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Recall",
+          "type": "number"
+        },
+        "true_negatives": {
+          "maximum": 1000000000000,
+          "minimum": 0,
+          "title": "True Negatives",
+          "type": "integer"
+        },
+        "true_positives": {
+          "maximum": 1000000000000,
+          "minimum": 0,
+          "title": "True Positives",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "f1",
+        "precision",
+        "recall",
+        "accuracy",
+        "p95_latency_ms",
+        "true_positives",
+        "false_positives",
+        "false_negatives",
+        "true_negatives"
+      ],
+      "title": "ClassificationMetrics",
+      "type": "object"
+    },
+    "TrainingPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_categorical_features": {
+          "default": [],
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Candidate Categorical Features",
+          "type": "array"
+        },
+        "candidate_numeric_features": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Candidate Numeric Features",
+          "type": "array"
+        },
+        "champion_features": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Champion Features",
+          "type": "array"
+        },
+        "max_p95_latency_ms": {
+          "default": 200.0,
+          "exclusiveMinimum": 0,
+          "title": "Max P95 Latency Ms",
+          "type": "number"
+        },
+        "min_f1_gain": {
+          "default": 0.02,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Min F1 Gain",
+          "type": "number"
+        },
+        "min_positive_per_split": {
+          "default": 5,
+          "minimum": 1,
+          "title": "Min Positive Per Split",
+          "type": "integer"
+        },
+        "min_test_samples": {
+          "default": 50,
+          "minimum": 1,
+          "title": "Min Test Samples",
+          "type": "integer"
+        },
+        "min_training_samples": {
+          "default": 200,
+          "minimum": 1,
+          "title": "Min Training Samples",
+          "type": "integer"
+        },
+        "min_validation_samples": {
+          "default": 50,
+          "minimum": 1,
+          "title": "Min Validation Samples",
+          "type": "integer"
+        },
+        "pipeline_version": {
+          "default": "machine-logistic-v1",
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Pipeline Version",
+          "type": "string"
+        },
+        "random_state": {
+          "default": 42,
+          "title": "Random State",
+          "type": "integer"
+        },
+        "require_recall_nonregression": {
+          "default": true,
+          "title": "Require Recall Nonregression",
+          "type": "boolean"
+        },
+        "version": {
+          "default": "agent6-training-demo-v1",
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "champion_features",
+        "candidate_numeric_features"
+      ],
+      "title": "TrainingPolicy",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "candidate": {
+      "$ref": "#/$defs/ClassificationMetrics"
+    },
+    "candidate_model_uri": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Candidate Model Uri",
+      "type": "string"
+    },
+    "candidate_validation": {
+      "$ref": "#/$defs/ClassificationMetrics"
+    },
+    "champion": {
+      "$ref": "#/$defs/ClassificationMetrics"
+    },
+    "dataset_ref": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Dataset Ref",
+      "type": "string"
+    },
+    "dataset_sha256": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Dataset Sha256",
+      "type": "string"
+    },
+    "model_name": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Model Name",
+      "type": "string"
+    },
+    "pipeline_version": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Pipeline Version",
+      "type": "string"
+    },
+    "policy": {
+      "$ref": "#/$defs/TrainingPolicy"
+    },
+    "run_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "test_samples": {
+      "maximum": 1000000000000,
+      "minimum": 0,
+      "title": "Test Samples",
+      "type": "integer"
+    },
+    "train_samples": {
+      "maximum": 1000000000000,
+      "minimum": 0,
+      "title": "Train Samples",
+      "type": "integer"
+    },
+    "validation_samples": {
+      "maximum": 1000000000000,
+      "minimum": 0,
+      "title": "Validation Samples",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "model_name",
+    "pipeline_version",
+    "dataset_ref",
+    "dataset_sha256",
+    "run_id",
+    "candidate_model_uri",
+    "train_samples",
+    "validation_samples",
+    "test_samples",
+    "champion",
+    "candidate",
+    "candidate_validation",
+    "policy"
+  ],
+  "title": "CandidateEvaluation",
+  "type": "object"
+}

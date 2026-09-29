@@ -40,13 +40,13 @@ authorization; a Python protocol is not an access-control mechanism.
 | --- | --- | --- |
 | Contracts | Strict event/task/action validation, JSON Schema export, synthetic examples | Compatibility policy and registry integration |
 | Agents 1-5 | Validates task identity/deadline; returns NOT_IMPLEMENTED | Specialist algorithms and tools |
-| Agent 6 | Local file readers, record-window builder, PSI/F1 assessment and typed recommendation | Production data adapters, baseline persistence, calibration, durable integration, retraining and promotion |
+| Agent 6 | Local health assessment, synthetic training, held-out comparison, MLflow registry and promotion-review request | Production data and champion adapters, calibration, durable integration and orchestrated promotion |
 | HTTP API | Liveness, skeleton readiness, six-agent inventory, local model-health assessment, OpenAPI | Identity, incidents, approvals and UI streams |
 | Orchestrator | Initial analysis route plan and state model | LangGraph runtime, checkpoints and complete workflow |
 | Policy | Deny-all assessment bound to action fingerprint | Approved risk matrix and evidence/freshness gates |
 | Context/HITL/Kafka | Ports, schemas and explicit unavailable adapters | Durable storage, gRPC handlers and Kafka workers |
 | Infrastructure | Compose definitions, K8s base and Terraform boundary | Image builds/runtime validation, provider configuration, production controls |
-| ML/dashboard | Implementation slots, interface specifications and UI outline | Training/evaluation pipelines and operator application |
+| ML/dashboard | Agent 6 local training/evaluation demo, other implementation slots and UI outline | Production pipelines and operator application |
 
 ## Communication
 

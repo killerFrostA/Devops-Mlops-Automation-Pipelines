@@ -11,4 +11,5 @@ PDF are examples, not approved acceptance targets.
 
 Register candidates in MLflow. Production promotion goes through the shared orchestrator/policy
 and Agent 4 deployment path, with canary verification by Agents 1 and 6.
-`pipeline.py` names the offline stages and fails explicitly until they are implemented.
+`pipeline.py` remains an unused scaffold for a future production pipeline. The working local
+Agent 6 training path is in `src/agents/mlops_lifecycle/training.py`; run it using the Agent 6 guide.

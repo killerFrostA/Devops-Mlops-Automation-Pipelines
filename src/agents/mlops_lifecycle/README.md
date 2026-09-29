@@ -1,8 +1,9 @@
 # Agent 6: MLOps lifecycle
 
-Owner: Member 6. The first implementation assesses model health locally. It measures feature
-and prediction distribution drift, evaluates binary F1 on available ground truth, and returns
-a typed recommendation. Training, registry operations, persistence and promotion are pending.
+Owner: Member 6. Agent 6 assesses model health locally, trains and compares a candidate on a
+synthetic machine-failure dataset, stores the run and candidate in local MLflow, and requests
+promotion review when a configured gate passes. Production data connectors and deployment are
+separate work.
 
 ## Run local examples
 
@@ -51,6 +52,44 @@ Start the existing API with `python -m src.cli serve --reload` and open
 `http://127.0.0.1:8000/docs`. Submit the prepared model-health-input.json example to `POST /api/v1/mlops/health/assess`.
 The endpoint returns a full diagnostic report; invalid inputs and undersized histograms return
 HTTP 422. The API currently uses the default policy. The CLI also accepts an explicit JSON policy.
+
+## Run the complete local lifecycle
+
+Install the optional ML dependencies in the same virtual environment. From the repository root:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[ml]"
+.\.venv\Scripts\python.exe -m src.agents.mlops_lifecycle.demo
+```
+
+On macOS/Linux, use `.venv/bin/python` instead. The default command uses
+`contracts/examples/agent6/local-sources/machine-sources.json` for a source-backed health check,
+`configs/agent6-training-demo.json` for training gates, and 600 seeded synthetic historical
+machine observations. Output is written to `artifacts/agent6-demo/`:
+
+- `lifecycle-report.json`: health decision, split counts, champion/candidate metrics, final
+  review recommendation, and limitations.
+- `mlflow.db`: local SQLite tracking and model registry records.
+- `mlruns/`: local model and run artifacts, including the policy and split manifest.
+
+The flow is: read a saved baseline and monitored predictions/confirmed labels; compute PSI and
+labeled F1; if quality has degraded, split historical examples 60/20/20 by time and machine group;
+train the candidate only on the training split; compare it with a fixed legacy rule on the held-out
+test split; record the run; register the candidate only if its F1 gain, recall and p95 latency pass
+the policy. The validation split is reported separately. The legacy rule flags vibration of at
+least 9 mm/s; the candidate uses temperature, vibration and machine type. Neither is a production
+champion. A successful result says `REQUEST_PROMOTION_REVIEW`. It does not deploy the model.
+
+For example, the seeded dataset produced a champion test F1 of 0.714 and candidate test F1 of
+0.889 in local verification. Training labels are generated from a known synthetic relationship,
+so these numbers demonstrate the pipeline, not model quality on real equipment. Latency varies
+by machine. The health window and historical training set are separate synthetic fixtures.
+
+The demo accepts `--sources`, `--training-policy`, `--output-dir`, `--rows` and `--seed`.
+Use `--output-dir` for isolated experiments. Source JSON paths are resolved relative to the
+source configuration file. Production adapters must replace these local file readers and
+synthetic training data, and must supply the actual deployed champion for comparison. The
+orchestrator and Agent 4 must enforce approval, deployment, canary checks and rollback.
 
 ## Inputs and provenance
 
@@ -112,14 +151,17 @@ business acceptance criteria. No decision confidence or statistical significance
 - `metrics.py`: PSI and binary confusion counts.
 - `health.py`: policy gates, diagnostics and recommendations.
 - `window_builder.py`: fixed-bin histograms, record filtering and delayed-label matching.
-- `ports.py`: baseline, prediction and label reader interfaces.
+- `ports.py`: baseline, prediction, label, training and registry interfaces.
 - `local_files.py`: development-only file readers with content-digest provenance.
-- `service.py`: bounded task handling and three assessment entry points.
+- `service.py`: bounded task handling, health assessment and the local lifecycle gate.
 - `__main__.py`: prepared-input, record-window or separate-source JSON CLI.
-- `src/contracts/mlops.py` and `src/contracts/mlops_observations.py`: validated public contracts.
+- `training.py`, `mlflow_registry.py` and `demo_data.py`: local training, tracking and synthetic data.
+- `demo.py`: complete local lifecycle command.
+- `src/contracts/mlops.py`, `src/contracts/mlops_observations.py` and `src/contracts/mlops_training.py`: validated public contracts.
 - `tests/unit/test_mlops_health.py`, `tests/unit/test_mlops_window_builder.py`,
-  `tests/unit/test_mlops_sources.py` and `tests/integration/test_mlops_api.py`: behavior verification.
+  `tests/unit/test_mlops_sources.py`, `tests/unit/test_mlops_lifecycle.py`,
+  `tests/integration/test_mlops_api.py` and `tests/integration/test_mlops_lifecycle_demo.py`: behavior verification.
 
 Next: trusted production record-source adapters and persisted baseline lookup; threshold calibration
-with actual fraud data; durable evidence/results and Kafka orchestration; reproducible retraining and
-champion/challenger evaluation; controlled promotion through the orchestrator and Agent 4.
+with representative data; durable evidence/results and Kafka orchestration; actual deployed-champion
+comparison; controlled promotion through the orchestrator and Agent 4.

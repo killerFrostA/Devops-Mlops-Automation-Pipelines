@@ -1,0 +1,97 @@
+{
+  "$defs": {
+    "TrainingObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "features": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "propertyNames": {
+            "maxLength": 128,
+            "minLength": 1
+          },
+          "title": "Features",
+          "type": "object"
+        },
+        "group_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Group Id",
+          "type": "string"
+        },
+        "label": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Label",
+          "type": "integer"
+        },
+        "observation_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "observation_id",
+        "group_id",
+        "observed_at",
+        "features",
+        "label"
+      ],
+      "title": "TrainingObservation",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "dataset_ref": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Dataset Ref",
+      "type": "string"
+    },
+    "model_name": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Model Name",
+      "type": "string"
+    },
+    "observations": {
+      "items": {
+        "$ref": "#/$defs/TrainingObservation"
+      },
+      "maxItems": 20000,
+      "minItems": 1,
+      "title": "Observations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "dataset_ref",
+    "model_name",
+    "observations"
+  ],
+  "title": "TrainingDataset",
+  "type": "object"
+}

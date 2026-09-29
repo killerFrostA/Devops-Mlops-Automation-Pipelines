@@ -24,7 +24,7 @@ your issue tracker after approving the interface baseline.
 | A5-001 | Member 5 | Bounded optimization rules | Replica bounds, SLO constraints and rollback conditions enforced |
 | A5-002 | Member 5 | Resource forecasts | Error and savings measured without breaching SLO |
 | A6-001 | Member 6 | Drift + labeled assessment, window builder and local file readers | PSI/F1 and source-backed example verified; production adapters, persisted baseline and calibration pending |
-| A6-002 | Member 6 | Reproducible training/evaluation + MLflow | Versioned data/model runs; champion/challenger metrics reproducible |
-| A6-003 | Member 6 | Controlled model promotion | Release gate, HITL when needed, canary and rollback linked to Agent 4 |
+| A6-002 | Member 6 | Reproducible training/evaluation + MLflow | Local synthetic example implemented: temporal/group split, held-out comparison, SQLite MLflow run and candidate registry; real data and champion pending |
+| A6-003 | Member 6 | Controlled model promotion | Local gate requests review only; release policy, HITL, canary and rollback through orchestrator/Agent 4 pending |
 | OPS-001 | Shared | Provider-specific infrastructure | Reviewed environment isolation, secrets, backups and capacity |
 | QA-001 | Shared | Fault experiments and acceptance report | BO/DSO metrics compared with agreed baseline |

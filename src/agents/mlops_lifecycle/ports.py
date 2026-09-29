@@ -3,6 +3,7 @@ from typing import Protocol
 
 from src.contracts.mlops import ModelHealthInput, ModelHealthReport
 from src.contracts.mlops_observations import BaselineProfile, LabelBatch, PredictionBatch
+from src.contracts.mlops_training import CandidateEvaluation, TrainingDataset, TrainingPolicy
 
 
 class ModelHealthAssessor(Protocol):
@@ -26,8 +27,10 @@ class LabelRepository(Protocol):
 
 
 class TrainingPipeline(Protocol):
-    async def train_candidate(self, dataset_ref: str, pipeline_version: str) -> str: ...
+    async def train_and_evaluate(
+        self, dataset: TrainingDataset, policy: TrainingPolicy
+    ) -> CandidateEvaluation: ...
 
 
 class ModelRegistry(Protocol):
-    async def register_candidate(self, run_id: str, model_name: str) -> str: ...
+    async def register_candidate(self, evaluation: CandidateEvaluation) -> str: ...

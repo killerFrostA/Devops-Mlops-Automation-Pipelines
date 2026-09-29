@@ -6,13 +6,14 @@ Windows and Linux; those remote matrix runs have not been executed in this sessi
 | Check | Result |
 | --- | --- |
 | Ruff formatting and lint | Passed |
-| Strict mypy | Passed for 60 source modules |
-| Pytest | 134 passed, no warnings (writable cache under .scratch) |
-| JSON Schema drift | 24 committed schemas match Python definitions |
+| Strict mypy | Passed for 65 source modules |
+| Pytest | 141 passed, 1 third-party MLflow/SQLAlchemy deprecation warning (writable cache under .scratch) |
+| JSON Schema drift | 28 committed schemas match Python definitions |
 | Event compatibility | All 11 synthetic topic examples validate against Python and JSON Schema |
 | Protobuf compilation | All 4 specifications compile with namespaced imports |
 | Package build | Source distribution and wheel build successfully |
 | Dependency consistency | `pip check` passed |
+| Agent 6 local lifecycle | Synthetic machine demo registered a review candidate; held-out champion F1 0.714, candidate F1 0.889; MLflow SQLite/run/model version verified |
 | Compose configuration | All development profiles render/validate |
 | Kustomize rendering | Local overlay renders 5 Kubernetes resources |
 
@@ -24,8 +25,8 @@ continuations, explicit unavailable adapters,
 deny-all policy, disconnected readiness and the six-agent inventory.
 
 Container builds/startup, external Kafka/RPC/database integration, Terraform provider validation,
-trusted data ingestion, calibrated thresholds, model training and production acceptance have not
-been tested. Docker's engine was unavailable locally; Terraform has no configured
+trusted data ingestion, calibrated thresholds and production acceptance have not been tested.
+The local training integration is synthetic; it does not validate a production champion or promotion. Docker's engine was unavailable locally; Terraform has no configured
 provider/resources. The source code and
 documentation explicitly identify these implementation boundaries.
 

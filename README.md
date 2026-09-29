@@ -6,8 +6,9 @@ Repository: [Devops-Mlops-Automation-Pipelines](https://github.com/killerFrostA/
 
 This repository translates the supplied architecture into ownership boundaries, typed contracts,
 service entry points, development infrastructure, quality checks and a delivery plan. It is the
-foundation for implementation, with local Agent 6 model-health assessment available. It does not detect fraud, run production remediation, train models,
-connect to Kafka, persist incident state or authorize deployments yet.
+foundation for implementation, with a runnable local Agent 6 health-to-training demonstration.
+It does not detect fraud, run production remediation, connect to Kafka, persist incident state or
+authorize deployments yet.
 
 ## Start here
 
@@ -39,7 +40,8 @@ external integrations are disconnected. Approval resolution returns HTTP 501.
 Agent 6 now supports local drift and labeled F1 assessment through
 `POST /api/v1/mlops/health/assess` and a JSON CLI. The CLI can also build an assessment
 from records (`--records`) or separate local baseline/prediction/label files (`--sources`).
-The latter includes a synthetic machine-failure example in the Agent 6 guide.
+The latter includes a synthetic machine-failure example. A separate Agent 6 demo trains,
+compares and registers a candidate locally, then requests promotion review. See the Agent 6 guide.
 See [Agent 6 implementation and example](src/agents/mlops_lifecycle/README.md).
 
 ## Six agents, shared coordination

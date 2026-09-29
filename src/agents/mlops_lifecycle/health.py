@@ -86,7 +86,7 @@ class RuleBasedModelHealthAssessor:
                 "PSI measures distribution shift and does not prove accuracy degradation.",
                 "F1 depends on representative labels aligned with the evaluated predictions.",
                 "Policy thresholds require calibration; no decision confidence is fabricated.",
-                "This report recommends a next step; training and promotion remain unimplemented.",
+                "This health-only report recommends a next step; it does not train or promote.",
             ),
         )
 

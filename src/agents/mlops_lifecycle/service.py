@@ -10,12 +10,15 @@ from src.agents.mlops_lifecycle.ports import (
     BaselineRepository,
     LabelRepository,
     ModelHealthAssessor,
+    ModelRegistry,
     PredictionRepository,
+    TrainingPipeline,
 )
 from src.agents.mlops_lifecycle.window_builder import build_model_health_input
 from src.contracts.enums import AgentId, ResultStatus
 from src.contracts.mlops import ModelHealthInput, ModelHealthReport
 from src.contracts.mlops_observations import ModelWindowQuery, WindowBuildRequest
+from src.contracts.mlops_training import ModelLifecycleReport, TrainingDataset, TrainingPolicy
 from src.contracts.tasks import AgentResult, AgentTask
 from src.platform.errors import IntegrationNotConfiguredError
 
@@ -32,11 +35,15 @@ class MLOpsLifecycleAgent(SkeletonAgent):
         baselines: BaselineRepository | None = None,
         predictions: PredictionRepository | None = None,
         labels: LabelRepository | None = None,
+        training: TrainingPipeline | None = None,
+        registry: ModelRegistry | None = None,
     ) -> None:
         self._assessor = assessor or RuleBasedModelHealthAssessor()
         self._baselines = baselines
         self._predictions = predictions
         self._labels = labels
+        self._training = training
+        self._registry = registry
 
     async def assess_model_health(self, request: ModelHealthInput) -> ModelHealthReport:
         return await self._assessor.assess(request)
@@ -68,6 +75,67 @@ class MLOpsLifecycleAgent(SkeletonAgent):
             dataset_ref=query.dataset_ref,
         )
         return await self.assess_observation_window(window)
+
+    async def assess_and_train(
+        self, query: ModelWindowQuery, dataset: TrainingDataset, policy: TrainingPolicy
+    ) -> ModelLifecycleReport:
+        health = await self.assess_model_window(query)
+        limitations = (
+            "This local example uses synthetic history and a fixed-rule champion proxy.",
+            "Registration requests review; deployment and production promotion remain external.",
+            "The local test metrics and latency do not establish production performance.",
+        )
+        if health.assessment.decision != "RETRAIN_AND_EVALUATE":
+            return ModelLifecycleReport(
+                health=health,
+                evaluation=None,
+                decision="SKIP_TRAINING",
+                rationale_summary=(
+                    f"Health decision is {health.assessment.decision}; training was skipped"
+                ),
+                limitations=limitations,
+            )
+        if dataset.model_name != query.model_name:
+            raise ValueError("Training dataset model does not match the assessed model")
+        if any(row.observed_at >= query.window_start for row in dataset.observations):
+            raise ValueError("Training observations must predate the monitored window")
+        if self._training is None or self._registry is None:
+            raise IntegrationNotConfiguredError("Training and model registry are not configured")
+        evaluation = await self._training.train_and_evaluate(dataset, policy)
+        if (
+            evaluation.model_name != dataset.model_name
+            or evaluation.dataset_ref != dataset.dataset_ref
+            or evaluation.policy != policy
+        ):
+            raise ValueError("Candidate evaluation does not match the requested dataset and policy")
+        candidate = evaluation.candidate
+        champion = evaluation.champion
+        reasons = []
+        if candidate.f1 + 1e-12 < champion.f1 + policy.min_f1_gain:
+            reasons.append("candidate test F1 gain is below the configured minimum")
+        if policy.require_recall_nonregression and candidate.recall + 1e-12 < champion.recall:
+            reasons.append("candidate test recall is lower than champion recall")
+        if candidate.p95_latency_ms > policy.max_p95_latency_ms:
+            reasons.append("candidate p95 inference latency exceeds the limit")
+        if reasons:
+            return ModelLifecycleReport(
+                health=health,
+                evaluation=evaluation,
+                decision="KEEP_CHAMPION",
+                rationale_summary="; ".join(reasons),
+                limitations=limitations,
+            )
+        version = await self._registry.register_candidate(evaluation)
+        return ModelLifecycleReport(
+            health=health,
+            evaluation=evaluation,
+            decision="REQUEST_PROMOTION_REVIEW",
+            registered_model_version=version,
+            rationale_summary=(
+                "Candidate passed local comparison; request orchestrator review before promotion"
+            ),
+            limitations=limitations,
+        )
 
     async def handle(self, task: AgentTask) -> AgentResult:
         if task.agent_id != self.agent_id:

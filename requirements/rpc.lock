@@ -1,6 +1,6 @@
 # Exact installed version pins; no hashes. Integration extras are separate.
 grpcio==1.84.0
-grpcio-tools==1.84.0
-protobuf==7.36.2
+grpcio-tools==1.81.1
+protobuf==6.33.6
 setuptools==84.0.0
 typing-extensions==4.16.0
