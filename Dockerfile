@@ -1,5 +1,5 @@
 # Development baseline; pin an approved image digest before production use.
-FROM python:3.12-slim AS builder
+FROM python:3.14-slim AS builder
 WORKDIR /build
 COPY requirements/build.lock ./requirements/build.lock
 RUN python -m pip install --no-cache-dir -r requirements/build.lock
@@ -7,7 +7,7 @@ COPY pyproject.toml README.md ./
 COPY src ./src
 RUN python -m build --wheel --no-isolation
 
-FROM python:3.12-slim AS runtime
+FROM python:3.14-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app
 RUN groupadd --gid 10001 pids && useradd --uid 10001 --gid pids --no-create-home pids
