@@ -12,6 +12,7 @@
       "title": "AgentId",
       "type": "string"
     },
+    "JsonValue": {},
     "ResultStatus": {
       "enum": [
         "NOT_IMPLEMENTED",
@@ -24,7 +25,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "Execution status, kept separate from the future specialist domain output.",
+  "description": "Execution status and optional validated specialist domain output.",
   "properties": {
     "agent_id": {
       "$ref": "#/$defs/AgentId"
@@ -55,6 +56,13 @@
       "minLength": 1,
       "title": "Incident Id",
       "type": "string"
+    },
+    "payload": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Payload",
+      "type": "object"
     },
     "rationale_summary": {
       "title": "Rationale Summary",

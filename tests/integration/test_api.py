@@ -31,7 +31,9 @@ def test_health_exposes_disconnected_skeleton_and_six_agents() -> None:
     assert ready.json()["integrations_connected"] is False
     inventory = request("GET", "/api/v1/agents").json()
     assert {item["agent_id"] for item in inventory} == {agent.value for agent in AgentId}
-    assert all(item["implementation_status"] == "NOT_IMPLEMENTED" for item in inventory)
+    statuses = {item["agent_id"]: item["implementation_status"] for item in inventory}
+    assert statuses.pop(AgentId.MLOPS_LIFECYCLE.value) == "PARTIAL"
+    assert set(statuses.values()) == {"NOT_IMPLEMENTED"}
 
 
 @pytest.mark.parametrize("body", [{"decision": "APPROVE"}, {"decision": "REJECT"}, {}])
@@ -45,7 +47,7 @@ def test_anomaly_routes_only_to_diagnosis(anomaly: EventEnvelope) -> None:
     assert route(anomaly) == (AgentId.DIAGNOSIS,)
 
 
-def test_openapi_contains_only_scaffold_surface() -> None:
+def test_openapi_contains_local_analysis_without_deployment() -> None:
     spec = request("GET", "/openapi.json").json()
     assert "/api/v1/agents" in spec["paths"]
     assert not any("deploy" in path for path in spec["paths"])

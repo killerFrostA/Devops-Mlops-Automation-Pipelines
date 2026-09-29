@@ -1,0 +1,10 @@
+{
+  "version": "agent6-health-v1",
+  "psi_threshold": 0.2,
+  "epsilon": 1e-6,
+  "min_distribution_samples": 100,
+  "min_labeled_samples": 30,
+  "min_positive_labels": 5,
+  "min_ground_truth_coverage": 0.5,
+  "max_f1_drop": 0.05
+}

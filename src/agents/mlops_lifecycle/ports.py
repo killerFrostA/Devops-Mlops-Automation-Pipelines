@@ -1,11 +1,10 @@
 from typing import Protocol
 
-from src.contracts.payloads import ModelHealthAssessed
-from src.contracts.tasks import TaskContext
+from src.contracts.mlops import ModelHealthInput, ModelHealthReport
 
 
 class ModelHealthAssessor(Protocol):
-    async def assess(self, context: TaskContext) -> ModelHealthAssessed: ...
+    async def assess(self, request: ModelHealthInput) -> ModelHealthReport: ...
 
 
 class TrainingPipeline(Protocol):

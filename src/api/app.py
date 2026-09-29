@@ -1,13 +1,16 @@
 from typing import Literal
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from src import PROJECT_NAME, __version__
+from src.agents.mlops_lifecycle.health import InsufficientSamplesError
+from src.agents.mlops_lifecycle.service import MLOpsLifecycleAgent
 from src.agents.registry import AGENTS
 from src.config import Settings
 from src.contracts.base import Contract
 from src.contracts.enums import AgentId
+from src.contracts.mlops import ModelHealthInput, ModelHealthReport
 
 
 class HealthResponse(Contract):
@@ -21,7 +24,7 @@ class HealthResponse(Contract):
 class AgentSummary(Contract):
     agent_id: AgentId
     responsibility: str
-    implementation_status: Literal["NOT_IMPLEMENTED"] = "NOT_IMPLEMENTED"
+    implementation_status: Literal["NOT_IMPLEMENTED", "PARTIAL"] = "NOT_IMPLEMENTED"
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -47,7 +50,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @application.get("/api/v1/agents", response_model=list[AgentSummary], tags=["agents"])
     def agents() -> list[AgentSummary]:
         return [
-            AgentSummary(agent_id=agent_id, responsibility=agent.responsibility)
+            AgentSummary(
+                agent_id=agent_id,
+                responsibility=agent.responsibility,
+                implementation_status=agent.implementation_status,
+            )
             for agent_id, agent in AGENTS.items()
         ]
 
@@ -62,5 +69,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "and orchestrator integration",
             },
         )
+
+    @application.post(
+        "/api/v1/mlops/health/assess", response_model=ModelHealthReport, tags=["mlops"]
+    )
+    async def assess_model_health(body: ModelHealthInput) -> ModelHealthReport:
+        try:
+            return await MLOpsLifecycleAgent().assess_model_health(body)
+        except InsufficientSamplesError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
 
     return application

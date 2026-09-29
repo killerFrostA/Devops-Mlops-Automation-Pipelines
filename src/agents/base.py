@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from typing import Protocol
+from typing import Literal, Protocol
 from uuid import uuid4
 
 from src.contracts.enums import AgentId, ResultStatus
@@ -17,6 +17,7 @@ class SkeletonAgent:
 
     agent_id: AgentId
     responsibility: str
+    implementation_status: Literal["NOT_IMPLEMENTED", "PARTIAL"] = "NOT_IMPLEMENTED"
 
     async def handle(self, task: AgentTask) -> AgentResult:
         if task.agent_id != self.agent_id:

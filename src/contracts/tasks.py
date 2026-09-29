@@ -1,9 +1,10 @@
 from typing import Annotated
 
-from pydantic import AwareDatetime, Field, JsonValue
+from pydantic import AwareDatetime, Field, JsonValue, model_validator
 
 from src.contracts.base import Contract
 from src.contracts.enums import AgentId, Environment, ResultStatus
+from src.contracts.payloads import ModelHealthAssessed
 
 
 class TaskContext(Contract):
@@ -27,7 +28,7 @@ class AgentTask(Contract):
 
 
 class AgentResult(Contract):
-    """Execution status, kept separate from the future specialist domain output."""
+    """Execution status and optional validated specialist domain output."""
 
     result_id: Annotated[str, Field(min_length=1)]
     task_id: Annotated[str, Field(min_length=1)]
@@ -37,3 +38,10 @@ class AgentResult(Contract):
     rationale_summary: str
     evidence_refs: tuple[str, ...] = ()
     confidence: Annotated[float | None, Field(ge=0, le=1, allow_inf_nan=False)] = None
+    payload: dict[str, JsonValue] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_domain_payload(self) -> "AgentResult":
+        if self.agent_id is AgentId.MLOPS_LIFECYCLE and self.status is ResultStatus.SUCCEEDED:
+            ModelHealthAssessed.model_validate(self.payload)
+        return self

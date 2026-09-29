@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Initial tunable thresholds; require calibration on representative data.",
+  "properties": {
+    "epsilon": {
+      "default": 1e-06,
+      "maximum": 0.01,
+      "minimum": 1e-12,
+      "title": "Epsilon",
+      "type": "number"
+    },
+    "max_f1_drop": {
+      "default": 0.05,
+      "exclusiveMinimum": 0,
+      "maximum": 1,
+      "title": "Max F1 Drop",
+      "type": "number"
+    },
+    "min_distribution_samples": {
+      "default": 100,
+      "minimum": 1,
+      "title": "Min Distribution Samples",
+      "type": "integer"
+    },
+    "min_ground_truth_coverage": {
+      "default": 0.5,
+      "exclusiveMinimum": 0,
+      "maximum": 1,
+      "title": "Min Ground Truth Coverage",
+      "type": "number"
+    },
+    "min_labeled_samples": {
+      "default": 30,
+      "minimum": 1,
+      "title": "Min Labeled Samples",
+      "type": "integer"
+    },
+    "min_positive_labels": {
+      "default": 5,
+      "minimum": 1,
+      "title": "Min Positive Labels",
+      "type": "integer"
+    },
+    "psi_threshold": {
+      "default": 0.2,
+      "exclusiveMinimum": 0,
+      "title": "Psi Threshold",
+      "type": "number"
+    },
+    "version": {
+      "default": "agent6-health-v1",
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "title": "ModelHealthPolicy",
+  "type": "object"
+}

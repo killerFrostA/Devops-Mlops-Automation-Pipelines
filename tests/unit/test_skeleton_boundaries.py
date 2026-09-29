@@ -27,8 +27,8 @@ def task(agent_id: AgentId) -> AgentTask:
     )
 
 
-@pytest.mark.parametrize("agent_id", list(AgentId))
-def test_all_six_agents_report_unimplemented_without_confidence(agent_id: AgentId) -> None:
+@pytest.mark.parametrize("agent_id", [a for a in AgentId if a is not AgentId.MLOPS_LIFECYCLE])
+def test_remaining_five_agents_report_unimplemented_without_confidence(agent_id: AgentId) -> None:
     result = asyncio.run(AGENTS[agent_id]().handle(task(agent_id)))
     assert result.status is ResultStatus.NOT_IMPLEMENTED
     assert result.confidence is None

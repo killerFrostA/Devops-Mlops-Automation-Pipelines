@@ -1,0 +1,360 @@
+{
+  "$defs": {
+    "DistributionHealth": {
+      "additionalProperties": false,
+      "properties": {
+        "current_samples": {
+          "maximum": 1000000000000,
+          "minimum": 0,
+          "title": "Current Samples",
+          "type": "integer"
+        },
+        "detected": {
+          "title": "Detected",
+          "type": "boolean"
+        },
+        "method": {
+          "const": "PSI",
+          "default": "PSI",
+          "title": "Method",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "reference_samples": {
+          "maximum": 1000000000000,
+          "minimum": 0,
+          "title": "Reference Samples",
+          "type": "integer"
+        },
+        "scope": {
+          "enum": [
+            "feature",
+            "prediction"
+          ],
+          "title": "Scope",
+          "type": "string"
+        },
+        "score": {
+          "minimum": 0,
+          "title": "Score",
+          "type": "number"
+        },
+        "threshold": {
+          "exclusiveMinimum": 0,
+          "title": "Threshold",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "scope",
+        "score",
+        "threshold",
+        "detected",
+        "reference_samples",
+        "current_samples"
+      ],
+      "title": "DistributionHealth",
+      "type": "object"
+    },
+    "ModelHealthAssessed": {
+      "additionalProperties": false,
+      "properties": {
+        "assessment_id": {
+          "title": "Assessment Id",
+          "type": "string"
+        },
+        "dataset_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Ref"
+        },
+        "decision": {
+          "enum": [
+            "HEALTHY",
+            "COLLECT_LABELS",
+            "RETRAIN_AND_EVALUATE"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "drift_detected": {
+          "title": "Drift Detected",
+          "type": "boolean"
+        },
+        "drift_score": {
+          "minimum": 0,
+          "title": "Drift Score",
+          "type": "number"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "model_name": {
+          "title": "Model Name",
+          "type": "string"
+        },
+        "model_version": {
+          "title": "Model Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "assessment_id",
+        "model_name",
+        "model_version",
+        "drift_detected",
+        "drift_score",
+        "decision",
+        "evidence_refs"
+      ],
+      "title": "ModelHealthAssessed",
+      "type": "object"
+    },
+    "ModelHealthPolicy": {
+      "additionalProperties": false,
+      "description": "Initial tunable thresholds; require calibration on representative data.",
+      "properties": {
+        "epsilon": {
+          "default": 1e-06,
+          "maximum": 0.01,
+          "minimum": 1e-12,
+          "title": "Epsilon",
+          "type": "number"
+        },
+        "max_f1_drop": {
+          "default": 0.05,
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Max F1 Drop",
+          "type": "number"
+        },
+        "min_distribution_samples": {
+          "default": 100,
+          "minimum": 1,
+          "title": "Min Distribution Samples",
+          "type": "integer"
+        },
+        "min_ground_truth_coverage": {
+          "default": 0.5,
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Min Ground Truth Coverage",
+          "type": "number"
+        },
+        "min_labeled_samples": {
+          "default": 30,
+          "minimum": 1,
+          "title": "Min Labeled Samples",
+          "type": "integer"
+        },
+        "min_positive_labels": {
+          "default": 5,
+          "minimum": 1,
+          "title": "Min Positive Labels",
+          "type": "integer"
+        },
+        "psi_threshold": {
+          "default": 0.2,
+          "exclusiveMinimum": 0,
+          "title": "Psi Threshold",
+          "type": "number"
+        },
+        "version": {
+          "default": "agent6-health-v1",
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "title": "ModelHealthPolicy",
+      "type": "object"
+    },
+    "PerformanceHealth": {
+      "additionalProperties": false,
+      "properties": {
+        "baseline": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Baseline",
+          "type": "number"
+        },
+        "current": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Current"
+        },
+        "degraded": {
+          "title": "Degraded",
+          "type": "boolean"
+        },
+        "drop": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Drop"
+        },
+        "false_negatives": {
+          "maximum": 1000000000000,
+          "minimum": 0,
+          "title": "False Negatives",
+          "type": "integer"
+        },
+        "false_positives": {
+          "maximum": 1000000000000,
+          "minimum": 0,
+          "title": "False Positives",
+          "type": "integer"
+        },
+        "ground_truth_coverage": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Ground Truth Coverage",
+          "type": "number"
+        },
+        "labeled_samples": {
+          "maximum": 1000000000000,
+          "minimum": 0,
+          "title": "Labeled Samples",
+          "type": "integer"
+        },
+        "metric": {
+          "const": "f1",
+          "default": "f1",
+          "title": "Metric",
+          "type": "string"
+        },
+        "positive_labels": {
+          "maximum": 1000000000000,
+          "minimum": 0,
+          "title": "Positive Labels",
+          "type": "integer"
+        },
+        "sufficient_labels": {
+          "title": "Sufficient Labels",
+          "type": "boolean"
+        },
+        "true_positives": {
+          "maximum": 1000000000000,
+          "minimum": 0,
+          "title": "True Positives",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "baseline",
+        "current",
+        "drop",
+        "ground_truth_coverage",
+        "labeled_samples",
+        "positive_labels",
+        "true_positives",
+        "false_positives",
+        "false_negatives",
+        "sufficient_labels",
+        "degraded"
+      ],
+      "title": "PerformanceHealth",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "assessment": {
+      "$ref": "#/$defs/ModelHealthAssessed"
+    },
+    "distributions": {
+      "items": {
+        "$ref": "#/$defs/DistributionHealth"
+      },
+      "title": "Distributions",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "performance": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PerformanceHealth"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "policy": {
+      "$ref": "#/$defs/ModelHealthPolicy"
+    },
+    "rationale_summary": {
+      "title": "Rationale Summary",
+      "type": "string"
+    },
+    "reference_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Reference Id",
+      "type": "string"
+    },
+    "window_end": {
+      "format": "date-time",
+      "title": "Window End",
+      "type": "string"
+    },
+    "window_start": {
+      "format": "date-time",
+      "title": "Window Start",
+      "type": "string"
+    }
+  },
+  "required": [
+    "assessment",
+    "reference_id",
+    "window_start",
+    "window_end",
+    "distributions",
+    "performance",
+    "policy",
+    "rationale_summary",
+    "limitations"
+  ],
+  "title": "ModelHealthReport",
+  "type": "object"
+}

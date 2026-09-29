@@ -1,0 +1,195 @@
+{
+  "$defs": {
+    "DistributionComparison": {
+      "additionalProperties": false,
+      "description": "The same fixed bins must be used for the reference and current window.",
+      "properties": {
+        "bins": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 100,
+          "minItems": 2,
+          "title": "Bins",
+          "type": "array"
+        },
+        "current_counts": {
+          "items": {
+            "maximum": 1000000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "title": "Current Counts",
+          "type": "array"
+        },
+        "name": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "reference_counts": {
+          "items": {
+            "maximum": 1000000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "title": "Reference Counts",
+          "type": "array"
+        },
+        "scope": {
+          "enum": [
+            "feature",
+            "prediction"
+          ],
+          "title": "Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "scope",
+        "bins",
+        "reference_counts",
+        "current_counts"
+      ],
+      "title": "DistributionComparison",
+      "type": "object"
+    },
+    "LabeledPredictionWindow": {
+      "additionalProperties": false,
+      "description": "Position i must identify the same prediction and ground-truth observation.",
+      "properties": {
+        "baseline_f1": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Baseline F1",
+          "type": "number"
+        },
+        "labels": {
+          "items": {
+            "anyOf": [
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Labels",
+          "type": "array"
+        },
+        "predictions": {
+          "items": {
+            "maximum": 1,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 10000,
+          "minItems": 1,
+          "title": "Predictions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "predictions",
+        "labels",
+        "baseline_f1"
+      ],
+      "title": "LabeledPredictionWindow",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "dataset_ref": {
+      "anyOf": [
+        {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Dataset Ref"
+    },
+    "distributions": {
+      "items": {
+        "$ref": "#/$defs/DistributionComparison"
+      },
+      "maxItems": 200,
+      "minItems": 1,
+      "title": "Distributions",
+      "type": "array"
+    },
+    "evidence_refs": {
+      "items": {
+        "maxLength": 128,
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "model_name": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Model Name",
+      "type": "string"
+    },
+    "model_version": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Model Version",
+      "type": "string"
+    },
+    "performance": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LabeledPredictionWindow"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "reference_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Reference Id",
+      "type": "string"
+    },
+    "window_end": {
+      "format": "date-time",
+      "title": "Window End",
+      "type": "string"
+    },
+    "window_start": {
+      "format": "date-time",
+      "title": "Window Start",
+      "type": "string"
+    }
+  },
+  "required": [
+    "model_name",
+    "model_version",
+    "reference_id",
+    "window_start",
+    "window_end",
+    "distributions",
+    "evidence_refs"
+  ],
+  "title": "ModelHealthInput",
+  "type": "object"
+}

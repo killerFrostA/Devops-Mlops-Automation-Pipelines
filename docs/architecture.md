@@ -39,8 +39,9 @@ authorization; a Python protocol is not an access-control mechanism.
 | Area | Current behavior | Remaining work |
 | --- | --- | --- |
 | Contracts | Strict event/task/action validation, JSON Schema export, synthetic examples | Compatibility policy and registry integration |
-| Six agents | Validates task identity/deadline; returns NOT_IMPLEMENTED | Specialist algorithms and tools |
-| HTTP API | Liveness, skeleton readiness, six-agent inventory, OpenAPI | Identity, incidents, approvals and UI streams |
+| Agents 1-5 | Validates task identity/deadline; returns NOT_IMPLEMENTED | Specialist algorithms and tools |
+| Agent 6 | Local PSI/F1 assessment, label quality gates and typed recommendation | Trusted data adapters, calibration, durable integration, retraining and promotion |
+| HTTP API | Liveness, skeleton readiness, six-agent inventory, local model-health assessment, OpenAPI | Identity, incidents, approvals and UI streams |
 | Orchestrator | Initial analysis route plan and state model | LangGraph runtime, checkpoints and complete workflow |
 | Policy | Deny-all assessment bound to action fingerprint | Approved risk matrix and evidence/freshness gates |
 | Context/HITL/Kafka | Ports, schemas and explicit unavailable adapters | Durable storage, gRPC handlers and Kafka workers |
@@ -71,6 +72,6 @@ context version and durable idempotency. No action backend is connected today.
 ## Independent deployment
 
 The monorepo builds one package and one reusable image initially. Compose can start six processes
-with distinct service names, but these expose only health/inventory endpoints. Implement dedicated
-Kafka worker lifecycles and gRPC server entry points before calling them agent services. Per-agent
+with distinct service names. These expose local health/inventory and model-health analysis
+endpoints. Implement dedicated Kafka worker lifecycles and gRPC server entry points before calling them agent services. Per-agent
 images and dependencies can be separated when runtime cost or release cadence justifies it.
