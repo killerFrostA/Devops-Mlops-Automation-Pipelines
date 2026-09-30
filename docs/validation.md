@@ -14,6 +14,7 @@ Windows and Linux; those remote matrix runs have not been executed in this sessi
 | Package build | Source distribution and wheel build successfully |
 | Dependency consistency | `pip check` passed |
 | Agent 6 local lifecycle | Synthetic machine demo registered a review candidate; held-out champion F1 0.714, candidate F1 0.889; MLflow SQLite/run/model version verified |
+| External fraud-project health test | Saved Python 3.12 serving model scored disjoint 2,000-row CSV cohorts; Agent 6 reported HEALTHY with Category drift; target CSV checksum and pre-existing Git status unchanged |
 | Compose configuration | All development profiles render/validate |
 | Kustomize rendering | Local overlay renders 5 Kubernetes resources |
 

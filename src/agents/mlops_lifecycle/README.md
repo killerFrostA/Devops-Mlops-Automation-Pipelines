@@ -91,6 +91,35 @@ source configuration file. Production adapters must replace these local file rea
 synthetic training data, and must supply the actual deployed champion for comparison. The
 orchestrator and Agent 4 must enforce approval, deployment, canary checks and rollback.
 
+## Test against the external fraud application
+
+This repository's Agent 6 can run an **offline health test** against the separate
+`../Fraud_Detection_MLOps` application. The command reads its actual
+`Data/payment_fraud.csv` and scores two disjoint 2,000-row cohorts with the model loaded by
+`API/services.py`. The scorer runs in a separate Python 3.12 environment installed from the
+serving artifact's `requirements.txt`, so the application and Agent 6 keep their own dependencies.
+
+From the Agent 6 repository root, with that model environment prepared:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/test_agent6_fraud_project.py --target-root ../Fraud_Detection_MLOps --model-python artifacts/agent6-fraud-project/model-env/Scripts/python.exe
+```
+
+The tested result is in `artifacts/agent6-fraud-project/assessment/fraud-project-health-report.json`.
+It reported `HEALTHY` with `Category` distribution drift: reference F1 0.408, current F1
+0.389, and an absolute F1 drop of about 0.020 below the demo policy's 0.05 threshold. These
+values verify that the external model, CSV and Agent 6 assessment connect. The result stores
+dataset/model hashes, model runtime versions and numeric histogram boundaries. The fraud
+repository is not edited by the command.
+
+This CSV has no event IDs, event times or label-confirmation times. Its row order is not a
+production monitoring window, and the saved model may have trained on these same rows. The
+API returns a class but no calibrated score. Consequently this test does **not** establish
+production health, unbiased model accuracy or candidate-promotion eligibility. It exercises
+the health-assessment path; the existing machine demo separately exercises local candidate
+training and registration. Live fraud monitoring needs recorded predictions and later outcomes
+with stable IDs and real timestamps.
+
 ## Inputs and provenance
 
 `ModelHealthInput` in `src/contracts/mlops.py` contains model/version/reference identity,
