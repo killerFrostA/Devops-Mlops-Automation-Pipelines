@@ -4,7 +4,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from src import PROJECT_NAME, __version__
-from src.agents.mlops_lifecycle.health import InsufficientSamplesError
+from src.agents.mlops_lifecycle.health.assessor import InsufficientSamplesError
 from src.agents.mlops_lifecycle.service import MLOpsLifecycleAgent
 from src.agents.registry import AGENTS
 from src.config import Settings

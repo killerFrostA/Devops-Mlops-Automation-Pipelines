@@ -4,7 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
-from src.agents.mlops_lifecycle.local_files import LocalSourceConfig
+from src.agents.mlops_lifecycle.adapters.local_files import LocalSourceConfig
 from src.contracts.actions import ActionIntent, ActionRequest
 from src.contracts.base import Contract
 from src.contracts.context import EvidenceReference, IncidentContext

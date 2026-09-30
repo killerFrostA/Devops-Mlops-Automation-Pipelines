@@ -5,6 +5,12 @@ synthetic machine-failure dataset, stores the run and candidate in local MLflow,
 promotion review when a configured gate passes. Production data connectors and deployment are
 separate work.
 
+Detailed Agent 6 documentation:
+
+- [Current architecture and file ownership](docs/architecture.md)
+- [Integrate another project, configure keys, and run examples](docs/integration.md)
+- [Prioritized next steps and acceptance criteria](docs/next-steps.md)
+
 ## Project-neutral evaluation
 
 Agent 6 can also assess **registered projects** without assuming they are fraud or machine
@@ -40,15 +46,32 @@ outcomes on a held-out, timestamped cohort. Store and verify that batch in the p
 evidence system. The project adapter owns model loading, inference and any CSV/database
 access; Agent 6 evaluates its standardized records.
 
-A text-generation project can opt in to an external rubric judge by setting
-`allow_external_llm: true` in its manifest and using `--provider openai` or
-`--provider groq` with an explicit `--model`. Install `.[llm]` and provide
-`OPENAI_API_KEY` or `GROQ_API_KEY` in the process environment. The adapter uses the
-provider's structured-output API and validates the returned score. It sends each
-prompt, generated output, reference and rubric to that provider, so the project owner
-must approve that data flow. No API call occurs for classification or regression.
-Refusals, incomplete responses and invalid scores fail the task; LLM scores always yield
-`REVIEW_REQUIRED` and never authorize promotion.
+A text-generation project can opt in to an external rubric judge. Install the optional
+.[llm] dependencies, then edit this Agent 6 package's own src/agents/mlops_lifecycle/.env file
+(already ignored by Git). Its template is .env.example in the same folder.
+The project-root .env remains for platform settings; Agent 6 reads its own file:
+
+```dotenv
+AGENT6_LLM_PROVIDER=openai
+AGENT6_LLM_MODEL=<a-structured-output-model-you-can-access>
+OPENAI_API_KEY=<paste-your-key-here>
+```
+
+For Groq, set AGENT6_LLM_PROVIDER=groq, select a Groq model that supports strict
+structured outputs, and fill GROQ_API_KEY instead. Process environment variables
+override .env; --provider and --model can override the selected provider/model.
+The manifest must set allow_external_llm to true. After filling the settings, run:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.agents.mlops_lifecycle.project_demo --manifest contracts/examples/agent6/projects/knowledge-assistant-manifest.json --batch contracts/examples/agent6/projects/knowledge-assistant-batch.json
+```
+
+This sends each prompt, generated output, reference and rubric to the selected
+provider, so use only data approved for that service. The adapter validates the
+structured score. Refusals, incomplete responses and invalid scores fail the task;
+LLM scores always yield REVIEW_REQUIRED and never authorize promotion. No provider
+call occurs for binary, regression or local health examples. The fixture has only
+two simple questions and verifies integration, not production model quality.
 
 For orchestrator tasks, register the manifest in the trusted Agent 6 service first.
 Then put an `EvaluationBatch` under `task_context.signals.project_evaluation` and
@@ -227,22 +250,29 @@ PSI threshold 0.2, F1 drop 0.05 (absolute), at least 30 labels, at least 5 posit
 coverage at least 0.5, and epsilon 0.000001. These are configurable policy values, not validated
 business acceptance criteria. No decision confidence or statistical significance is claimed.
 
-## Implementation map and next work
+## Package layout and next work
 
-- `metrics.py`: PSI and binary confusion counts.
-- `health.py`: policy gates, diagnostics and recommendations.
-- `window_builder.py`: fixed-bin histograms, record filtering and delayed-label matching.
-- `ports.py`: baseline, prediction, label, training and registry interfaces.
-- `local_files.py`: development-only file readers with content-digest provenance.
-- `service.py`: bounded task handling, health assessment and the local lifecycle gate.
-- `__main__.py`: prepared-input, record-window or separate-source JSON CLI.
-- `training.py`, `mlflow_registry.py` and `demo_data.py`: local training, tracking and synthetic data.
-- `demo.py`: complete local lifecycle command.
-- `src/contracts/mlops.py`, `src/contracts/mlops_observations.py` and `src/contracts/mlops_training.py`: validated public contracts.
-- `tests/unit/test_mlops_health.py`, `tests/unit/test_mlops_window_builder.py`,
-  `tests/unit/test_mlops_sources.py`, `tests/unit/test_mlops_lifecycle.py`,
-  `tests/integration/test_mlops_api.py` and `tests/integration/test_mlops_lifecycle_demo.py`: behavior verification.
+The Agent 6 package is organized by responsibility:
 
-Next: durable authenticated project registration, trusted production record-source adapters and persisted baseline lookup; threshold calibration
-with representative data; durable evidence/results and Kafka orchestration; actual deployed-champion
-comparison; controlled promotion through the orchestrator and Agent 4.
+- `service.py`: the Agent 6 coordinator and task boundary.
+- `health/`: `assessor.py` decides model health; `metrics.py` calculates PSI and
+  binary counts; `window_builder.py` aligns records and builds fixed-bin windows.
+- `evaluation/`: `engine.py` registers projects and runs task-specific evaluators;
+  `llm_judge.py` connects an opted-in text evaluator to OpenAI or Groq.
+- `training/`: `pipeline.py` trains and compares the local candidate;
+  `demo_data.py` creates synthetic history for the example.
+- `adapters/`: `local_files.py` reads local JSON with content digests;
+  `mlflow_registry.py` registers a local candidate in MLflow.
+- `interfaces/`: `ports.py` defines the data-source, training and registry
+  interfaces that production adapters must implement.
+- `cli/`: `health.py`, `lifecycle_demo.py` and `project_demo.py` implement
+  the three local commands. Top-level `__main__.py`, `demo.py` and
+  `project_demo.py` are small wrappers that preserve the existing commands.
+
+Shared Pydantic contracts remain in `src/contracts/` because orchestrator tasks and
+other agents use the same schemas. The package tests are in `tests/unit/` and
+`tests/integration/`.
+
+The immediate next milestone is durable, authenticated project registration and evidence
+lookup by reference. The full sequence and completion criteria are in
+[Next steps](docs/next-steps.md).

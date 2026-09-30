@@ -44,6 +44,8 @@ The latter includes a synthetic machine-failure example. A separate Agent 6 demo
 compares and registers a candidate locally, then requests promotion review. See the Agent 6 guide.
 It also has a project-neutral evaluation path for registered binary, regression and
 text-generation models, with optional OpenAI/Groq rubric judging and a human-review gate.
+Agent 6 reads optional LLM credentials from its own `src/agents/mlops_lifecycle/.env`;
+`./.env` is reserved for platform settings.
 See [Agent 6 implementation and example](src/agents/mlops_lifecycle/README.md).
 
 ## Six agents, shared coordination

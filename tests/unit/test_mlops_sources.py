@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from src.agents.mlops_lifecycle.local_files import (
+from src.agents.mlops_lifecycle.adapters.local_files import (
     FileBaselineRepository,
     FileLabelRepository,
     FilePredictionRepository,

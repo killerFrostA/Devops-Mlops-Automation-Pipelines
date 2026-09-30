@@ -6,8 +6,14 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from src.agents.mlops_lifecycle.health import InsufficientSamplesError, RuleBasedModelHealthAssessor
-from src.agents.mlops_lifecycle.metrics import binary_confusion_counts, population_stability_index
+from src.agents.mlops_lifecycle.health.assessor import (
+    InsufficientSamplesError,
+    RuleBasedModelHealthAssessor,
+)
+from src.agents.mlops_lifecycle.health.metrics import (
+    binary_confusion_counts,
+    population_stability_index,
+)
 from src.agents.mlops_lifecycle.service import MLOpsLifecycleAgent
 from src.contracts.enums import AgentId, ResultStatus
 from src.contracts.mlops import (

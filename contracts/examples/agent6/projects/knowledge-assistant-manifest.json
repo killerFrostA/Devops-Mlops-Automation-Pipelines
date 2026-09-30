@@ -1,0 +1,11 @@
+{
+  "project_id": "knowledge-assistant",
+  "model_id": "answers",
+  "model_version": "v1",
+  "task_type": "text_generation",
+  "evaluator_id": "text-rubric-llm-v1",
+  "policy_version": "local-text-demo-v1",
+  "min_samples": 2,
+  "min_text_score": 0.8,
+  "allow_external_llm": true
+}

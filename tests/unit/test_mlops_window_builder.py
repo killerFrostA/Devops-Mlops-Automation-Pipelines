@@ -7,8 +7,11 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from src.agents.mlops_lifecycle.health import RuleBasedModelHealthAssessor
-from src.agents.mlops_lifecycle.window_builder import WindowBuildError, build_model_health_input
+from src.agents.mlops_lifecycle.health.assessor import RuleBasedModelHealthAssessor
+from src.agents.mlops_lifecycle.health.window_builder import (
+    WindowBuildError,
+    build_model_health_input,
+)
 from src.contracts.mlops_observations import WindowBuildRequest
 
 ROOT = Path(__file__).resolve().parents[2]

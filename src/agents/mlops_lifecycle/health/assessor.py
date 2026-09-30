@@ -3,7 +3,10 @@
 from typing import Literal
 from uuid import uuid4
 
-from src.agents.mlops_lifecycle.metrics import binary_confusion_counts, population_stability_index
+from src.agents.mlops_lifecycle.health.metrics import (
+    binary_confusion_counts,
+    population_stability_index,
+)
 from src.contracts.mlops import (
     DistributionHealth,
     ModelHealthInput,

@@ -3,11 +3,12 @@
 import asyncio
 import json
 from datetime import UTC, datetime
+from pathlib import Path
 
 import httpx
 import pytest
 
-from src.agents.mlops_lifecycle.llm_judge import ResponsesAPIJudge
+from src.agents.mlops_lifecycle.evaluation.llm_judge import LLMJudgeSettings, ResponsesAPIJudge
 from src.contracts.mlops_projects import TextEvaluationSample
 
 
@@ -98,3 +99,31 @@ def test_provider_http_error_has_no_score_or_key_in_error() -> None:
             assert "secret-test-key" not in str(exc.value)
 
     asyncio.run(run())
+
+
+def test_local_env_file_loads_provider_model_and_key_with_process_override(
+    tmp_path, monkeypatch
+) -> None:
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "AGENT6_LLM_PROVIDER=groq\nAGENT6_LLM_MODEL=test-model\nGROQ_API_KEY=from-local-file\n",
+        encoding="utf-8",
+    )
+    for name in ("AGENT6_LLM_PROVIDER", "AGENT6_LLM_MODEL", "GROQ_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
+    settings = LLMJudgeSettings(_env_file=env_file)
+    assert settings.agent6_llm_provider == "groq"
+    assert settings.agent6_llm_model == "test-model"
+    assert settings.api_key_for("groq") == "from-local-file"
+    judge = ResponsesAPIJudge.from_env("groq", settings.agent6_llm_model, settings=settings)
+    assert judge.model_name == "groq:test-model"
+
+    monkeypatch.setenv("GROQ_API_KEY", "from-process")
+    overridden = LLMJudgeSettings(_env_file=env_file)
+    assert overridden.api_key_for("groq") == "from-process"
+
+
+def test_default_llm_settings_use_agent_package_env_file() -> None:
+    repository = Path(__file__).resolve().parents[2]
+    expected = repository / "src/agents/mlops_lifecycle/.env"
+    assert LLMJudgeSettings.model_config["env_file"] == expected

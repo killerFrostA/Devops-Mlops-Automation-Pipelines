@@ -1,15 +1,41 @@
 """Optional OpenAI/Groq rubric judge using their Responses structured-output APIs."""
 
 import json
-import os
+from pathlib import Path
 from typing import Literal
 
 import httpx
-from pydantic import ValidationError
+from pydantic import SecretStr, ValidationError
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.contracts.mlops_projects import TextEvaluationSample, TextJudgment
 
 Provider = Literal["openai", "groq"]
+_AGENT_DIRECTORY = Path(__file__).resolve().parents[1]
+
+
+class LLMJudgeSettings(BaseSettings):
+    """Read local Agent 6 settings without exposing API keys in logs or reports."""
+
+    model_config = SettingsConfigDict(
+        env_file=_AGENT_DIRECTORY / ".env", env_file_encoding="utf-8", extra="ignore"
+    )
+
+    agent6_llm_provider: Provider | None = None
+    agent6_llm_model: str = ""
+    openai_api_key: SecretStr = SecretStr("")
+    groq_api_key: SecretStr = SecretStr("")
+
+    def api_key_for(self, provider: Provider) -> str:
+        secret = self.openai_api_key if provider == "openai" else self.groq_api_key
+        value = secret.get_secret_value().strip()
+        if not value:
+            raise ValueError(
+                f"{_KEY_NAMES[provider]} is required in the Agent 6 .env or the environment"
+            )
+        return value
+
+
 _ENDPOINTS: dict[Provider, str] = {
     "openai": "https://api.openai.com/v1/responses",
     "groq": "https://api.groq.com/openai/v1/responses",
@@ -54,12 +80,15 @@ class ResponsesAPIJudge:
 
     @classmethod
     def from_env(
-        cls, provider: Provider, model: str, *, client: httpx.AsyncClient | None = None
+        cls,
+        provider: Provider,
+        model: str,
+        *,
+        settings: LLMJudgeSettings | None = None,
+        client: httpx.AsyncClient | None = None,
     ) -> "ResponsesAPIJudge":
-        key = os.environ.get(_KEY_NAMES[provider], "")
-        if not key:
-            raise ValueError(f"{_KEY_NAMES[provider]} is required")
-        return cls(provider, model, key, client=client)
+        config = settings or LLMJudgeSettings()
+        return cls(provider, model, config.api_key_for(provider), client=client)
 
     async def judge(self, sample: TextEvaluationSample) -> TextJudgment:
         payload = {

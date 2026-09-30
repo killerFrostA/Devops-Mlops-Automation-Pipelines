@@ -9,7 +9,7 @@ from pathlib import Path
 
 from pydantic import TypeAdapter, ValidationError
 
-from src.agents.mlops_lifecycle.ports import (
+from src.agents.mlops_lifecycle.interfaces.ports import (
     BaselineRepository,
     LabelRepository,
     PredictionRepository,

@@ -5,8 +5,13 @@ from uuid import uuid4
 from pydantic import ValidationError
 
 from src.agents.base import SkeletonAgent
-from src.agents.mlops_lifecycle.health import InsufficientSamplesError, RuleBasedModelHealthAssessor
-from src.agents.mlops_lifecycle.ports import (
+from src.agents.mlops_lifecycle.evaluation.engine import ProjectEvaluationService
+from src.agents.mlops_lifecycle.health.assessor import (
+    InsufficientSamplesError,
+    RuleBasedModelHealthAssessor,
+)
+from src.agents.mlops_lifecycle.health.window_builder import build_model_health_input
+from src.agents.mlops_lifecycle.interfaces.ports import (
     BaselineRepository,
     LabelRepository,
     ModelHealthAssessor,
@@ -14,8 +19,6 @@ from src.agents.mlops_lifecycle.ports import (
     PredictionRepository,
     TrainingPipeline,
 )
-from src.agents.mlops_lifecycle.project_evaluation import ProjectEvaluationService
-from src.agents.mlops_lifecycle.window_builder import build_model_health_input
 from src.contracts.enums import AgentId, ResultStatus
 from src.contracts.mlops import ModelHealthInput, ModelHealthReport
 from src.contracts.mlops_observations import ModelWindowQuery, WindowBuildRequest

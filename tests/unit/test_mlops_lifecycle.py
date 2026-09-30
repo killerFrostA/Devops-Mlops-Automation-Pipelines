@@ -5,16 +5,16 @@ from pathlib import Path
 
 import pytest
 
-from src.agents.mlops_lifecycle.demo_data import synthetic_machine_training_dataset
-from src.agents.mlops_lifecycle.health import RuleBasedModelHealthAssessor
-from src.agents.mlops_lifecycle.local_files import (
+from src.agents.mlops_lifecycle.adapters.local_files import (
     FileBaselineRepository,
     FileLabelRepository,
     FilePredictionRepository,
     LocalSourceConfig,
 )
+from src.agents.mlops_lifecycle.health.assessor import RuleBasedModelHealthAssessor
 from src.agents.mlops_lifecycle.service import MLOpsLifecycleAgent
-from src.agents.mlops_lifecycle.training import split_dataset
+from src.agents.mlops_lifecycle.training.demo_data import synthetic_machine_training_dataset
+from src.agents.mlops_lifecycle.training.pipeline import split_dataset
 from src.contracts.mlops import ModelHealthPolicy
 from src.contracts.mlops_training import (
     CandidateEvaluation,

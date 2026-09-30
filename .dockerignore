@@ -3,6 +3,7 @@
 .scratch
 .env
 .env.*
+src/agents/mlops_lifecycle/.env
 __pycache__
 *.pyc
 .pytest_cache

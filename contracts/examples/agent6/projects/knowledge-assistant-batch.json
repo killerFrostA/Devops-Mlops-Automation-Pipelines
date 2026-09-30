@@ -1,0 +1,27 @@
+{
+  "project_id": "knowledge-assistant",
+  "model_id": "answers",
+  "model_version": "v1",
+  "dataset_ref": "knowledge-assistant-small-demo",
+  "evidence_ref": "local:knowledge-assistant-small-demo",
+  "samples": [
+    {
+      "task_type": "text_generation",
+      "observation_id": "qa-1",
+      "observed_at": "2026-09-30T00:00:00+00:00",
+      "prompt": "What is 2 + 2?",
+      "output": "4",
+      "reference": "4",
+      "rubric": "Score correctness against the reference; do not reward extra unsupported claims."
+    },
+    {
+      "task_type": "text_generation",
+      "observation_id": "qa-2",
+      "observed_at": "2026-09-30T00:00:00+00:00",
+      "prompt": "Name the first month of the year.",
+      "output": "January",
+      "reference": "January",
+      "rubric": "Score correctness against the reference; do not reward extra unsupported claims."
+    }
+  ]
+}

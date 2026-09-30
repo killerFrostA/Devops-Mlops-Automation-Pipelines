@@ -1,6 +1,10 @@
 include README.md NOTICE CONTRIBUTING.md SECURITY.md
 include pyproject.toml .python-version .env.example Dockerfile compose.yaml
+exclude .env
+include src/agents/mlops_lifecycle/.env.example
+exclude src/agents/mlops_lifecycle/.env
 recursive-include src *.py py.typed
+recursive-include src/agents/mlops_lifecycle *.md
 recursive-include requirements *.lock
 recursive-include contracts *.json *.proto *.md
 recursive-include configs *.yaml

@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from pydantic import ValidationError
 
-from src.agents.mlops_lifecycle.project_evaluation import ProjectEvaluationService
+from src.agents.mlops_lifecycle.evaluation.engine import ProjectEvaluationService
 from src.agents.mlops_lifecycle.service import MLOpsLifecycleAgent
 from src.contracts.enums import AgentId, Environment, ResultStatus
 from src.contracts.mlops_projects import (

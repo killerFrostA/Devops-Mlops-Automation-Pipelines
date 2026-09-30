@@ -6,13 +6,14 @@ Windows and Linux; those remote matrix runs have not been executed in this sessi
 | Check | Result |
 | --- | --- |
 | Ruff formatting and lint | Passed |
-| Strict mypy | Passed for 69 source modules |
-| Pytest | 155 passed; one MLflow/SQLAlchemy deprecation warning and one local pytest cache permission warning |
+| Strict mypy | Passed for 78 source files |
+| Pytest | 157 passed; one MLflow/SQLAlchemy deprecation warning and one local pytest cache permission warning |
 | JSON Schema drift | 31 committed schemas match Python definitions |
 | Event compatibility | All 11 synthetic topic examples validate against Python and JSON Schema |
 | Protobuf compilation | All 4 specifications compile with namespaced imports |
 | Package build | Source distribution and wheel build successfully |
 | Dependency consistency | `pip check` passed |
+| Agent 6 local provider configuration | Agent 6's ignored package-local .env loads provider/model/key, environment variables override it, and source/wheel packages exclude .env |
 | Agent 6 project-neutral evaluation | Local support-routing F1 and energy-demand MAE/RMSE examples passed; custom plugin, evidence scope, minimum samples and mocked OpenAI/Groq behavior verified without live API calls |
 | Agent 6 local lifecycle | Synthetic machine demo registered a review candidate; held-out champion F1 0.714, candidate F1 0.889; MLflow SQLite/run/model version verified |
 | External fraud-project health test | Saved Python 3.12 serving model scored disjoint 2,000-row CSV cohorts; Agent 6 reported HEALTHY with Category drift; target CSV checksum and pre-existing Git status unchanged |

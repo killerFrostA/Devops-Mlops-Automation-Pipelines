@@ -29,3 +29,5 @@ unavailable dependencies before adding an advanced reasoning branch.
 - Dependency/image pins and required security checks are reviewed.
 - Runbooks, rollback steps and ownership are current.
 - The delivery owner approves scope, measurable outcomes and unresolved limitations.
+
+Agent 6 has a separate [MLOps implementation roadmap](../src/agents/mlops_lifecycle/docs/next-steps.md) with its next technical milestone and acceptance criteria.
