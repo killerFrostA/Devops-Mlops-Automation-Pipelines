@@ -4,6 +4,7 @@ from pydantic import AwareDatetime, Field, JsonValue, model_validator
 
 from src.contracts.base import Contract
 from src.contracts.enums import AgentId, Environment, ResultStatus
+from src.contracts.mlops_projects import ProjectEvaluationReport
 from src.contracts.payloads import ModelHealthAssessed
 
 
@@ -43,5 +44,8 @@ class AgentResult(Contract):
     @model_validator(mode="after")
     def validate_domain_payload(self) -> "AgentResult":
         if self.agent_id is AgentId.MLOPS_LIFECYCLE and self.status is ResultStatus.SUCCEEDED:
-            ModelHealthAssessed.model_validate(self.payload)
+            if "task_type" in self.payload:
+                ProjectEvaluationReport.model_validate(self.payload)
+            else:
+                ModelHealthAssessed.model_validate(self.payload)
         return self

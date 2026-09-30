@@ -42,6 +42,8 @@ Agent 6 now supports local drift and labeled F1 assessment through
 from records (`--records`) or separate local baseline/prediction/label files (`--sources`).
 The latter includes a synthetic machine-failure example. A separate Agent 6 demo trains,
 compares and registers a candidate locally, then requests promotion review. See the Agent 6 guide.
+It also has a project-neutral evaluation path for registered binary, regression and
+text-generation models, with optional OpenAI/Groq rubric judging and a human-review gate.
 See [Agent 6 implementation and example](src/agents/mlops_lifecycle/README.md).
 
 ## Six agents, shared coordination

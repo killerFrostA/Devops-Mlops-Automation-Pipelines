@@ -11,6 +11,7 @@ from src.contracts.context import EvidenceReference, IncidentContext
 from src.contracts.events import EventEnvelope
 from src.contracts.mlops import ModelHealthInput, ModelHealthPolicy, ModelHealthReport
 from src.contracts.mlops_observations import BaselineProfile, ModelWindowQuery, WindowBuildRequest
+from src.contracts.mlops_projects import EvaluationBatch, ProjectEvaluationReport, ProjectManifest
 from src.contracts.mlops_training import (
     CandidateEvaluation,
     ModelLifecycleReport,
@@ -40,6 +41,9 @@ MODELS: tuple[type[Contract], ...] = (
     TrainingPolicy,
     CandidateEvaluation,
     ModelLifecycleReport,
+    ProjectManifest,
+    EvaluationBatch,
+    ProjectEvaluationReport,
 )
 
 

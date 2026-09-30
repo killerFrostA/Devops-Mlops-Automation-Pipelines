@@ -1,0 +1,11 @@
+{
+  "project_id": "energy-demand",
+  "model_id": "baseline",
+  "model_version": "v1",
+  "task_type": "regression",
+  "evaluator_id": "regression-mae-v1",
+  "policy_version": "local-demo-v1",
+  "min_samples": 4,
+  "min_positive_samples": 2,
+  "max_mae": 0.25
+}

@@ -40,7 +40,7 @@ authorization; a Python protocol is not an access-control mechanism.
 | --- | --- | --- |
 | Contracts | Strict event/task/action validation, JSON Schema export, synthetic examples | Compatibility policy and registry integration |
 | Agents 1-5 | Validates task identity/deadline; returns NOT_IMPLEMENTED | Specialist algorithms and tools |
-| Agent 6 | Local health assessment, synthetic training, held-out comparison, MLflow registry and promotion-review request | Production data and champion adapters, calibration, durable integration and orchestrated promotion |
+| Agent 6 | Local health assessment and synthetic training; registered binary/regression/text evaluations; custom evaluator plugins; optional structured-output OpenAI/Groq judge | Trusted production data and champion adapters, durable registration/evidence, calibration and orchestrated promotion |
 | HTTP API | Liveness, skeleton readiness, six-agent inventory, local model-health assessment, OpenAPI | Identity, incidents, approvals and UI streams |
 | Orchestrator | Initial analysis route plan and state model | LangGraph runtime, checkpoints and complete workflow |
 | Policy | Deny-all assessment bound to action fingerprint | Approved risk matrix and evidence/freshness gates |

@@ -1,0 +1,37 @@
+{
+  "project_id": "support-routing",
+  "model_id": "baseline",
+  "model_version": "v1",
+  "dataset_ref": "support-routing-heldout-v1",
+  "evidence_ref": "local:support-routing-batch-v1",
+  "samples": [
+    {
+      "task_type": "binary_classification",
+      "observation_id": "observation-1",
+      "observed_at": "2026-09-30T00:00:00+00:00",
+      "expected": 1,
+      "predicted": 1
+    },
+    {
+      "task_type": "binary_classification",
+      "observation_id": "observation-2",
+      "observed_at": "2026-09-30T00:00:00+00:00",
+      "expected": 0,
+      "predicted": 0
+    },
+    {
+      "task_type": "binary_classification",
+      "observation_id": "observation-3",
+      "observed_at": "2026-09-30T00:00:00+00:00",
+      "expected": 1,
+      "predicted": 1
+    },
+    {
+      "task_type": "binary_classification",
+      "observation_id": "observation-4",
+      "observed_at": "2026-09-30T00:00:00+00:00",
+      "expected": 0,
+      "predicted": 0
+    }
+  ]
+}

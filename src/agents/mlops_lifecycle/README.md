@@ -5,6 +5,58 @@ synthetic machine-failure dataset, stores the run and candidate in local MLflow,
 promotion review when a configured gate passes. Production data connectors and deployment are
 separate work.
 
+## Project-neutral evaluation
+
+Agent 6 can also assess **registered projects** without assuming they are fraud or machine
+models. A trusted owner registers a manifest for one project, model version, task type,
+evaluator and policy. A project adapter supplies a batch of deployed predictions paired with
+reference outcomes and a dataset/evidence reference. The evaluator computes metrics and a
+decision, then Agent 6 returns that report to the orchestrator. The orchestrator controls
+durable evidence, approvals and deployment. The generic path does not load arbitrary models,
+read arbitrary databases or deploy candidates by itself.
+
+Built-in evaluator IDs are `binary-f1-v1` (binary classification), `regression-mae-v1`
+(numeric regression) and `text-rubric-llm-v1` (text generation). Additional task types
+use task type `custom`, a versioned `evaluator_config`, and a trusted
+`ProjectEvaluator` plugin that validates its own sample payload and policy.
+A manifest's model version and policy are immutable within a service instance. A batch
+must match its registered model and task, contain unique observation IDs and identify
+its evidence. Insufficient samples, too few positive labels or undefined binary F1 produce
+`INSUFFICIENT_EVIDENCE`. `PASS` is a metric gate only: every report still requests
+human review before promotion.
+
+Run two unrelated local examples from the repository root:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.agents.mlops_lifecycle.project_demo --manifest contracts/examples/agent6/projects/support-routing-manifest.json --batch contracts/examples/agent6/projects/support-routing-batch.json
+.\.venv\Scripts\python.exe -m src.agents.mlops_lifecycle.project_demo --manifest contracts/examples/agent6/projects/energy-demand-manifest.json --batch contracts/examples/agent6/projects/energy-demand-batch.json
+```
+
+The first reports classification F1; the second reports regression MAE and RMSE.
+These four-row fixtures verify plumbing only. Their `local:` evidence references are
+illustrative identifiers, not cryptographic proof or statistically representative data.
+For a real project, replace the batch with records from its serving logs and confirmed
+outcomes on a held-out, timestamped cohort. Store and verify that batch in the project's
+evidence system. The project adapter owns model loading, inference and any CSV/database
+access; Agent 6 evaluates its standardized records.
+
+A text-generation project can opt in to an external rubric judge by setting
+`allow_external_llm: true` in its manifest and using `--provider openai` or
+`--provider groq` with an explicit `--model`. Install `.[llm]` and provide
+`OPENAI_API_KEY` or `GROQ_API_KEY` in the process environment. The adapter uses the
+provider's structured-output API and validates the returned score. It sends each
+prompt, generated output, reference and rubric to that provider, so the project owner
+must approve that data flow. No API call occurs for classification or regression.
+Refusals, incomplete responses and invalid scores fail the task; LLM scores always yield
+`REVIEW_REQUIRED` and never authorize promotion.
+
+For orchestrator tasks, register the manifest in the trusted Agent 6 service first.
+Then put an `EvaluationBatch` under `task_context.signals.project_evaluation` and
+include its `evidence_ref` in `task_context.evidence_refs`. The agent rejects an
+unregistered model version or out-of-scope evidence. The current registration is in
+memory; production needs a durable, authenticated registry and adapters that fetch
+bounded evidence by reference instead of embedding sensitive text in task signals.
+
 ## Run local examples
 
 The source-backed machine-failure example reads three separate JSON files: a saved baseline,
@@ -191,6 +243,6 @@ business acceptance criteria. No decision confidence or statistical significance
   `tests/unit/test_mlops_sources.py`, `tests/unit/test_mlops_lifecycle.py`,
   `tests/integration/test_mlops_api.py` and `tests/integration/test_mlops_lifecycle_demo.py`: behavior verification.
 
-Next: trusted production record-source adapters and persisted baseline lookup; threshold calibration
+Next: durable authenticated project registration, trusted production record-source adapters and persisted baseline lookup; threshold calibration
 with representative data; durable evidence/results and Kafka orchestration; actual deployed-champion
 comparison; controlled promotion through the orchestrator and Agent 4.

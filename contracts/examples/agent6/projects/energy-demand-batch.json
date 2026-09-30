@@ -1,0 +1,37 @@
+{
+  "project_id": "energy-demand",
+  "model_id": "baseline",
+  "model_version": "v1",
+  "dataset_ref": "energy-demand-heldout-v1",
+  "evidence_ref": "local:energy-demand-batch-v1",
+  "samples": [
+    {
+      "task_type": "regression",
+      "observation_id": "observation-1",
+      "observed_at": "2026-09-30T00:00:00+00:00",
+      "expected": 10.0,
+      "predicted": 10.1
+    },
+    {
+      "task_type": "regression",
+      "observation_id": "observation-2",
+      "observed_at": "2026-09-30T00:00:00+00:00",
+      "expected": 12.0,
+      "predicted": 11.9
+    },
+    {
+      "task_type": "regression",
+      "observation_id": "observation-3",
+      "observed_at": "2026-09-30T00:00:00+00:00",
+      "expected": 9.0,
+      "predicted": 9.1
+    },
+    {
+      "task_type": "regression",
+      "observation_id": "observation-4",
+      "observed_at": "2026-09-30T00:00:00+00:00",
+      "expected": 11.0,
+      "predicted": 10.9
+    }
+  ]
+}

@@ -1,0 +1,127 @@
+{
+  "$defs": {
+    "JsonValue": {},
+    "TaskType": {
+      "enum": [
+        "binary_classification",
+        "regression",
+        "text_generation",
+        "custom"
+      ],
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "A project registers the exact model and evaluator policy it wants assessed.",
+  "properties": {
+    "allow_external_llm": {
+      "default": false,
+      "title": "Allow External Llm",
+      "type": "boolean"
+    },
+    "evaluator_config": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Evaluator Config",
+      "type": "object"
+    },
+    "evaluator_id": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Evaluator Id",
+      "type": "string"
+    },
+    "max_mae": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Mae"
+    },
+    "min_f1": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Min F1"
+    },
+    "min_positive_samples": {
+      "default": 5,
+      "minimum": 1,
+      "title": "Min Positive Samples",
+      "type": "integer"
+    },
+    "min_samples": {
+      "default": 30,
+      "minimum": 1,
+      "title": "Min Samples",
+      "type": "integer"
+    },
+    "min_text_score": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Min Text Score"
+    },
+    "model_id": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Model Id",
+      "type": "string"
+    },
+    "model_version": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Model Version",
+      "type": "string"
+    },
+    "policy_version": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "project_id": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Project Id",
+      "type": "string"
+    },
+    "task_type": {
+      "$ref": "#/$defs/TaskType"
+    }
+  },
+  "required": [
+    "project_id",
+    "model_id",
+    "model_version",
+    "task_type",
+    "evaluator_id",
+    "policy_version"
+  ],
+  "title": "ProjectManifest",
+  "type": "object"
+}

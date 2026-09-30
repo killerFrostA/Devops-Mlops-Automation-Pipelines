@@ -1,0 +1,260 @@
+{
+  "$defs": {
+    "BinaryEvaluationSample": {
+      "additionalProperties": false,
+      "properties": {
+        "expected": {
+          "enum": [
+            0,
+            1
+          ],
+          "title": "Expected",
+          "type": "integer"
+        },
+        "observation_id": {
+          "maxLength": 160,
+          "minLength": 1,
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "predicted": {
+          "enum": [
+            0,
+            1
+          ],
+          "title": "Predicted",
+          "type": "integer"
+        },
+        "task_type": {
+          "const": "binary_classification",
+          "default": "binary_classification",
+          "title": "Task Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "observation_id",
+        "observed_at",
+        "expected",
+        "predicted"
+      ],
+      "title": "BinaryEvaluationSample",
+      "type": "object"
+    },
+    "CustomEvaluationSample": {
+      "additionalProperties": false,
+      "description": "Project-specific JSON payload; the registered plugin validates its contents.",
+      "properties": {
+        "observation_id": {
+          "maxLength": 160,
+          "minLength": 1,
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "payload": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Payload",
+          "type": "object"
+        },
+        "task_type": {
+          "const": "custom",
+          "default": "custom",
+          "title": "Task Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "observation_id",
+        "observed_at",
+        "payload"
+      ],
+      "title": "CustomEvaluationSample",
+      "type": "object"
+    },
+    "EvaluationSample": {
+      "discriminator": {
+        "mapping": {
+          "binary_classification": "#/$defs/BinaryEvaluationSample",
+          "custom": "#/$defs/CustomEvaluationSample",
+          "regression": "#/$defs/RegressionEvaluationSample",
+          "text_generation": "#/$defs/TextEvaluationSample"
+        },
+        "propertyName": "task_type"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/BinaryEvaluationSample"
+        },
+        {
+          "$ref": "#/$defs/RegressionEvaluationSample"
+        },
+        {
+          "$ref": "#/$defs/TextEvaluationSample"
+        },
+        {
+          "$ref": "#/$defs/CustomEvaluationSample"
+        }
+      ]
+    },
+    "JsonValue": {},
+    "RegressionEvaluationSample": {
+      "additionalProperties": false,
+      "properties": {
+        "expected": {
+          "title": "Expected",
+          "type": "number"
+        },
+        "observation_id": {
+          "maxLength": 160,
+          "minLength": 1,
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "predicted": {
+          "title": "Predicted",
+          "type": "number"
+        },
+        "task_type": {
+          "const": "regression",
+          "default": "regression",
+          "title": "Task Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "observation_id",
+        "observed_at",
+        "expected",
+        "predicted"
+      ],
+      "title": "RegressionEvaluationSample",
+      "type": "object"
+    },
+    "TextEvaluationSample": {
+      "additionalProperties": false,
+      "properties": {
+        "observation_id": {
+          "maxLength": 160,
+          "minLength": 1,
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "output": {
+          "maxLength": 8000,
+          "minLength": 1,
+          "title": "Output",
+          "type": "string"
+        },
+        "prompt": {
+          "maxLength": 8000,
+          "minLength": 1,
+          "title": "Prompt",
+          "type": "string"
+        },
+        "reference": {
+          "maxLength": 8000,
+          "minLength": 1,
+          "title": "Reference",
+          "type": "string"
+        },
+        "rubric": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Rubric",
+          "type": "string"
+        },
+        "task_type": {
+          "const": "text_generation",
+          "default": "text_generation",
+          "title": "Task Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "observation_id",
+        "observed_at",
+        "prompt",
+        "output",
+        "reference",
+        "rubric"
+      ],
+      "title": "TextEvaluationSample",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "dataset_ref": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Dataset Ref",
+      "type": "string"
+    },
+    "evidence_ref": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Evidence Ref",
+      "type": "string"
+    },
+    "model_id": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Model Id",
+      "type": "string"
+    },
+    "model_version": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Model Version",
+      "type": "string"
+    },
+    "project_id": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Project Id",
+      "type": "string"
+    },
+    "samples": {
+      "items": {
+        "$ref": "#/$defs/EvaluationSample"
+      },
+      "maxItems": 20000,
+      "minItems": 1,
+      "title": "Samples",
+      "type": "array"
+    }
+  },
+  "required": [
+    "project_id",
+    "model_id",
+    "model_version",
+    "dataset_ref",
+    "evidence_ref",
+    "samples"
+  ],
+  "title": "EvaluationBatch",
+  "type": "object"
+}

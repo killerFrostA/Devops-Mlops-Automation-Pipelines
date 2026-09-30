@@ -1,0 +1,11 @@
+{
+  "project_id": "support-routing",
+  "model_id": "baseline",
+  "model_version": "v1",
+  "task_type": "binary_classification",
+  "evaluator_id": "binary-f1-v1",
+  "policy_version": "local-demo-v1",
+  "min_samples": 4,
+  "min_positive_samples": 2,
+  "min_f1": 0.75
+}

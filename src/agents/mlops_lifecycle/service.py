@@ -14,10 +14,12 @@ from src.agents.mlops_lifecycle.ports import (
     PredictionRepository,
     TrainingPipeline,
 )
+from src.agents.mlops_lifecycle.project_evaluation import ProjectEvaluationService
 from src.agents.mlops_lifecycle.window_builder import build_model_health_input
 from src.contracts.enums import AgentId, ResultStatus
 from src.contracts.mlops import ModelHealthInput, ModelHealthReport
 from src.contracts.mlops_observations import ModelWindowQuery, WindowBuildRequest
+from src.contracts.mlops_projects import EvaluationBatch, ProjectEvaluationReport, ProjectManifest
 from src.contracts.mlops_training import ModelLifecycleReport, TrainingDataset, TrainingPolicy
 from src.contracts.tasks import AgentResult, AgentTask
 from src.platform.errors import IntegrationNotConfiguredError
@@ -37,6 +39,7 @@ class MLOpsLifecycleAgent(SkeletonAgent):
         labels: LabelRepository | None = None,
         training: TrainingPipeline | None = None,
         registry: ModelRegistry | None = None,
+        project_evaluation: ProjectEvaluationService | None = None,
     ) -> None:
         self._assessor = assessor or RuleBasedModelHealthAssessor()
         self._baselines = baselines
@@ -44,6 +47,14 @@ class MLOpsLifecycleAgent(SkeletonAgent):
         self._labels = labels
         self._training = training
         self._registry = registry
+        self._project_evaluation = project_evaluation or ProjectEvaluationService()
+
+    def register_project(self, manifest: ProjectManifest) -> None:
+        """Trusted configuration step; task callers cannot override registered policy."""
+        self._project_evaluation.register_project(manifest)
+
+    async def assess_project_batch(self, batch: EvaluationBatch) -> ProjectEvaluationReport:
+        return await self._project_evaluation.evaluate(batch)
 
     async def assess_model_health(self, request: ModelHealthInput) -> ModelHealthReport:
         return await self._assessor.assess(request)
@@ -142,6 +153,31 @@ class MLOpsLifecycleAgent(SkeletonAgent):
             raise ValueError("Task addressed to a different agent")
         if task.deadline <= datetime.now(UTC):
             raise ValueError("Task deadline has expired")
+        if "project_evaluation" in task.task_context.signals:
+            try:
+                batch = EvaluationBatch.model_validate(
+                    task.task_context.signals["project_evaluation"]
+                )
+            except ValidationError:
+                return self._failure(task, "Invalid project_evaluation batch")
+            if batch.evidence_ref not in task.task_context.evidence_refs:
+                return self._failure(task, "Project evidence must be included in the task context")
+            try:
+                project_report = await self.assess_project_batch(batch)
+            except (ValueError, IntegrationNotConfiguredError, RuntimeError) as error:
+                return self._failure(task, str(error))
+            if task.deadline <= datetime.now(UTC):
+                raise ValueError("Task deadline has expired")
+            return AgentResult(
+                result_id=str(uuid4()),
+                task_id=task.task_id,
+                incident_id=task.incident_id,
+                agent_id=self.agent_id,
+                status=ResultStatus.SUCCEEDED,
+                rationale_summary=project_report.rationale_summary,
+                evidence_refs=(batch.evidence_ref,),
+                payload=project_report.model_dump(mode="json"),
+            )
         try:
             request = ModelHealthInput.model_validate(task.task_context.signals.get("model_health"))
         except ValidationError:

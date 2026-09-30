@@ -1,0 +1,122 @@
+{
+  "$defs": {
+    "TaskType": {
+      "enum": [
+        "binary_classification",
+        "regression",
+        "text_generation",
+        "custom"
+      ],
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "dataset_ref": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Dataset Ref",
+      "type": "string"
+    },
+    "decision": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "INSUFFICIENT_EVIDENCE",
+        "REVIEW_REQUIRED"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "evaluator_id": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Evaluator Id",
+      "type": "string"
+    },
+    "evaluator_model": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Evaluator Model"
+    },
+    "evidence_ref": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Evidence Ref",
+      "type": "string"
+    },
+    "metrics": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Metrics",
+      "type": "object"
+    },
+    "model_id": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Model Id",
+      "type": "string"
+    },
+    "model_version": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Model Version",
+      "type": "string"
+    },
+    "policy_version": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "project_id": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Project Id",
+      "type": "string"
+    },
+    "rationale_summary": {
+      "minLength": 1,
+      "title": "Rationale Summary",
+      "type": "string"
+    },
+    "requires_human_review": {
+      "title": "Requires Human Review",
+      "type": "boolean"
+    },
+    "sample_count": {
+      "minimum": 1,
+      "title": "Sample Count",
+      "type": "integer"
+    },
+    "task_type": {
+      "$ref": "#/$defs/TaskType"
+    }
+  },
+  "required": [
+    "project_id",
+    "model_id",
+    "model_version",
+    "task_type",
+    "evaluator_id",
+    "policy_version",
+    "dataset_ref",
+    "evidence_ref",
+    "sample_count",
+    "decision",
+    "metrics",
+    "rationale_summary",
+    "requires_human_review"
+  ],
+  "title": "ProjectEvaluationReport",
+  "type": "object"
+}
