@@ -41,7 +41,7 @@ authorization; a Python protocol is not an access-control mechanism.
 | Contracts | Strict event/task/action validation, JSON Schema export, synthetic examples | Compatibility policy and registry integration |
 | Six agents | Validates task identity/deadline; returns NOT_IMPLEMENTED | Specialist algorithms and tools |
 | HTTP API | Liveness, skeleton readiness, six-agent inventory, OpenAPI | Identity, incidents, approvals and UI streams |
-| Orchestrator | Initial analysis route plan and state model | LangGraph runtime, checkpoints and complete workflow |
+| Orchestrator | Recommendation-driven analysis dispatch, validated results, optional Groq advice and local SQLite checkpoints | LangGraph runtime, distributed checkpoints, policy/HITL and action workflow |
 | Policy | Deny-all assessment bound to action fingerprint | Approved risk matrix and evidence/freshness gates |
 | Context/HITL/Kafka | Ports, schemas and explicit unavailable adapters | Durable storage, gRPC handlers and Kafka workers |
 | Infrastructure | Compose definitions, K8s base and Terraform boundary | Image builds/runtime validation, provider configuration, production controls |

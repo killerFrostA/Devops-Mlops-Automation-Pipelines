@@ -8,7 +8,7 @@ your issue tracker after approving the interface baseline.
 | PLAT-001 | Shared | Review initial event/protobuf contracts (scaffolded) | All six owners accept fields and compatibility rules |
 | PLAT-002 | Shared | Kafka workers + registry + topic ACLs | Invalid schemas rejected; per-agent groups and partition keys verified |
 | PLAT-003 | Shared | Context PostgreSQL repository and gRPC | Transactional append and evidence deduplication; orchestrator-only reads |
-| PLAT-004 | Shared | LangGraph supervisor/checkpoints | Restart resumes workflow without reissuing an executed action |
+| PLAT-004 | Shared | Local deterministic supervisor/checkpoint core built; LangGraph and distributed runtime pending | Restart resumes workflow without reissuing an executed action |
 | PLAT-005 | Shared | Risk/evidence/freshness policy | AUTO/APPROVAL_REQUIRED/BLOCK match an approved policy matrix |
 | PLAT-006 | Shared | Authenticated HITL/token service | Scope/version/hash/expiry binding enforced; rejected/expired never execute |
 | PLAT-007 | Shared | Dashboard/API operator workflow | RBAC identity used; approval sent only through orchestrator |

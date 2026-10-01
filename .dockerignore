@@ -3,6 +3,7 @@
 .scratch
 .env
 .env.*
+src/platform/orchestrator/.env
 __pycache__
 *.pyc
 .pytest_cache

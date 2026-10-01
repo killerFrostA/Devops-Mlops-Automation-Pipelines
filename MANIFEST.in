@@ -1,6 +1,10 @@
 include README.md NOTICE CONTRIBUTING.md SECURITY.md
 include pyproject.toml .python-version .env.example Dockerfile compose.yaml
 recursive-include src *.py py.typed
+recursive-include src/platform/orchestrator *.md
+recursive-include src/platform/orchestrator/decision/prompts *.j2
+include src/platform/orchestrator/.env.example
+exclude src/platform/orchestrator/.env
 recursive-include requirements *.lock
 recursive-include contracts *.json *.proto *.md
 recursive-include configs *.yaml

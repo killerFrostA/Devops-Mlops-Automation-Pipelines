@@ -7,7 +7,7 @@ Repository: [Devops-Mlops-Automation-Pipelines](https://github.com/killerFrostA/
 This repository translates the supplied architecture into ownership boundaries, typed contracts,
 service entry points, development infrastructure, quality checks and a delivery plan. It is the
 foundation for implementation: it does not detect fraud, run production remediation, train models,
-connect to Kafka, persist incident state or authorize deployments yet.
+connect to Kafka, persist authoritative incident facts or authorize deployments yet.
 
 ## Start here
 
@@ -51,6 +51,11 @@ external integrations are disconnected. Approval resolution returns HTTP 501.
 The orchestrator is a shared component, not a seventh agent. Agents receive bounded task context
 and append results/evidence; only the orchestrator reads the complete operational context.
 
+The [orchestrator core](src/platform/orchestrator/README.md) now supports validated
+recommendation-driven analysis routing, bounded specialist tasks and SQLite checkpoints
+for local/test work. Groq is an optional advisor for ranking existing candidates.
+Its action and approval gates remain closed until the shared services are integrated.
+
 ## Repository map
 
 ```text
@@ -90,7 +95,7 @@ The check script runs formatting, linting, strict type checking, tests and a whe
 Contract tests verify all example messages and reject malformed events. Integration tests exercise
 the local API and analysis routing; external services are not involved.
 
-Optional integration dependencies are separated into `orchestration`, `messaging`, `storage`,
+Optional integration dependencies are separated into `advisor`, `orchestration`, `messaging`, `storage`,
 `observability` and `ml` extras. See [development](docs/development.md) for installation and locking.
 
 ## Local containers

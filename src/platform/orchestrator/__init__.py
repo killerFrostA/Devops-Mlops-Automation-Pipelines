@@ -1,1 +1,1 @@
-"""Shared supervisor: routing, policy, HITL, execution dispatch and verification."""
+"""Shared incident supervisor and local durable checkpoint adapter."""
