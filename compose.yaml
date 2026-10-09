@@ -143,6 +143,54 @@ services:
       - grafana-data:/var/lib/grafana
       - ./infrastructure/observability/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/src.yaml:ro
 
+  # Agent 1 test bench: instrumented target service with local-only fault injection.
+  target-app:
+    build: ./experiments/target_app
+    image: pids-target-app:local
+    profiles: [observability]
+    ports: ["127.0.0.1:8080:8080"]
+    environment:
+      SERVICE_NAME: payment-service
+      CHAOS_ENABLED: "true"
+      INJECTION_LOG: /app/runs/injections.jsonl
+    volumes: ["./experiments/runs:/app/runs"]
+    # A memory limit lets an injected memory growth end in a real OOMKilled event.
+    mem_limit: 512m
+    # Promtail turns this container label into the Loki label used by Agent 1.
+    labels: {service_id: payment-service}
+    restart: unless-stopped
+
+  # Log store queried by Agent 1 (LogQL over HTTP, port 3100).
+  loki:
+    image: grafana/loki:3.5.5
+    profiles: [observability]
+    ports: ["127.0.0.1:3100:3100"]
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    volumes: ["loki-data:/loki"]
+
+  # Ships container logs to Loki; only containers with a service_id label are collected.
+  promtail:
+    image: grafana/promtail:3.5.5
+    profiles: [observability]
+    command: ["-config.file=/etc/promtail/config.yaml"]
+    volumes:
+      - ./infrastructure/observability/promtail.yaml:/etc/promtail/config.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on: [loki]
+
+  # Per-container CPU/RAM metrics (container_memory_working_set_bytes, ...).
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.52.1
+    profiles: [observability]
+    ports: ["127.0.0.1:8081:8080"]
+    privileged: true
+    devices: ["/dev/kmsg"]
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+
 volumes:
   postgres-data:
   redis-data:
@@ -151,3 +199,4 @@ volumes:
   object-data:
   prometheus-data:
   grafana-data:
+  loki-data:

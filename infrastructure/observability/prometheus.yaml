@@ -5,4 +5,12 @@ scrape_configs:
   - job_name: prometheus
     static_configs:
       - targets: [localhost:9090]
+  # Agent 1 test bench (compose profile "observability").
+  - job_name: target-app
+    static_configs:
+      - targets: [target-app:8080]
+        labels: {service_id: payment-service, namespace: local}
+  - job_name: cadvisor
+    static_configs:
+      - targets: [cadvisor:8080]
 # Add real API/agent /metrics endpoints after implementing instrumentation.

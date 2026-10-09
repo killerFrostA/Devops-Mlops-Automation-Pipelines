@@ -30,3 +30,7 @@ mlruns/
 *.key
 .DS_Store
 Thumbs.db
+
+# Agent 1 test bench run outputs (injection logs)
+experiments/runs/*
+!experiments/runs/.gitkeep
