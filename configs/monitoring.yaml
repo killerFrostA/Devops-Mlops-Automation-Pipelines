@@ -1,0 +1,67 @@
+# Agent 1 - Monitoring: autonomous loop configuration.
+# Thresholds are starting values, to be calibrated on the test bench (see docs).
+
+interval_seconds: 60            # one cycle per minute (allowed: 10 to 600)
+service_timeout_seconds: 30     # max time for one service's detectors in a cycle
+incident_cooldown_seconds: 900  # a symptom back within 15 min reuses the same incident
+logs_enabled: true              # set to false when Loki is not running
+
+# Any project can be watched: list its services here, no code change needed.
+#   mode: app        the service exposes /metrics (scraped by Prometheus with a service_id label):
+#                    SLO + statistics + logs. Metric names can be adapted under `metrics:`.
+#   mode: container  the service exposes nothing: cAdvisor measures its Docker container from
+#                    outside (memory, CPU) and its logs are read by container name. No SLO.
+services:
+  - service_id: payment-service   # test service, standard prometheus_client names
+    namespace: local
+  # Another project, instrumented with other names (e.g. prometheus-fastapi-instrumentator):
+  # - service_id: order-api
+  #   metrics:
+  #     requests: http_requests_total
+  #     latency_histogram: http_request_duration_highr_seconds
+  #     status_label: status
+  #     path_label: handler
+  # A project that exposes no metrics at all, watched through its container:
+  # - service_id: nexusfx-visual-api
+  #   mode: container
+  #   container: nexusfx-visual-api   # Docker container name (default: the service_id)
+
+slo:
+  latency_le: "0.5"             # must be a histogram bucket of the service (500 ms)
+  min_request_rate_rps: 0.05
+  slos:
+    - {name: availability, sli: availability, objective: 0.995}
+    - {name: latency-500ms, sli: latency, objective: 0.995}
+  rules:                        # Google SRE Workbook multi-window, multi-burn-rate
+    - {name: fast-burn, long_window: 1h, short_window: 5m, burn_rate: 14.4, severity: HIGH}
+    - {name: slow-burn, long_window: 6h, short_window: 30m, burn_rate: 6.0, severity: MEDIUM}
+
+statistical:
+  baseline_seconds: 1800        # "usual" = the 30 minutes before the recent window
+  recent_seconds: 300           # "now" = the last 5 minutes
+  step_seconds: 15
+
+logs:
+  baseline_seconds: 1800
+  recent_seconds: 300
+  min_count: 5                  # fewer occurrences are noise
+  surge_factor: 5.0             # known template x5 vs usual rate
+  max_llm_calls: 10             # Gemini is used only if PIDS_GEMINI_API_KEY is set
+
+decision:                       # expected utility: benefit - risk - cost of each action
+  alert_benefit: 10             # value of alerting a real problem
+  false_alert_cost: 6           # cost of an alert for nothing
+  miss_cost: 4                  # cost of waiting one more cycle on a real problem
+  collect_cost: 2               # cost of extra queries before deciding
+  information_value: 4          # value of removing all ambiguity
+  confirm_weight: 0.6           # extra evidence when the collection confirms the suspect
+  disconfirm_factor: 0.5        # probability kept when it does not confirm it
+  force_alert_severities: [HIGH, CRITICAL]   # business rule: always alert these
+  realert_after_seconds: 900    # do not repeat the same alert within 15 min
+
+memory:                         # alert history + operator feedback (SQLite, survives restarts)
+  enabled: true
+  path: experiments/runs/agent1-memory.sqlite
+  prior_true: 2                 # Beta prior: neutral until the operator gives feedback
+  prior_false: 2
+  max_odds_factor: 4            # feedback can at most divide/multiply the odds by 4

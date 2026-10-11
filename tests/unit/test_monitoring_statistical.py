@@ -160,3 +160,16 @@ def test_detector_reads_history_from_prometheus_range_queries() -> None:
     findings = asyncio.run(run())
     assert find(findings, "memory_mb").status is FindingStatus.ANOMALY
     assert find(findings, "latency_p95_ms").status is FindingStatus.NORMAL
+
+
+def test_negligible_rise_from_an_idle_baseline_is_not_an_anomaly() -> None:
+    """Seen live: idle service, CPU 0.00 -> 0.02 core when traffic started, flagged as anomaly."""
+    data = healthy()
+    data["cpu_cores"] = series("cpu_cores", lambda s: 0.02 if after_baseline(s) else 0.0001)
+    assert find(evaluate(POLICY, data, NOW), "cpu_cores").status is FindingStatus.NORMAL
+
+
+def test_real_cpu_rise_is_still_detected() -> None:
+    data = healthy()
+    data["cpu_cores"] = series("cpu_cores", lambda s: 0.5 if after_baseline(s) else 0.02)
+    assert find(evaluate(POLICY, data, NOW), "cpu_cores").status is FindingStatus.ANOMALY

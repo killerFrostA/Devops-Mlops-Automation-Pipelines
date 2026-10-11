@@ -2,12 +2,16 @@
 
 Read-only. Each query is bounded by a timeout, retried on transient failures and guarded by a
 circuit breaker, so an unavailable Prometheus degrades into "unknown" values instead of a crash.
+
+Queries are built from each service's profile (collectors/profile.py): the service's own
+metrics in app mode, or cAdvisor container metrics in container mode. Nothing here is specific
+to one service or project.
 """
 
 import asyncio
 import math
 import re
-from collections.abc import Awaitable, Callable, Iterable
+from collections.abc import Awaitable, Callable, Iterable, Mapping
 from datetime import UTC, datetime
 from typing import Any
 
@@ -19,6 +23,7 @@ from src.agents.monitoring.collectors.http import (
     SourceUnavailableError,
 )
 from src.agents.monitoring.collectors.models import MetricSnapshot, Series, SLIWindow
+from src.agents.monitoring.collectors.profile import MetricNames, Mode, ServiceProfile
 from src.platform.messaging.reliability import RetryPolicy
 from src.platform.resilience import CircuitBreaker, CircuitOpenError
 
@@ -84,28 +89,61 @@ def _first_value(data: dict[str, Any]) -> float | None:
 # DNS-label shape. Validating it prevents PromQL injection through the service identifier.
 _SERVICE_ID = re.compile(r"^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$")
 
-# Business traffic only: health probes, scrapes and fault-injection calls are not user requests.
-_TRAFFIC = 'path!~"/health.*|/metrics|/chaos.*"'
-
 _MB = 1024 * 1024
 
+DEFAULT_PROFILE = ServiceProfile()
 
-def build_queries(service_id: str) -> dict[str, str]:
-    """One aggregated series per query, so each answer is a single number for the service."""
+
+def _app_selectors(service_id: str, names: MetricNames) -> tuple[str, str, str]:
+    """Label selectors of an instrumented service: all traffic, errors only, histogram."""
     sel = f'service_id="{service_id}"'
-    requests = f"http_requests_total{{{sel},{_TRAFFIC}}}"
-    errors = f'http_requests_total{{{sel},{_TRAFFIC},status=~"5.."}}'
-    buckets = f"http_request_duration_seconds_bucket{{{sel},{_TRAFFIC}}}"
-    return {
-        "memory_mb": f"sum(process_resident_memory_bytes{{{sel}}}) / {_MB}",
-        "memory_slope_mb_min": (
-            f"sum(deriv(process_resident_memory_bytes{{{sel}}}[5m])) * 60 / {_MB}"
-        ),
-        "cpu_cores": f"sum(rate(process_cpu_seconds_total{{{sel}}}[1m]))",
+    if names.excluded_paths:
+        # Business traffic only: health probes, scrapes and fault injection are not user requests.
+        sel += f',{names.path_label}!~"{names.excluded_paths}"'
+    return sel, f'{sel},{names.status_label}=~"5.."', sel
+
+
+def _resource_queries(service_id: str, profile: ServiceProfile) -> tuple[str, str]:
+    """Memory series (bytes) and CPU usage query (cores) of the service, in either mode."""
+    if profile.mode is Mode.CONTAINER:
+        # cAdvisor, from outside the container: no instrumentation needed in the service.
+        # It measures every 30 s with its own timestamps, so a 1m rate often has a single
+        # sample and no value: 2m always holds at least two.
+        sel = f'name="{profile.container or service_id}"'
+        return (
+            f"container_memory_working_set_bytes{{{sel}}}",
+            f"sum(rate(container_cpu_usage_seconds_total{{{sel}}}[2m]))",
+        )
+    sel = f'service_id="{service_id}"'
+    return (
+        f"{profile.metrics.memory_bytes}{{{sel}}}",
+        f"sum(rate({profile.metrics.cpu_seconds}{{{sel}}}[1m]))",
+    )
+
+
+def build_queries(service_id: str, profile: ServiceProfile = DEFAULT_PROFILE) -> dict[str, str]:
+    """One aggregated series per query, so each answer is a single number for the service.
+
+    In container mode only memory and CPU exist: the request signals are left out.
+    """
+    memory, cpu = _resource_queries(service_id, profile)
+    queries = {
+        "memory_mb": f"sum({memory}) / {_MB}",
+        "memory_slope_mb_min": f"sum(deriv({memory}[5m])) * 60 / {_MB}",
+        "cpu_cores": cpu,
+    }
+    if profile.mode is Mode.CONTAINER:
+        return queries
+    names = profile.metrics
+    sel, err, hist = _app_selectors(service_id, names)
+    requests = f"{names.requests}{{{sel}}}"
+    errors = f"{names.requests}{{{err}}}"
+    buckets = f"{names.latency_histogram}_bucket{{{hist}}}"
+    return queries | {
         "request_rate_rps": f"sum(rate({requests}[1m]))",
         # "or vector(0)": no 5xx series yet means zero errors. No traffic at all stays None.
         "error_rate": f"(sum(rate({errors}[5m])) or vector(0)) / sum(rate({requests}[5m]))",
-        "latency_p95_ms": (f"histogram_quantile(0.95, sum by (le) (rate({buckets}[5m]))) * 1000"),
+        "latency_p95_ms": f"histogram_quantile(0.95, sum by (le) (rate({buckets}[5m]))) * 1000",
     }
 
 
@@ -115,17 +153,23 @@ _WINDOW = re.compile(r"^[1-9][0-9]*[smhd]$")
 _BUCKET_LE = re.compile(r"^[0-9]+\.[0-9]+$")
 
 
-def build_sli_queries(service_id: str, window: str, latency_le: str) -> dict[str, str]:
+def build_sli_queries(
+    service_id: str, window: str, latency_le: str, profile: ServiceProfile = DEFAULT_PROFILE
+) -> dict[str, str]:
     """Bad-event ratios over one window, for the availability and latency SLOs.
 
     Availability: a request is bad when it returns 5xx.
     Latency: a request is bad when it takes longer than the `latency_le` histogram bucket.
+    Container mode has no request counter: no SLI query at all.
     """
-    sel = f'service_id="{service_id}"'
-    requests = f"http_requests_total{{{sel},{_TRAFFIC}}}"
-    errors = f'http_requests_total{{{sel},{_TRAFFIC},status=~"5.."}}'
-    fast = f'http_request_duration_seconds_bucket{{{sel},{_TRAFFIC},le="{latency_le}"}}'
-    observed = f"http_request_duration_seconds_count{{{sel},{_TRAFFIC}}}"
+    if profile.mode is Mode.CONTAINER:
+        return {}
+    names = profile.metrics
+    sel, err, hist = _app_selectors(service_id, names)
+    requests = f"{names.requests}{{{sel}}}"
+    errors = f"{names.requests}{{{err}}}"
+    fast = f'{names.latency_histogram}_bucket{{{hist},le="{latency_le}"}}'
+    observed = f"{names.latency_histogram}_count{{{hist}}}"
     return {
         "request_rate_rps": f"sum(rate({requests}[{window}]))",
         "error_ratio": (
@@ -135,14 +179,19 @@ def build_sli_queries(service_id: str, window: str, latency_le: str) -> dict[str
     }
 
 
-def build_series_queries(service_id: str) -> dict[str, str]:
+def build_series_queries(
+    service_id: str, profile: ServiceProfile = DEFAULT_PROFILE
+) -> dict[str, str]:
     """Signals tracked over time by the statistical detector (raw levels, not ratios)."""
-    sel = f'service_id="{service_id}"'
-    buckets = f"http_request_duration_seconds_bucket{{{sel},{_TRAFFIC}}}"
-    return {
-        "memory_mb": f"sum(process_resident_memory_bytes{{{sel}}}) / {_MB}",
-        "cpu_cores": f"sum(rate(process_cpu_seconds_total{{{sel}}}[1m]))",
-        "latency_p95_ms": (f"histogram_quantile(0.95, sum by (le) (rate({buckets}[1m]))) * 1000"),
+    memory, cpu = _resource_queries(service_id, profile)
+    queries = {"memory_mb": f"sum({memory}) / {_MB}", "cpu_cores": cpu}
+    if profile.mode is Mode.CONTAINER:
+        return queries
+    names = profile.metrics
+    _, _, hist = _app_selectors(service_id, names)
+    buckets = f"{names.latency_histogram}_bucket{{{hist}}}"
+    return queries | {
+        "latency_p95_ms": f"histogram_quantile(0.95, sum by (le) (rate({buckets}[1m]))) * 1000"
     }
 
 
@@ -151,9 +200,14 @@ class PrometheusCollector:
         self,
         client: PrometheusClient,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+        profiles: Mapping[str, ServiceProfile] | None = None,
     ) -> None:
         self._client = client
         self._clock = clock
+        self._profiles = dict(profiles or {})  # service_id -> how to measure it
+
+    def profile(self, service_id: str) -> ServiceProfile:
+        return self._profiles.get(service_id, DEFAULT_PROFILE)
 
     async def _ask_all(self, queries: dict[str, str]) -> tuple[dict[str, float | None], int]:
         """Run queries concurrently. Unavailability becomes None; query errors are raised."""
@@ -184,16 +238,17 @@ class PrometheusCollector:
         for window in windows:
             if not _WINDOW.fullmatch(window):
                 raise ValueError(f"Invalid window: {window!r}")
+        profile = self.profile(service_id)
         per_window = await asyncio.gather(
-            *(self._ask_all(build_sli_queries(service_id, w, latency_le)) for w in windows)
+            *(self._ask_all(build_sli_queries(service_id, w, latency_le, profile)) for w in windows)
         )
         return {
             window: SLIWindow(
                 window=window,
-                request_rate_rps=values["request_rate_rps"],
-                error_ratio=values["error_ratio"],
-                slow_ratio=values["slow_ratio"],
-                source_available=unavailable < len(values),
+                request_rate_rps=values.get("request_rate_rps"),
+                error_ratio=values.get("error_ratio"),
+                slow_ratio=values.get("slow_ratio"),
+                source_available=not values or unavailable < len(values),
             )
             for window, (values, unavailable) in zip(windows, per_window, strict=True)
         }
@@ -208,7 +263,7 @@ class PrometheusCollector:
         """
         check_service_id(service_id)
         end = self._clock().timestamp()
-        queries = build_series_queries(service_id)
+        queries = build_series_queries(service_id, self.profile(service_id))
         names = list(queries)
         answers = await asyncio.gather(
             *(
@@ -229,7 +284,9 @@ class PrometheusCollector:
 
     async def collect(self, service_id: str) -> MetricSnapshot:
         check_service_id(service_id)
-        values, unavailable = await self._ask_all(build_queries(service_id))
+        values, unavailable = await self._ask_all(
+            build_queries(service_id, self.profile(service_id))
+        )
         missing = [name for name, value in values.items() if value is None]
 
         return MetricSnapshot(
@@ -238,9 +295,9 @@ class PrometheusCollector:
             memory_mb=values["memory_mb"],
             memory_slope_mb_min=values["memory_slope_mb_min"],
             cpu_cores=values["cpu_cores"],
-            request_rate_rps=values["request_rate_rps"],
-            error_rate=values["error_rate"],
-            latency_p95_ms=values["latency_p95_ms"],
+            request_rate_rps=values.get("request_rate_rps"),
+            error_rate=values.get("error_rate"),
+            latency_p95_ms=values.get("latency_p95_ms"),
             missing=tuple(missing),
             source_available=unavailable < len(values),
         )

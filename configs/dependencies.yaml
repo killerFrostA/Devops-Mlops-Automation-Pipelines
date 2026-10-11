@@ -1,0 +1,38 @@
+# Agent 1 - reasoning layer: service dependency graph and evidence weights.
+# "A depends_on B" means A calls B, so a fault in B can show up as symptoms in A.
+# Weights (0 to 1) express how strongly one piece of evidence points to a service.
+# They come from knowledge of the system (not from training) and are to be calibrated.
+
+window_seconds: 300              # incidents seen in the last 5 minutes are reasoned on together
+
+services:
+  frontend:
+    depends_on: [payment-api]
+  payment-api:
+    depends_on: [payments-db]
+  payment-service:               # the current test bench service
+    depends_on: []
+  payments-db:
+    depends_on: []
+
+# A symptom observed on the service itself.
+own_symptom_weights:
+  memory_oom: 0.9
+  memory_pressure: 0.6
+  readiness: 0.6
+  cpu_pressure: 0.5
+  error_rate: 0.5
+  latency: 0.4
+  auth_errors: 0.4
+  network_errors: 0.3
+  log_errors: 0.3
+
+# A service that depends on this one shows a symptom (the fault may come from below).
+dependent_symptom_weight: 0.35
+
+# Log messages on a caller that point at its dependencies (case-insensitive regex).
+dependency_log_hints:
+  - pattern: "pool exhausted|connection pool|too many connections"
+    weight: 0.5
+  - pattern: "connection refused|timeout|timed out"
+    weight: 0.4

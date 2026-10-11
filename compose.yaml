@@ -127,9 +127,16 @@ services:
     image: prom/prometheus:v3.5.0
     profiles: [observability]
     ports: ["127.0.0.1:9090:9090"]
+    # Short retention keeps memory and disk low on a development laptop.
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=2d
     volumes:
       - ./infrastructure/observability/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
+    mem_limit: 512m
+    cpus: 0.5
 
   grafana:
     image: grafana/grafana:12.1.1
@@ -139,9 +146,17 @@ services:
       GF_SECURITY_ADMIN_USER: pids-local
       GF_SECURITY_ADMIN_PASSWORD: local-development-only
       GF_USERS_ALLOW_SIGN_UP: "false"
+      # Local only (bound to 127.0.0.1): dashboards readable without logging in.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/agent1-service-health.json
     volumes:
       - grafana-data:/var/lib/grafana
       - ./infrastructure/observability/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/src.yaml:ro
+      - ./infrastructure/observability/grafana-dashboards.yaml:/etc/grafana/provisioning/dashboards/agent1.yaml:ro
+      - ./infrastructure/observability/dashboards:/etc/grafana/dashboards:ro
+    mem_limit: 256m
+    cpus: 0.5
 
   # Agent 1 test bench: instrumented target service with local-only fault injection.
   target-app:
@@ -156,6 +171,7 @@ services:
     volumes: ["./experiments/runs:/app/runs"]
     # A memory limit lets an injected memory growth end in a real OOMKilled event.
     mem_limit: 512m
+    cpus: 0.5
     # Promtail turns this container label into the Loki label used by Agent 1.
     labels: {service_id: payment-service}
     restart: unless-stopped
@@ -167,6 +183,8 @@ services:
     ports: ["127.0.0.1:3100:3100"]
     command: ["-config.file=/etc/loki/local-config.yaml"]
     volumes: ["loki-data:/loki"]
+    mem_limit: 384m
+    cpus: 0.5
 
   # Ships container logs to Loki; only containers with a service_id label are collected.
   promtail:
@@ -177,6 +195,8 @@ services:
       - ./infrastructure/observability/promtail.yaml:/etc/promtail/config.yaml:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on: [loki]
+    mem_limit: 128m
+    cpus: 0.25
 
   # Per-container CPU/RAM metrics (container_memory_working_set_bytes, ...).
   cadvisor:
@@ -185,11 +205,15 @@ services:
     ports: ["127.0.0.1:8081:8080"]
     privileged: true
     devices: ["/dev/kmsg"]
+    # Containers only, measured every 30 s: cAdvisor's default settings are costly.
+    command: ["--docker_only=true", "--housekeeping_interval=30s"]
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
+    mem_limit: 192m
+    cpus: 0.25
 
 volumes:
   postgres-data:

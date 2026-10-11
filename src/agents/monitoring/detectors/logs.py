@@ -8,6 +8,7 @@ A finding is an observation ("340 occurrences of a new CONNECTION_REFUSED templa
 cause: the label describes the message, not why it happened. That is the Diagnosis agent's job.
 """
 
+import asyncio
 import re
 import time
 from collections import Counter
@@ -207,12 +208,21 @@ class LogPatternDetector:
 
 class LogSource(Protocol):
     async def query_lines(
-        self, service_id: str, start: float, end: float, limit: int = 5000
+        self,
+        service_id: str,
+        start: float,
+        end: float,
+        limit: int = 5000,
+        line_regex: str | None = None,
     ) -> tuple[LogLine, ...]: ...
 
 
 class LogDetector:
-    """Fetches baseline + recent lines from a log source, then runs the pattern detector."""
+    """Fetches baseline and recent error lines from a log source, then runs the pattern detector.
+
+    Only error lines are requested (filtered in the source), and the two windows are fetched
+    separately: a long, busy baseline can then never crowd out the recent lines.
+    """
 
     def __init__(
         self,
@@ -228,9 +238,13 @@ class LogDetector:
         policy = self._patterns.policy
         now = self._clock()
         recent_start = now - policy.recent_seconds
-        lines = await self._source.query_lines(
-            service_id, recent_start - policy.baseline_seconds, now
+        baseline, recent = await asyncio.gather(
+            self._source.query_lines(
+                service_id,
+                recent_start - policy.baseline_seconds,
+                recent_start,
+                line_regex=ERROR_LINE.pattern,
+            ),
+            self._source.query_lines(service_id, recent_start, now, line_regex=ERROR_LINE.pattern),
         )
-        baseline = [line for line in lines if line.timestamp < recent_start]
-        recent = [line for line in lines if line.timestamp >= recent_start]
         return await self._patterns.evaluate(baseline, recent)

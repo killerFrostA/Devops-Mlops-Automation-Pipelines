@@ -10,7 +10,7 @@ as a recent deployment may be attached to an incident, never interpreted.
 """
 
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -193,7 +193,7 @@ _LOG_CATEGORY = {
 
 
 def from_slo(
-    service_id: str, namespace: str, slo_sli: dict[str, str], results: list[SLOEvaluation]
+    service_id: str, namespace: str, slo_sli: Mapping[str, str], results: list[SLOEvaluation]
 ) -> list[Symptom]:
     """`slo_sli` maps SLO name -> SLI kind ("availability"/"latency"), from the SLO policy."""
     return [

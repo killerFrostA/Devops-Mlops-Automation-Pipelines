@@ -1,5 +1,7 @@
 import asyncio
 import json
+import re
+from collections.abc import Callable
 
 import httpx
 import pytest
@@ -204,26 +206,67 @@ def test_gemini_model_name_is_validated() -> None:
         GeminiLabeler(SecretStr("k"), model="../../evil")
 
 
-def test_log_detector_reads_loki_and_splits_windows() -> None:
+def fake_loki(
+    stored: list[tuple[float, str]], queries: list[str]
+) -> Callable[[httpx.Request], httpx.Response]:
+    """Behaves like Loki: time window, optional `|~` line filter, oldest first, `limit` cap."""
+
     def handler(request: httpx.Request) -> httpx.Response:
-        assert request.url.params["query"] == '{service_id="payment-service"}'
-        start_ns = int(request.url.params["start"])
-        values = [[str(start_ns + i * 1_000_000_000), "INFO ok"] for i in range(50)]
-        recent_ns = int((NOW - 100) * 1_000_000_000)
-        values += [
-            [str(recent_ns + i), f"ERROR Connection refused to db:5432 id={i}"] for i in range(30)
-        ]
-        streams = [{"stream": {"service_id": "payment-service"}, "values": values}]
+        query = request.url.params["query"]
+        queries.append(query)
+        start = int(request.url.params["start"]) / 1e9
+        end = int(request.url.params["end"]) / 1e9
+        limit = int(request.url.params["limit"])
+        pattern = re.compile(query.split("|~ `", 1)[1][:-1]) if "|~ `" in query else None
+        selected = [
+            [str(int(t * 1e9)), text]
+            for t, text in sorted(stored)
+            if start <= t <= end and (pattern is None or pattern.search(text))
+        ][:limit]
+        streams = [{"stream": {"service_id": "payment-service"}, "values": selected}]
         return httpx.Response(
             200, json={"status": "success", "data": {"resultType": "streams", "result": streams}}
         )
 
+    return handler
+
+
+def detect_with(stored: list[tuple[float, str]], queries: list[str]) -> list[LogFinding]:
     async def go() -> list[LogFinding]:
-        http = httpx.AsyncClient(base_url="http://loki", transport=httpx.MockTransport(handler))
+        transport = httpx.MockTransport(fake_loki(stored, queries))
+        http = httpx.AsyncClient(base_url="http://loki", transport=transport)
         async with LokiClient("http://loki", http=http) as client:
             return await LogDetector(client, clock=lambda: NOW).evaluate("payment-service")
 
-    findings = asyncio.run(go())
+    return asyncio.run(go())
+
+
+def test_log_detector_asks_loki_for_error_lines_per_window() -> None:
+    stored = [(NOW - 1000 + i, "INFO ok") for i in range(50)]
+    stored += [(NOW - 100 + i, f"ERROR Connection refused to db:5432 id={i}") for i in range(30)]
+    queries: list[str] = []
+    findings = detect_with(stored, queries)
     assert [(f.kind, f.label, f.count_recent) for f in findings] == [
         (FindingKind.NEW_PATTERN, LogLabel.CONNECTION_REFUSED, 30)
     ]
+    assert len(queries) == 2  # baseline and recent windows, fetched separately
+    assert all(q.startswith('{service_id="payment-service"} |~ `') for q in queries)
+
+
+def test_busy_baseline_cannot_hide_recent_errors() -> None:
+    """Regression seen live: 5 req/s of normal lines over 35 min exceeded the 5000-line limit,
+    Loki returned the oldest lines only and the recent errors were never seen."""
+    baseline_start = NOW - POLICY.recent_seconds - POLICY.baseline_seconds
+    stored = [(baseline_start + i * 0.2, "INFO GET /pay 200 OK") for i in range(10_500)]
+    stored += [(NOW - 200 + i, f"ERROR Connection refused to db:5432 id={i}") for i in range(60)]
+    findings = detect_with(stored, [])
+    assert [(f.label, f.count_recent) for f in findings] == [(LogLabel.CONNECTION_REFUSED, 60)]
+
+
+def test_line_filter_cannot_break_out_of_logql() -> None:
+    async def go() -> None:
+        async with LokiClient("http://loki") as client:
+            await client.query_lines("payment-service", 0, 1, line_regex="x` or {a=`b")
+
+    with pytest.raises(ValueError, match="backtick"):
+        asyncio.run(go())

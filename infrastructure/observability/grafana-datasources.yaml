@@ -1,8 +1,16 @@
 apiVersion: 1
 datasources:
   - name: Devops-Mlops-Automation-Pipelines Prometheus
+    uid: prometheus
     type: prometheus
     access: proxy
     url: http://prometheus:9090
     isDefault: true
+    editable: false
+  # Agent 1 test bench logs (shipped by Promtail).
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
     editable: false

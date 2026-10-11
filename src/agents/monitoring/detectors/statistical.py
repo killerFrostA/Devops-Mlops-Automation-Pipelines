@@ -46,6 +46,9 @@ class LevelShiftRule(_Config):
     category: str
     min_robust_z: float = Field(default=4.0, gt=0)
     min_relative_change: float = Field(gt=0)  # e.g. 0.5 = at least +50 % above baseline
+    # Smallest change that matters, in the signal's unit. Without it, a baseline near zero
+    # (an idle service) turns a negligible rise such as 0 -> 0.02 CPU core into an "anomaly".
+    min_absolute_change: float = Field(default=0, ge=0)
 
 
 class StatisticalPolicy(_Config):
@@ -62,8 +65,18 @@ class StatisticalPolicy(_Config):
         GrowthRule(signal="memory_mb", category="memory_pressure", min_slope_per_minute=5.0),
     )
     level_shifts: tuple[LevelShiftRule, ...] = (
-        LevelShiftRule(signal="latency_p95_ms", category="latency", min_relative_change=0.5),
-        LevelShiftRule(signal="cpu_cores", category="cpu_pressure", min_relative_change=1.0),
+        LevelShiftRule(
+            signal="latency_p95_ms",
+            category="latency",
+            min_relative_change=0.5,
+            min_absolute_change=50,  # ms
+        ),
+        LevelShiftRule(
+            signal="cpu_cores",
+            category="cpu_pressure",
+            min_relative_change=1.0,
+            min_absolute_change=0.1,  # cores
+        ),
     )
 
 
@@ -171,8 +184,10 @@ def evaluate(
         median = statistics.median(baseline_values)
         z = robust_z(current, baseline_values, policy.min_scale_fraction)
         relative = (current - median) / abs(median) if median else None
-        anomalous = z >= shift.min_robust_z and (
-            relative is None or relative >= shift.min_relative_change
+        anomalous = (
+            z >= shift.min_robust_z
+            and current - median >= shift.min_absolute_change
+            and (relative is None or relative >= shift.min_relative_change)
         )
         findings.append(
             StatisticalFinding(
@@ -210,4 +225,6 @@ class StatisticalDetector:
     async def evaluate(self, service_id: str) -> list[StatisticalFinding]:
         lookback = self.policy.baseline_seconds + self.policy.recent_seconds
         series = await self._source.collect_series(service_id, lookback, self.policy.step_seconds)
-        return evaluate(self.policy, series, self._clock())
+        # Only the signals the service can provide: a container watched from outside has no
+        # latency, which is "not measured" rather than "insufficient data".
+        return [f for f in evaluate(self.policy, series, self._clock()) if f.signal in series]

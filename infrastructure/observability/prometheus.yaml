@@ -13,4 +13,5 @@ scrape_configs:
   - job_name: cadvisor
     static_configs:
       - targets: [cadvisor:8080]
-# Add real API/agent /metrics endpoints after implementing instrumentation.
+# Any project: add a job with its targets and a service_id label (app mode), or nothing at
+# all for container mode (cAdvisor above already measures every Docker container).

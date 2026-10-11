@@ -1,0 +1,9 @@
+apiVersion: 1
+providers:
+  # Dashboards stored as JSON in the repository, loaded at Grafana start-up.
+  - name: agent1
+    folder: Agent 1 - Monitoring
+    type: file
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/dashboards
