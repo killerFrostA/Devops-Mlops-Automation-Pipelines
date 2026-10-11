@@ -14,7 +14,7 @@ once it exists. Publishing failures are reported, never allowed to stop the agen
 import asyncio
 import json
 import math
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
@@ -22,7 +22,7 @@ from uuid import uuid4
 from pydantic import BaseModel, ConfigDict, JsonValue
 
 from src.agents.monitoring.decision import DecisionRecord
-from src.agents.monitoring.grouping import Incident
+from src.agents.monitoring.grouping import Incident, most_relevant
 from src.agents.monitoring.reasoning import Hypothesis
 from src.contracts.enums import AgentId, Environment, Priority, Severity
 from src.contracts.events import EventEnvelope, ServiceIdentity
@@ -64,11 +64,6 @@ def json_safe(value: object) -> JsonValue:
     return str(value)
 
 
-def _worst(incidents: Iterable[Incident]) -> Incident:
-    order = list(Severity)
-    return max(incidents, key=lambda i: (order.index(i.severity), i.occurrences))
-
-
 def _iso(unix_seconds: float) -> str:
     return datetime.fromtimestamp(unix_seconds, UTC).isoformat()
 
@@ -88,7 +83,7 @@ def build_anomaly_event(
     # The target may be a suspect inferred by reasoning (e.g. a database below a failing API),
     # without an incident of its own: the evidence is then the incidents observed elsewhere.
     evidence = own or incidents
-    main = _worst(evidence)
+    main = most_relevant(evidence)
     categories = sorted(record.categories or {i.category.value for i in evidence})
     sources = sorted({s for i in evidence for s in i.sources})
     raw: dict[str, object] = {

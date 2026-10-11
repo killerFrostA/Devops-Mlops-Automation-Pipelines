@@ -25,7 +25,7 @@ from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.agents.monitoring.grouping import Incident
+from src.agents.monitoring.grouping import Incident, most_relevant
 from src.agents.monitoring.memory import AlertMemory
 from src.agents.monitoring.reasoning import Hypothesis, noisy_or
 from src.contracts.enums import Severity
@@ -139,7 +139,7 @@ class DecisionMaker:
         top = hypotheses[0]
         forced = [i for i in incidents if i.severity in self.policy.force_alert_severities]
         if forced:
-            worst = max(forced, key=lambda i: list(Severity).index(i.severity))
+            worst = most_relevant(forced)
             categories: set[str] = {worst.category.value}
             if top.service_id == worst.service_id:
                 categories |= _categories(top)

@@ -10,7 +10,7 @@ as a recent deployment may be attached to an incident, never interpreted.
 """
 
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -70,6 +70,16 @@ class Incident:
     severity: Severity  # highest severity observed so far
     sources: frozenset[str]
     facts: dict[str, JsonValue]  # latest facts, keyed "<source>.<fact>"
+
+
+def most_relevant(incidents: Iterable[Incident]) -> Incident:
+    """The incident an alert is about: highest severity first, then the most recent one.
+
+    With equal severity the newest incident is the new situation; an older one may only be
+    the tail of a previous fault still inside the measurement windows.
+    """
+    order = list(Severity)
+    return max(incidents, key=lambda i: (order.index(i.severity), i.opened_at, i.incident_id))
 
 
 class Action(StrEnum):

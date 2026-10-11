@@ -180,3 +180,37 @@ def test_clearly_rising_probability_is_alerted_again() -> None:
     clearly = decide(maker, [hyp_with("payment-service", 0.93, "error_rate")])
     assert (slightly.notify, clearly.notify) == (False, True)
     assert "probabilite en hausse" in clearly.reason
+
+
+def test_business_rule_names_the_newest_incident_when_severity_is_equal() -> None:
+    """Seen live (20:10:36): the tail of an earlier latency fault (HIGH, seen 3 times) was
+    named instead of the new error-rate incident (HIGH, seen 2 times)."""
+    old_latency = Incident(
+        "INC-old",
+        "payment-service:local:latency",
+        "payment-service",
+        "local",
+        Category.LATENCY,
+        100.0,
+        200.0,
+        3,
+        Severity.HIGH,
+        frozenset({"slo", "statistical"}),
+        {},
+    )
+    new_errors = Incident(
+        "INC-new",
+        "payment-service:local:error_rate",
+        "payment-service",
+        "local",
+        Category.ERROR_RATE,
+        180.0,
+        200.0,
+        2,
+        Severity.HIGH,
+        frozenset({"slo"}),
+        {},
+    )
+    for incidents in ([old_latency, new_errors], [new_errors, old_latency]):  # order-proof
+        record = decide(DecisionMaker(POLICY, Reader({})), [hyp("payment-service", 0.7)], incidents)
+        assert "incident error_rate de gravite HIGH" in record.reason

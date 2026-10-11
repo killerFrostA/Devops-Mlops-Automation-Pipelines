@@ -33,6 +33,10 @@ APP = "http://127.0.0.1:8080"
 PY = sys.executable
 CYCLE = re.compile(r"^\[(\d\d:\d\d:\d\d)\] cycle")
 FINDING = re.compile(r"^\s+(SLO|Statistique|Chronos)\s+(\S+)\s+(\S+)?.*-> (ANOMALY|BREACH)")
+# Lines worth showing live: incidents, decisions, events, task and recovery results.
+LIVE = re.compile(
+    r"INCIDENT|DECISION :|=> EVENEMENT|\"status\"|rationale_summary|-> (ANOMALY|BREACH)"
+)
 
 
 def post(path: str) -> str:
@@ -58,19 +62,33 @@ def write_config() -> Path:
 def run(name: str, args: list[str], config: Path) -> str:
     """Run an agent command, keep its output in <name>.log, return the output."""
     command = [PY, "-W", "ignore", "-m", *args, "--config", str(config)]
-    env = {"PYTHONIOENCODING": "utf-8", "HF_HUB_DISABLE_SYMLINKS_WARNING": "1"}
-    done = subprocess.run(
-        command,
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        env={**os.environ, **env},
-        check=False,
-    )
-    output = done.stdout + done.stderr
-    (OUT / f"{name}.log").write_text(output, encoding="utf-8")
-    return output
+    env = {
+        "PYTHONIOENCODING": "utf-8",
+        "PYTHONUNBUFFERED": "1",
+        "HF_HUB_DISABLE_SYMLINKS_WARNING": "1",
+    }
+    lines: list[str] = []
+    with (
+        (OUT / f"{name}.log").open("w", encoding="utf-8") as log,
+        subprocess.Popen(
+            command,
+            cwd=ROOT,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            env={**os.environ, **env},
+        ) as process,
+    ):
+        assert process.stdout is not None
+        for line in process.stdout:  # live: the full log on disk, key lines on screen
+            log.write(line)
+            log.flush()
+            lines.append(line)
+            if CYCLE.match(line) or LIVE.search(line):
+                print("   " + line.rstrip()[:150], flush=True)
+    return "".join(lines)
 
 
 def first_detections(log: str) -> dict[str, str]:

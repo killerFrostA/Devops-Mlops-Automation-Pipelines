@@ -251,3 +251,25 @@ def test_full_cycle_detection_to_event(tmp_path: Path) -> None:
     assert any("=> EVENEMENT monitoring.anomaly.detected -> orchestrator" in line for line in lines)
     again = asyncio.run(loop.run_cycle())  # same situation: alert not repeated, nothing sent
     assert again.event is None and len(read_events(path)) == 1
+
+
+def test_event_is_about_the_newest_incident_when_severity_is_equal() -> None:
+    old = incident(category=Category.LATENCY, severity=Severity.HIGH, incident_id="INC-old")
+    new = Incident(
+        "INC-new",
+        "payment-service:local:error_rate",
+        "payment-service",
+        "local",
+        Category.ERROR_RATE,
+        old.opened_at + 300,
+        old.last_seen_at,
+        1,  # seen fewer times than the old one, but it is the new situation
+        Severity.HIGH,
+        frozenset({"slo"}),
+        {},
+    )
+    sent = event(
+        record=alert(categories=frozenset({"latency", "error_rate"})), incidents=[old, new]
+    )
+    assert sent.correlation_id == "INC-new"
+    assert AnomalyDetected.model_validate(sent.payload).anomaly_id.startswith("ANM-INC-new-")
