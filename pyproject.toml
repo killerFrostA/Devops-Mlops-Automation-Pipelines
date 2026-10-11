@@ -33,6 +33,9 @@ storage = ["sqlalchemy>=2.0,<3", "alembic>=1.14,<2", "psycopg[binary]>=3.2,<4", 
 observability = ["opentelemetry-api>=1.30,<2", "opentelemetry-sdk>=1.30,<2", "prometheus-client>=0.21,<1"]
 ml = ["scikit-learn>=1.6,<2", "mlflow>=3,<4", "evidently>=0.7,<1"]
 monitoring = ["httpx>=0.28,<1", "drain3>=0.9.11,<1", "PyYAML>=6,<7", "psutil>=5.9,<8"]
+# Amazon Chronos forecaster (Apache-2.0). On CPU-only machines install torch first from
+# https://download.pytorch.org/whl/cpu to avoid the large CUDA build.
+forecast = ["chronos-forecasting>=2.3,<3", "torch>=2.6,<3"]
 
 [project.scripts]
 devops-mlops = "src.cli:main"
@@ -72,7 +75,7 @@ files = ["src"]
 exclude = ["src/generated"]
 
 [[tool.mypy.overrides]]
-module = ["drain3", "drain3.*", "psutil", "yaml"]  # ship without type information here
+module = ["chronos", "chronos.*", "drain3", "drain3.*", "psutil", "yaml"]  # ship without type information here
 ignore_missing_imports = true
 
 [tool.coverage.run]

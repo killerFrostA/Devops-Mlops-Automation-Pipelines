@@ -48,6 +48,7 @@ class ServiceReport:
     statistical: tuple[StatisticalFinding, ...] = ()
     logs: tuple[LogFinding, ...] = ()
     logs_checked: bool = False
+    forecast: tuple[StatisticalFinding, ...] = ()  # Chronos, when enabled
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,6 +92,7 @@ class MonitoringLoop:
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep
     reasoner: Reasoner | None = None
     decider: DecisionMaker | None = None
+    forecast: ServiceDetector[StatisticalFinding] | None = None
 
     async def run_cycle(self) -> CycleReport:
         started = time.perf_counter()
@@ -151,6 +153,7 @@ class MonitoringLoop:
 
         slo: list[SLOEvaluation] = []
         statistical: list[StatisticalFinding] = []
+        forecast: list[StatisticalFinding] = []
         logs: list[LogFinding] = []
 
         async def run[T](
@@ -175,6 +178,10 @@ class MonitoringLoop:
                 statistical,
             ),
         ]
+        if self.forecast is not None:
+            jobs.append(
+                run("forecast", self.forecast, lambda r: from_statistical(sid, ns, r), forecast)
+            )
         # A container watched from outside has no request counter: there is no SLO to check.
         if service.mode is Mode.APP:
             jobs.append(run("slo", self.slo, lambda r: from_slo(sid, ns, slo_sli, r), slo))
@@ -194,6 +201,7 @@ class MonitoringLoop:
             tuple(statistical),
             tuple(logs),
             logs_checked,
+            tuple(forecast),
         )
         return report, symptoms
 
@@ -287,6 +295,12 @@ class ConsoleReporter:
                     f"z={_num(f.robust_z)}"
                 )
             write(f"     Statistique  {f.signal:15} {detail:48} -> {f.status}")
+        for f in service.forecast:
+            detail = (
+                f"actuel={_num(f.current)} prevu={_num(f.baseline_median)} "
+                f"haut={_num(f.expected_high)} dehors={_num(f.outside_share)}"
+            )
+            write(f"     Chronos      {f.signal:15} {detail:48} -> {f.status}")
         if not service.logs_checked or "logs" in service.errors:
             write("     Logs         non verifies ce cycle")
         elif not service.logs:

@@ -14,6 +14,7 @@ from src.agents.monitoring.collectors.loki import LokiClient
 from src.agents.monitoring.collectors.prometheus import PrometheusClient, PrometheusCollector
 from src.agents.monitoring.config import load_config
 from src.agents.monitoring.decision import DecisionMaker, SnapshotReader
+from src.agents.monitoring.detectors.forecast import ChronosForecaster, ForecastDetector
 from src.agents.monitoring.detectors.logs import LogDetector, LogPatternDetector
 from src.agents.monitoring.detectors.slo import SLODetector
 from src.agents.monitoring.detectors.statistical import StatisticalDetector
@@ -35,6 +36,16 @@ async def main(config_path: Path, graph_path: Path, cycles: int | None, verbose:
         if settings.gemini_api_key
         else None
     )
+    forecaster = None
+    if config.forecast.enabled:
+        try:
+            import chronos  # noqa: F401 - only checks that the optional extra is installed
+        except ImportError:
+            print('Chronos non installe (pip install -e ".[forecast]") : detecteur desactive')
+        else:
+            forecaster = ChronosForecaster(config.forecast.model, config.forecast.threads)
+            print(f"Chargement de Chronos ({config.forecast.model})...")
+            await asyncio.to_thread(forecaster.warm_up)
     memory = AlertMemory(config.memory.path, config.memory) if config.memory.enabled else None
     async with (
         PrometheusClient(settings.prometheus_url) as prometheus,
@@ -59,6 +70,9 @@ async def main(config_path: Path, graph_path: Path, cycles: int | None, verbose:
             reporter=ConsoleReporter(verbose=verbose),
             health_checks={"prometheus": prometheus_up},
             reasoner=reasoner,
+            forecast=(
+                ForecastDetector(collector, forecaster, config.forecast) if forecaster else None
+            ),
             decider=DecisionMaker(
                 config.decision, SnapshotReader(collector.collect), memory=memory
             ),
@@ -69,6 +83,7 @@ async def main(config_path: Path, graph_path: Path, cycles: int | None, verbose:
             f"logs {'actifs' if config.logs_enabled else 'desactives'}, "
             f"Gemini {'actif' if labeler else 'non configure'}, "
             f"raisonnement {'actif' if reasoner else 'inactif'}, "
+            f"Chronos {config.forecast.model if forecaster else 'inactif'}, "
             f"memoire {config.memory.path if memory else 'inactive'} (Ctrl+C pour arreter)"
         )
         stop = asyncio.Event()

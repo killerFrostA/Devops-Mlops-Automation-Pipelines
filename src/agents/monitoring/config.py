@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from src.agents.monitoring.collectors.profile import Mode, ServiceProfile
 from src.agents.monitoring.decision import DecisionPolicy
+from src.agents.monitoring.detectors.forecast import ForecastPolicy
 from src.agents.monitoring.detectors.logs import LogPolicy
 from src.agents.monitoring.detectors.slo import SLOPolicy
 from src.agents.monitoring.detectors.statistical import StatisticalPolicy
@@ -38,6 +39,7 @@ class MonitoringConfig(_Config):
     services: tuple[WatchedService, ...] = (WatchedService(service_id="payment-service"),)
     slo: SLOPolicy = SLOPolicy()
     statistical: StatisticalPolicy = StatisticalPolicy()
+    forecast: ForecastPolicy = ForecastPolicy()
     logs: LogPolicy = LogPolicy()
     decision: DecisionPolicy = DecisionPolicy()
     memory: MemoryPolicy = MemoryPolicy()

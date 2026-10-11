@@ -223,7 +223,9 @@ def from_statistical(
             service_id,
             namespace,
             Category(f.category),
-            "statistical",
+            # Chronos is its own source: when it agrees with the statistics, the incident
+            # shows both sources, which is a confirmation.
+            "forecast" if f.method == "forecast" else "statistical",
             f.severity or Severity.MEDIUM,
             {
                 "signal": f.signal,
@@ -232,6 +234,8 @@ def from_statistical(
                 "baseline_median": f.baseline_median,
                 "robust_z": f.robust_z,
                 "slope_per_minute": f.slope_per_minute,
+                "expected_high": f.expected_high,
+                "outside_share": f.outside_share,
             },
         )
         for f in findings

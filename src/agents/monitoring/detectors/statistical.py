@@ -90,15 +90,17 @@ class FindingStatus(StrEnum):
 class StatisticalFinding:
     signal: str
     category: str
-    method: str  # "growth" or "level_shift"
+    method: str  # "growth", "level_shift" or "forecast" (detectors/forecast.py)
     status: FindingStatus
     current: float | None = None  # recent median
-    baseline_median: float | None = None
+    baseline_median: float | None = None  # forecast: median of the predicted values
     robust_z: float | None = None
     relative_change: float | None = None
     slope_per_minute: float | None = None
     r2: float | None = None
     severity: Severity | None = None  # set only on ANOMALY
+    expected_high: float | None = None  # forecast: median of the predicted upper bound
+    outside_share: float | None = None  # forecast: share of recent points above that bound
 
 
 def linear_fit(points: list[tuple[float, float]]) -> tuple[float, float]:

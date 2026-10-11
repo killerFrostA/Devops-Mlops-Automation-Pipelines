@@ -65,3 +65,14 @@ memory:                         # alert history + operator feedback (SQLite, sur
   prior_true: 2                 # Beta prior: neutral until the operator gives feedback
   prior_false: 2
   max_odds_factor: 4            # feedback can at most divide/multiply the odds by 4
+
+forecast:                       # Amazon Chronos: predicts the last 5 min from the 30 min before
+  enabled: true                 # needs pip install -e ".[forecast]"; skipped with a message if absent
+  model: amazon/chronos-bolt-tiny   # 9 M parameters, ~0.1 s per prediction on CPU
+  threads: 2
+  baseline_seconds: 1800
+  recent_seconds: 300
+  step_seconds: 15
+  low_quantile: 0.1
+  high_quantile: 0.9            # "unusually high" = above the 90 % predicted bound...
+  min_outside_share: 0.6        # ...for at least 60 % of the recent points
