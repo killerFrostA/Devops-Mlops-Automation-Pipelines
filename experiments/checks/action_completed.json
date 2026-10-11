@@ -1,0 +1,42 @@
+{
+  "message_id": "MSG-demo-action-001",
+  "schema_version": "1.0",
+  "correlation_id": "INC-demo-001",
+  "causation_id": null,
+  "trace_id": "TRACE-INC-demo-001",
+  "source": "deployment-recovery-agent",
+  "target": "monitoring-agent",
+  "topic": "deployment.action.completed",
+  "message_type": "ACTION_COMPLETED",
+  "priority": "P2",
+  "severity": "MEDIUM",
+  "timestamp": "2026-10-11T19:00:00Z",
+  "deadline": null,
+  "environment": "local",
+  "service": {
+    "service_id": "payment-service",
+    "namespace": "local",
+    "version": "unknown"
+  },
+  "evidence_refs": [
+    "EVD-synthetic-001"
+  ],
+  "confidence": null,
+  "requires_ack": true,
+  "idempotency_key": "deployment-recovery-agent:action:ACT-demo-001",
+  "payload": {
+    "action_id": "ACT-demo-001",
+    "action_version": 1,
+    "status": "SUCCESS",
+    "pre_state": {
+      "categories": [
+        "memory_pressure"
+      ]
+    },
+    "post_state": {
+      "restarted": true
+    },
+    "execution_evidence_refs": [],
+    "verification_requested": true
+  }
+}

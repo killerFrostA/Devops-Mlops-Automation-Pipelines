@@ -76,3 +76,17 @@ forecast:                       # Amazon Chronos: predicts the last 5 min from t
   low_quantile: 0.1
   high_quantile: 0.9            # "unusually high" = above the 90 % predicted bound...
   min_outside_share: 0.6        # ...for at least 60 % of the recent points
+
+events:                         # alerts sent to the other agents (v1 contract EventEnvelope)
+  enabled: true
+  path: experiments/runs/agent1-events.jsonl   # JSON Lines until the team's Kafka is ready
+  environment: local
+
+recovery:                       # independent check after a repair (deployment.action.completed)
+  settle_seconds: 30            # let the action take effect first
+  window_seconds: 300           # then observe for 5 minutes...
+  sample_seconds: 30            # ...one measurement every 30 s
+  pass_share: 0.8               # PASS = 80 % of samples within the limit, and the last one too
+  max_error_rate: 0.02
+  max_latency_p95_ms: 500
+  max_memory_slope_mb_min: 5

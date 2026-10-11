@@ -17,6 +17,7 @@ from src.agents.monitoring.decision import Action, DecisionMaker, DecisionRecord
 from src.agents.monitoring.detectors.logs import LogFinding
 from src.agents.monitoring.detectors.slo import SLOEvaluation
 from src.agents.monitoring.detectors.statistical import StatisticalFinding
+from src.agents.monitoring.events import AnomalyEmitter
 from src.agents.monitoring.grouping import (
     Decision,
     Symptom,
@@ -26,6 +27,7 @@ from src.agents.monitoring.grouping import (
     from_statistical,
 )
 from src.agents.monitoring.reasoning import Hypothesis, Reasoner
+from src.contracts.events import EventEnvelope
 
 try:  # optional: precise process memory on any OS
     import psutil
@@ -61,6 +63,8 @@ class CycleReport:
     decisions: tuple[Decision, ...]
     hypotheses: tuple[Hypothesis, ...] = ()  # suspect services, most probable first
     decision: DecisionRecord | None = None
+    event: EventEnvelope | None = None  # alert sent to the other agents this cycle
+    event_error: str | None = None  # why it could not be sent
 
     @property
     def notifications(self) -> tuple[Decision, ...]:
@@ -93,13 +97,14 @@ class MonitoringLoop:
     reasoner: Reasoner | None = None
     decider: DecisionMaker | None = None
     forecast: ServiceDetector[StatisticalFinding] | None = None
+    emitter: AnomalyEmitter | None = None
 
     async def run_cycle(self) -> CycleReport:
         started = time.perf_counter()
         started_at = self.clock()
         # Probes and services run concurrently, all bounded by the same timeout.
         probes = asyncio.ensure_future(self._probe_sources())
-        results = await asyncio.gather(*(self._watch(s) for s in self.config.services))
+        results = await asyncio.gather(*(self.watch(s) for s in self.config.services))
         sources_down = await probes
         symptoms = [symptom for _, found in results for symptom in found]
         decisions = self.grouper.ingest(symptoms)
@@ -110,6 +115,11 @@ class MonitoringLoop:
         decision = None
         if self.decider is not None:
             decision = await self.decider.decide(hypotheses, [d.incident for d in decisions])
+        event, event_error = None, None
+        if self.emitter is not None:
+            event, event_error = await self.emitter.emit(
+                decision, [d.incident for d in decisions], hypotheses
+            )
         cycle = CycleReport(
             started_at=started_at,
             duration_seconds=time.perf_counter() - started,
@@ -119,6 +129,8 @@ class MonitoringLoop:
             decisions=tuple(decisions),
             hypotheses=tuple(hypotheses),
             decision=decision,
+            event=event,
+            event_error=event_error,
         )
         self.reporter.report(cycle)
         return cycle
@@ -145,7 +157,7 @@ class MonitoringLoop:
         )
         return tuple(n for n, ok in zip(names, answers, strict=True) if ok is not True)
 
-    async def _watch(self, service: WatchedService) -> tuple[ServiceReport, list[Symptom]]:
+    async def watch(self, service: WatchedService) -> tuple[ServiceReport, list[Symptom]]:
         errors: dict[str, str] = {}
         symptoms: list[Symptom] = []
         sid, ns = service.service_id, service.namespace
@@ -272,6 +284,15 @@ class ConsoleReporter:
                 f"   !! DECISION : {label[record.action.value]} {record.target} "
                 f"(probabilite {record.probability:.2f}) - {record.reason}"
             )
+            if cycle.event is not None:
+                e = cycle.event
+                self._write(
+                    f"   => EVENEMENT {e.topic} -> {e.target} : {e.service.service_id} "
+                    f"priorite={e.priority} gravite={e.severity} confiance={e.confidence} "
+                    f"(cle {e.idempotency_key})"
+                )
+            if cycle.event_error is not None:
+                self._write(f"   ! envoi de l'alerte impossible : {cycle.event_error}")
             if record.alert_id is not None:
                 self._write(
                     f"   ## alerte n.{record.alert_id} enregistree. Ton avis : "

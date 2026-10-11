@@ -15,7 +15,9 @@ from src.agents.monitoring.detectors.forecast import ForecastPolicy
 from src.agents.monitoring.detectors.logs import LogPolicy
 from src.agents.monitoring.detectors.slo import SLOPolicy
 from src.agents.monitoring.detectors.statistical import StatisticalPolicy
+from src.agents.monitoring.events import EventsPolicy
 from src.agents.monitoring.memory import MemoryPolicy
+from src.agents.monitoring.recovery import RecoveryPolicy
 
 
 class _Config(BaseModel):
@@ -27,6 +29,7 @@ class WatchedService(ServiceProfile):
 
     service_id: str
     namespace: str = "local"
+    version: str = "unknown"  # deployed version, reported in the events (ServiceIdentity)
 
 
 class MonitoringConfig(_Config):
@@ -43,6 +46,8 @@ class MonitoringConfig(_Config):
     logs: LogPolicy = LogPolicy()
     decision: DecisionPolicy = DecisionPolicy()
     memory: MemoryPolicy = MemoryPolicy()
+    events: EventsPolicy = EventsPolicy()
+    recovery: RecoveryPolicy = RecoveryPolicy()
 
     def containers(self) -> dict[str, str]:
         """service_id -> Docker container name, for services watched in container mode."""
