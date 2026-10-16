@@ -98,3 +98,15 @@ Un premier essai, qui envoyait sans le savoir des catégories vides, a été sig
 **Corrections apportées à l'agent à la suite de ces tests :**
 - **Détection « service mort »** (`detectors/availability.py`). Avant, un service arrêté ne donnait que « données insuffisantes ». La vérification de guérison inclut maintenant `service_up`.
 - **Nouvelle alerte quand la gravité augmente** (MEDIUM vers HIGH). Pendant la phase 2, le passage en HIGH n'avait pas été renvoyé, et l'Orchestrateur restait sur une alerte P2. La clé d'idempotence inclut désormais la gravité.
+
+**Vérification en vrai des corrections** (même scénario, 16/10/2026, 15:27 → 15:42, historique Prometheus vierge) :
+
+| Heure | Événement envoyé | Clé d'idempotence (fin) |
+|---|---|---|
+| 15:30:00 | `anomaly.detected` P1 HIGH : readiness (arrêt à 15:28:58, détecté en 62 s) | `readiness:HIGH` |
+| 15:34:07 | `recovery.verified` : RECOVERED (redémarrage à 15:32:03, `UP` en 27 s) | `recovery:ACT-fraud-restart-001` |
+| 15:35:30 | `anomaly.detected` P2 MEDIUM : error_rate (bugs lancés à 15:34:37, détectés en 53 s) | `error_rate:MEDIUM` |
+| 15:36:00 | `anomaly.detected` **P1 HIGH** : error_rate, raison « gravite en hausse (error_rate MEDIUM -> HIGH) » | `error_rate:HIGH` |
+
+- **Gravité en hausse.** Un premier essai (15:12 → 15:27) a montré que la comparaison par service ne suffisait pas : l'alerte HIGH de la panne précédente (readiness) masquait la hausse d'`error_rate`. La gravité est maintenant suivie **par catégorie de symptôme**.
+- **Catégories de l'événement.** L'alerte de 15:35:30 ne cite plus `readiness` (le service était de nouveau `UP` depuis 15:32:30) : seuls les incidents observés pendant le cycle sont listés.

@@ -128,7 +128,12 @@ def test_same_alert_same_key_new_symptom_new_key() -> None:
     first, retried = event(), event(now=NOW.replace(minute=30))
     assert first.idempotency_key == retried.idempotency_key
     assert first.message_id != retried.message_id
-    worse = event(record=alert(categories=frozenset({"memory_pressure", "error_rate"})))
+    # A new symptom is a new incident observed on the service.
+    errors = incident(category=Category.ERROR_RATE, incident_id="INC-errors")
+    worse = event(
+        record=alert(categories=frozenset({"memory_pressure", "error_rate"})),
+        incidents=[incident(), errors],
+    )
     assert worse.idempotency_key != first.idempotency_key
 
 
@@ -279,3 +284,16 @@ def test_higher_severity_is_a_new_situation_for_the_consumers() -> None:
     medium, high = event(), event(incidents=[incident(severity=Severity.HIGH)])
     assert medium.idempotency_key != high.idempotency_key  # not dropped as a duplicate
     assert (medium.priority, high.priority) == (Priority.P2, Priority.P1)
+
+
+def test_event_lists_only_what_is_observed_now() -> None:
+    """Seen live on fraud-api (14:42:32): the service was back UP since 14:40, but the alert
+    still listed `readiness`, kept by the 5-minute reasoning window."""
+    errors = incident(category=Category.ERROR_RATE)
+    sent = event(
+        record=alert(categories=frozenset({"error_rate", "readiness"})), incidents=[errors]
+    )
+    signals = sent.payload["signals"]
+    assert isinstance(signals, dict)
+    assert signals["categories"] == ["error_rate"]
+    assert sent.idempotency_key.endswith(":error_rate:MEDIUM")

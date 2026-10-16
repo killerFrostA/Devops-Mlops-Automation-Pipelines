@@ -231,4 +231,46 @@ def test_rising_severity_is_alerted_again() -> None:
         maker, [hyp_with("payment-service", 0.5, "error_rate")], [incident(Severity.HIGH)]
     )
     assert (first.notify, worse.notify, still.notify) == (True, True, False)
-    assert "gravite en hausse (MEDIUM -> HIGH)" in worse.reason
+    assert "gravite en hausse (error_rate MEDIUM -> HIGH)" in worse.reason
+
+
+def test_rising_severity_is_seen_even_after_another_high_alert() -> None:
+    """Seen live on fraud-api (15:15 -> 15:21): a HIGH outage alert (readiness) hid that the
+    error rate, alerted MEDIUM at 15:20:34, became HIGH at 15:21:04."""
+
+    def on_fraud(category: Category, severity: Severity, opened: float) -> Incident:
+        return Incident(
+            f"INC-{category}",
+            f"fraud-api:local:{category}",
+            "fraud-api",
+            "local",
+            category,
+            opened,
+            opened,
+            1,
+            severity,
+            frozenset({"slo"}),
+            {},
+        )
+
+    clock = Clock()
+    maker = DecisionMaker(POLICY, Reader({}), clock=clock)
+    outage = decide(
+        maker,
+        [hyp_with("fraud-api", 0.6, "readiness")],
+        [on_fraud(Category.READINESS, Severity.HIGH, 0)],
+    )
+    clock.now += 300
+    medium = decide(
+        maker,
+        [hyp_with("fraud-api", 0.8, "readiness", "error_rate")],
+        [on_fraud(Category.ERROR_RATE, Severity.MEDIUM, 300)],
+    )
+    clock.now += 30
+    high = decide(
+        maker,
+        [hyp_with("fraud-api", 0.8, "readiness", "error_rate")],
+        [on_fraud(Category.ERROR_RATE, Severity.HIGH, 300)],
+    )
+    assert (outage.notify, medium.notify, high.notify) == (True, True, True)
+    assert "gravite en hausse (error_rate MEDIUM -> HIGH)" in high.reason

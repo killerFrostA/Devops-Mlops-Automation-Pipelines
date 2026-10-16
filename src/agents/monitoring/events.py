@@ -84,7 +84,9 @@ def build_anomaly_event(
     # without an incident of its own: the evidence is then the incidents observed elsewhere.
     evidence = own or incidents
     main = most_relevant(evidence)
-    categories = sorted(record.categories or {i.category.value for i in evidence})
+    # Only what is observed now. The decision's categories come from the reasoning window
+    # (5 min) and can still hold a fault already fixed (e.g. readiness after a restart).
+    categories = sorted({i.category.value for i in evidence})
     sources = sorted({s for i in evidence for s in i.sources})
     raw: dict[str, object] = {
         "categories": categories,

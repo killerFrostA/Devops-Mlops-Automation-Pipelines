@@ -19,7 +19,7 @@ affected: a HIGH incident is alerted even after false alerts, for safety.
 import dataclasses
 import time
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Protocol
 
@@ -151,7 +151,7 @@ class DecisionMaker:
                 {},
                 f"regle metier : incident {worst.category} de gravite {worst.severity}",
                 frozenset(categories),
-                worst.severity,
+                worst,
             )
 
         hypotheses, learned = self._remember(hypotheses)
@@ -172,10 +172,10 @@ class DecisionMaker:
             record = dataclasses.replace(record, reason=f"{record.reason} ; {learned}")
         return record
 
-    def _severity_on(self, service_id: str) -> Severity | None:
-        """Highest severity of this cycle's incidents on the service, if it has any."""
+    def _driver_on(self, service_id: str) -> Incident | None:
+        """The incident this cycle's alert on the service is about, if it has any."""
         own = [i for i in self._cycle_incidents if i.service_id == service_id]
-        return most_relevant(own).severity if own else None
+        return most_relevant(own) if own else None
 
     def _remember(self, hypotheses: list[Hypothesis]) -> tuple[list[Hypothesis], str]:
         """Probabilities corrected by the operator's past verdicts, and a note explaining it."""
@@ -252,24 +252,27 @@ class DecisionMaker:
         scores: dict[Action, float],
         reason: str,
         categories: frozenset[str],
-        severity: Severity | None = None,
+        driver: Incident | None = None,
     ) -> DecisionRecord:
         now = self._clock()
         last = self._alerted.get(service_id)
-        severity = severity or self._severity_on(service_id)
+        driver = driver or self._driver_on(service_id)
         order = list(Severity)
+        # Compared per kind of problem: an earlier HIGH outage (readiness) must not hide that
+        # the error rate, alerted MEDIUM, has now become HIGH.
+        before = last.severities.get(driver.category.value) if last and driver else None
         why_again = None
         if last is not None:
             new = categories - last.categories
             if now - last.at >= self.policy.realert_after_seconds:
                 why_again = "rappel"
             elif (
-                severity is not None
-                and last.severity is not None
-                and order.index(severity) > order.index(last.severity)
+                driver is not None
+                and before is not None
+                and order.index(driver.severity) > order.index(before)
             ):
                 # e.g. MEDIUM -> HIGH: the orchestrator must see the higher priority (P2 -> P1).
-                why_again = f"gravite en hausse ({last.severity} -> {severity})"
+                why_again = f"gravite en hausse ({driver.category} {before} -> {driver.severity})"
             elif new:
                 why_again = "nouveau symptome : " + ", ".join(sorted(new))
             elif probability >= last.probability + self.policy.realert_probability_increase:
@@ -277,12 +280,12 @@ class DecisionMaker:
         fresh = last is None or why_again is not None
         if fresh:
             seen = categories | (last.categories if last else frozenset())
-            highest = max(
-                (s for s in (severity, last.severity if last else None) if s is not None),
-                key=order.index,
-                default=None,
-            )
-            self._alerted[service_id] = _LastAlert(now, seen, probability, highest)
+            severities = dict(last.severities) if last else {}
+            if driver is not None:
+                kind = driver.category.value
+                previous = severities.get(kind, driver.severity)
+                severities[kind] = max(previous, driver.severity, key=order.index)
+            self._alerted[service_id] = _LastAlert(now, seen, probability, severities)
         if why_again:
             reason = f"{reason} ; {why_again}"
         elif not fresh:
@@ -303,7 +306,8 @@ class _LastAlert:
     at: float
     categories: frozenset[str]
     probability: float
-    severity: Severity | None = None  # highest severity already alerted for the service
+    # Highest severity already alerted, per symptom category, e.g. {"error_rate": MEDIUM}.
+    severities: dict[str, Severity] = field(default_factory=dict)
 
 
 def _categories(hypothesis: Hypothesis) -> frozenset[str]:
