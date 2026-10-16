@@ -15,6 +15,7 @@ from src.agents.monitoring.collectors.loki import LokiClient
 from src.agents.monitoring.collectors.prometheus import PrometheusClient, PrometheusCollector
 from src.agents.monitoring.config import MonitoringConfig
 from src.agents.monitoring.decision import DecisionMaker, SnapshotReader
+from src.agents.monitoring.detectors.availability import AvailabilityDetector
 from src.agents.monitoring.detectors.forecast import ChronosForecaster, ForecastDetector
 from src.agents.monitoring.detectors.logs import LogDetector, LogPatternDetector
 from src.agents.monitoring.detectors.slo import SLODetector
@@ -95,10 +96,15 @@ async def build_runtime(
                 forecast=(
                     ForecastDetector(collector, forecaster, config.forecast) if forecaster else None
                 ),
+                availability=(
+                    AvailabilityDetector(collector, config.availability)
+                    if config.availability.enabled
+                    else None
+                ),
                 emitter=(AnomalyEmitter(publisher, config.events, versions) if publisher else None),
                 decider=DecisionMaker(config.decision, reader, memory=memory),
             )
-            verifier = Verifier(reader, config.recovery)
+            verifier = Verifier(reader, config.recovery, alive=collector)
             agent = MonitoringAgent(OneShotDetector(loop), verifier, publisher, versions)
             sink = publisher or _NoPublisher()
             names = ", ".join(f"{s.service_id} ({s.mode})" for s in config.services)

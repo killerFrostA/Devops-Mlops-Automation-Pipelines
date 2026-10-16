@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from src.agents.monitoring.collectors.profile import Mode, ServiceProfile
 from src.agents.monitoring.decision import DecisionPolicy
+from src.agents.monitoring.detectors.availability import AvailabilityPolicy
 from src.agents.monitoring.detectors.forecast import ForecastPolicy
 from src.agents.monitoring.detectors.logs import LogPolicy
 from src.agents.monitoring.detectors.slo import SLOPolicy
@@ -40,6 +41,7 @@ class MonitoringConfig(_Config):
     incident_cooldown_seconds: float = Field(default=900, gt=0)
     logs_enabled: bool = True
     services: tuple[WatchedService, ...] = (WatchedService(service_id="payment-service"),)
+    availability: AvailabilityPolicy = AvailabilityPolicy()
     slo: SLOPolicy = SLOPolicy()
     statistical: StatisticalPolicy = StatisticalPolicy()
     forecast: ForecastPolicy = ForecastPolicy()

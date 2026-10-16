@@ -19,6 +19,7 @@ from uuid import uuid4
 
 from pydantic import JsonValue
 
+from src.agents.monitoring.detectors.availability import Availability, AvailabilityFinding
 from src.agents.monitoring.detectors.logs import LogFinding, LogLabel
 from src.agents.monitoring.detectors.slo import SLOEvaluation, SLOStatus
 from src.agents.monitoring.detectors.statistical import FindingStatus, StatisticalFinding
@@ -250,6 +251,24 @@ def from_statistical(
         )
         for f in findings
         if f.status is FindingStatus.ANOMALY
+    ]
+
+
+def from_availability(
+    service_id: str, namespace: str, findings: list[AvailabilityFinding]
+) -> list[Symptom]:
+    """A service that stopped answering: readiness, HIGH (business rule: always alerted)."""
+    return [
+        Symptom(
+            service_id,
+            namespace,
+            Category.READINESS,
+            "availability",
+            Severity.HIGH,
+            {"status": f.status.value, "no_answer_for_seconds": f.window_seconds},
+        )
+        for f in findings
+        if f.status is Availability.DOWN
     ]
 
 

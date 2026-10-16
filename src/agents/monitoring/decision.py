@@ -118,6 +118,7 @@ class DecisionMaker:
         self._clock = clock
         self._memory = memory
         self._alerted: dict[str, _LastAlert] = {}  # service -> last alert raised for it
+        self._cycle_incidents: list[Incident] = []  # incidents of the decision in progress
 
     async def decide(
         self, hypotheses: list[Hypothesis], incidents: list[Incident]
@@ -136,6 +137,7 @@ class DecisionMaker:
     async def _decide(
         self, hypotheses: list[Hypothesis], incidents: list[Incident]
     ) -> DecisionRecord:
+        self._cycle_incidents = incidents
         top = hypotheses[0]
         forced = [i for i in incidents if i.severity in self.policy.force_alert_severities]
         if forced:
@@ -149,6 +151,7 @@ class DecisionMaker:
                 {},
                 f"regle metier : incident {worst.category} de gravite {worst.severity}",
                 frozenset(categories),
+                worst.severity,
             )
 
         hypotheses, learned = self._remember(hypotheses)
@@ -168,6 +171,11 @@ class DecisionMaker:
         if learned:
             record = dataclasses.replace(record, reason=f"{record.reason} ; {learned}")
         return record
+
+    def _severity_on(self, service_id: str) -> Severity | None:
+        """Highest severity of this cycle's incidents on the service, if it has any."""
+        own = [i for i in self._cycle_incidents if i.service_id == service_id]
+        return most_relevant(own).severity if own else None
 
     def _remember(self, hypotheses: list[Hypothesis]) -> tuple[list[Hypothesis], str]:
         """Probabilities corrected by the operator's past verdicts, and a note explaining it."""
@@ -244,14 +252,24 @@ class DecisionMaker:
         scores: dict[Action, float],
         reason: str,
         categories: frozenset[str],
+        severity: Severity | None = None,
     ) -> DecisionRecord:
         now = self._clock()
         last = self._alerted.get(service_id)
+        severity = severity or self._severity_on(service_id)
+        order = list(Severity)
         why_again = None
         if last is not None:
             new = categories - last.categories
             if now - last.at >= self.policy.realert_after_seconds:
                 why_again = "rappel"
+            elif (
+                severity is not None
+                and last.severity is not None
+                and order.index(severity) > order.index(last.severity)
+            ):
+                # e.g. MEDIUM -> HIGH: the orchestrator must see the higher priority (P2 -> P1).
+                why_again = f"gravite en hausse ({last.severity} -> {severity})"
             elif new:
                 why_again = "nouveau symptome : " + ", ".join(sorted(new))
             elif probability >= last.probability + self.policy.realert_probability_increase:
@@ -259,7 +277,12 @@ class DecisionMaker:
         fresh = last is None or why_again is not None
         if fresh:
             seen = categories | (last.categories if last else frozenset())
-            self._alerted[service_id] = _LastAlert(now, seen, probability)
+            highest = max(
+                (s for s in (severity, last.severity if last else None) if s is not None),
+                key=order.index,
+                default=None,
+            )
+            self._alerted[service_id] = _LastAlert(now, seen, probability, highest)
         if why_again:
             reason = f"{reason} ; {why_again}"
         elif not fresh:
@@ -280,6 +303,7 @@ class _LastAlert:
     at: float
     categories: frozenset[str]
     probability: float
+    severity: Severity | None = None  # highest severity already alerted for the service
 
 
 def _categories(hypothesis: Hypothesis) -> frozenset[str]:

@@ -273,3 +273,9 @@ def test_event_is_about_the_newest_incident_when_severity_is_equal() -> None:
     )
     assert sent.correlation_id == "INC-new"
     assert AnomalyDetected.model_validate(sent.payload).anomaly_id.startswith("ANM-INC-new-")
+
+
+def test_higher_severity_is_a_new_situation_for_the_consumers() -> None:
+    medium, high = event(), event(incidents=[incident(severity=Severity.HIGH)])
+    assert medium.idempotency_key != high.idempotency_key  # not dropped as a duplicate
+    assert (medium.priority, high.priority) == (Priority.P2, Priority.P1)

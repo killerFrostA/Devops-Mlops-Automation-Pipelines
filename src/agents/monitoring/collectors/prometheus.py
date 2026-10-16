@@ -195,6 +195,24 @@ def build_series_queries(
     }
 
 
+# cAdvisor refreshes a container every 30 s (housekeeping): a container is only considered gone
+# once it has not been seen for the window plus this margin.
+_CADVISOR_MARGIN_SECONDS = 30
+
+
+def build_alive_query(service_id: str, profile: ServiceProfile, window_seconds: int) -> str:
+    """Liveness over the last `window_seconds`.
+
+    App mode: Prometheus records `up` = 1 when a scrape of the service succeeds, 0 when it
+    fails; the max over the window is 0 only if every scrape failed. Container mode: seconds
+    since cAdvisor last saw the container (looked up over 15 min, empty after that).
+    """
+    if profile.mode is Mode.CONTAINER:
+        sel = f'name="{profile.container or service_id}"'
+        return f"time() - max(max_over_time(container_last_seen{{{sel}}}[15m]))"
+    return f'max(max_over_time(up{{service_id="{service_id}"}}[{window_seconds}s]))'
+
+
 class PrometheusCollector:
     def __init__(
         self,
@@ -281,6 +299,23 @@ class PrometheusCollector:
             else:
                 series[name] = Series(signal=name, points=answer, source_available=True)
         return series
+
+    async def collect_alive(self, service_id: str, window_seconds: int) -> bool | None:
+        """True: answered in the window; False: not once; None: unknown (never scraped).
+
+        A down Prometheus raises (PrometheusUnavailableError / CircuitOpenError): "we cannot
+        see" is not "the service is dead".
+        """
+        check_service_id(service_id)
+        profile = self.profile(service_id)
+        value = await self._client.query_value(
+            build_alive_query(service_id, profile, window_seconds)
+        )
+        if value is None:
+            return None
+        if profile.mode is Mode.CONTAINER:
+            return value <= window_seconds + _CADVISOR_MARGIN_SECONDS
+        return value >= 1
 
     async def collect(self, service_id: str) -> MetricSnapshot:
         check_service_id(service_id)

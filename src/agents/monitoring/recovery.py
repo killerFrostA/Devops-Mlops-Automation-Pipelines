@@ -24,6 +24,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
 from src.agents.monitoring.decision import SignalReader
+from src.agents.monitoring.detectors.availability import AliveSource
 from src.agents.monitoring.events import build_recovery_event, new_id
 from src.contracts.enums import Environment
 from src.contracts.events import EventEnvelope
@@ -38,7 +39,10 @@ CHECK_FOR_CATEGORY = {
     "error_rate": "error_rate",
     "latency": "latency_p95_ms",
     "memory_pressure": "memory_slope_mb_min",
+    "readiness": "service_up",
 }
+# Checks where a higher value is the good side (1 = the service answered, 0 = it did not).
+HIGHER_IS_BETTER = {"service_up"}
 
 
 class RecoveryPolicy(BaseModel):
@@ -67,6 +71,7 @@ class RecoveryPolicy(BaseModel):
             "error_rate": self.max_error_rate,
             "latency_p95_ms": self.max_latency_p95_ms,
             "memory_slope_mb_min": self.max_memory_slope_mb_min,
+            "service_up": 1.0,
         }
 
 
@@ -74,13 +79,19 @@ def judge(samples: list[dict[str, float | None]], policy: RecoveryPolicy) -> dic
     """PASS/FAIL/UNKNOWN per check from the samples taken during the window."""
     checks: dict[str, CheckResult] = {}
     for name, limit in policy.limits().items():
+        if name == "service_up" and not any(name in s for s in samples):
+            continue  # liveness not measured by this verifier
+
+        def ok(value: float, name: str = name, limit: float = limit) -> bool:
+            return value >= limit if name in HIGHER_IS_BETTER else value <= limit
+
         known = [s[name] for s in samples if s.get(name) is not None]
         values = [v for v in known if v is not None]
         if len(values) < max(1, policy.min_samples_share * policy.samples):
             checks[name] = "UNKNOWN"
             continue
-        within = sum(v <= limit for v in values) / len(values)
-        checks[name] = "PASS" if within >= policy.pass_share and values[-1] <= limit else "FAIL"
+        within = sum(ok(v) for v in values) / len(values)
+        checks[name] = "PASS" if within >= policy.pass_share and ok(values[-1]) else "FAIL"
     return checks
 
 
@@ -103,20 +114,20 @@ class Verifier:
         reader: SignalReader,
         policy: RecoveryPolicy | None = None,
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+        alive: AliveSource | None = None,
     ) -> None:
         self._reader = reader
         self.policy = policy or RecoveryPolicy()
         self._sleep = sleep
+        # Optional liveness: a service that does not answer at all must FAIL, not be UNKNOWN.
+        self._alive = alive
 
     async def verify(self, action_id: str, context: TaskContext) -> RecoveryVerified:
         p = self.policy
         await self._sleep(p.settle_seconds)
         samples: list[dict[str, float | None]] = []
         for index in range(p.samples):
-            try:
-                samples.append(await self._reader.read(context.service_id))
-            except Exception:  # noqa: BLE001 - a failed sample is just missing data
-                samples.append({})
+            samples.append(await self._sample(context.service_id))
             if index < p.samples - 1:
                 await self._sleep(p.sample_seconds)
         checks = judge(samples, p)
@@ -129,6 +140,20 @@ class Verifier:
             status=overall(checks, categories),
             checks=dict(checks),
         )
+
+    async def _sample(self, service_id: str) -> dict[str, float | None]:
+        try:
+            sample = dict(await self._reader.read(service_id))
+        except Exception:  # noqa: BLE001 - a failed sample is just missing data
+            sample = {}
+        if self._alive is not None:
+            window = max(30, int(self.policy.sample_seconds))
+            try:
+                up = await self._alive.collect_alive(service_id, window)
+            except Exception:  # noqa: BLE001 - Prometheus down: liveness unknown
+                up = None
+            sample["service_up"] = None if up is None else float(up)
+        return sample
 
 
 class RecoveryWatcher:

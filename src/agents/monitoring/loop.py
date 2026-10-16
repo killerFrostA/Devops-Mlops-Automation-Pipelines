@@ -14,6 +14,7 @@ from typing import Protocol
 from src.agents.monitoring.collectors.profile import Mode
 from src.agents.monitoring.config import MonitoringConfig, WatchedService
 from src.agents.monitoring.decision import Action, DecisionMaker, DecisionRecord
+from src.agents.monitoring.detectors.availability import AvailabilityFinding
 from src.agents.monitoring.detectors.logs import LogFinding
 from src.agents.monitoring.detectors.slo import SLOEvaluation
 from src.agents.monitoring.detectors.statistical import StatisticalFinding
@@ -22,6 +23,7 @@ from src.agents.monitoring.grouping import (
     Decision,
     Symptom,
     SymptomGrouper,
+    from_availability,
     from_logs,
     from_slo,
     from_statistical,
@@ -51,6 +53,7 @@ class ServiceReport:
     logs: tuple[LogFinding, ...] = ()
     logs_checked: bool = False
     forecast: tuple[StatisticalFinding, ...] = ()  # Chronos, when enabled
+    availability: tuple[AvailabilityFinding, ...] = ()  # is the service answering at all
 
 
 @dataclass(frozen=True, slots=True)
@@ -98,6 +101,7 @@ class MonitoringLoop:
     decider: DecisionMaker | None = None
     forecast: ServiceDetector[StatisticalFinding] | None = None
     emitter: AnomalyEmitter | None = None
+    availability: ServiceDetector[AvailabilityFinding] | None = None
 
     async def run_cycle(self) -> CycleReport:
         started = time.perf_counter()
@@ -166,6 +170,7 @@ class MonitoringLoop:
         slo: list[SLOEvaluation] = []
         statistical: list[StatisticalFinding] = []
         forecast: list[StatisticalFinding] = []
+        availability: list[AvailabilityFinding] = []
         logs: list[LogFinding] = []
 
         async def run[T](
@@ -190,6 +195,15 @@ class MonitoringLoop:
                 statistical,
             ),
         ]
+        if self.availability is not None:
+            jobs.append(
+                run(
+                    "availability",
+                    self.availability,
+                    lambda r: from_availability(sid, ns, r),
+                    availability,
+                )
+            )
         if self.forecast is not None:
             jobs.append(
                 run("forecast", self.forecast, lambda r: from_statistical(sid, ns, r), forecast)
@@ -214,6 +228,7 @@ class MonitoringLoop:
             tuple(logs),
             logs_checked,
             tuple(forecast),
+            tuple(availability),
         )
         return report, symptoms
 
@@ -302,6 +317,9 @@ class ConsoleReporter:
     def _details(self, service: ServiceReport) -> None:
         write = self._write
         write(f"   {service.service_id} ({service.namespace})")
+        for a in service.availability:
+            detail = f"repond-il ? (fenetre {a.window_seconds}s)"
+            write(f"     Disponible   {'service':15} {detail:48} -> {a.status}")
         for r in service.slo:
             write(
                 f"     SLO          {r.slo:15} {r.rule:10} burn long={_num(r.burn_rate_long)} "

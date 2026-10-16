@@ -176,6 +176,22 @@ services:
     labels: {service_id: payment-service}
     restart: unless-stopped
 
+  # Team target application (fraud detection, FastAPI + MLflow model), watched by Agent 1.
+  # Built from its own repository, cloned next to this one: its code is not copied here.
+  # Start: docker compose --profile observability --profile fraud up -d fraud-api
+  fraud-api:
+    build: ${FRAUD_API_DIR:-../Fraud_Detection_MLOps}
+    image: pids-fraud-api:local
+    profiles: [fraud]
+    ports: ["127.0.0.1:8000:8000"]
+    # Its requirements install the latest MLflow, which refuses the file model store it ships
+    # with unless explicitly allowed.
+    environment: {MLFLOW_ALLOW_FILE_STORE: "true"}
+    mem_limit: 768m
+    cpus: 1.0
+    labels: {service_id: fraud-api}
+    restart: unless-stopped
+
   # Log store queried by Agent 1 (LogQL over HTTP, port 3100).
   loki:
     image: grafana/loki:3.5.5

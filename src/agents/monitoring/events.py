@@ -136,8 +136,10 @@ def build_anomaly_event(
         evidence_refs=tuple(sorted(i.incident_id for i in evidence)),
         confidence=round(min(1.0, max(0.0, record.probability)), 4),
         # Same alert sent twice (retry, restart) = same key: consumers drop the duplicate.
-        # A new symptom on the same incident is a new situation, hence a new key.
-        idempotency_key=f"{SOURCE}:anomaly:{main.incident_id}:{'+'.join(categories)}",
+        # A new symptom or a higher severity is a new situation, hence a new key.
+        idempotency_key=(
+            f"{SOURCE}:anomaly:{main.incident_id}:{'+'.join(categories)}:{main.severity}"
+        ),
         payload=payload.model_dump(mode="json"),
     )
 

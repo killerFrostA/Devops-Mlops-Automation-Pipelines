@@ -214,3 +214,21 @@ def test_business_rule_names_the_newest_incident_when_severity_is_equal() -> Non
     for incidents in ([old_latency, new_errors], [new_errors, old_latency]):  # order-proof
         record = decide(DecisionMaker(POLICY, Reader({})), [hyp("payment-service", 0.7)], incidents)
         assert "incident error_rate de gravite HIGH" in record.reason
+
+
+def test_rising_severity_is_alerted_again() -> None:
+    """Seen live on fraud-api (14:42-14:43): error_rate alerted MEDIUM (slow-burn), then the same
+    incident became HIGH (fast-burn) and the orchestrator was left with a P2 alert."""
+    clock = Clock()
+    maker = DecisionMaker(POLICY, Reader({}), clock=clock)
+    first = decide(maker, [hyp_with("payment-service", 0.9, "error_rate")], [incident()])
+    clock.now += 30
+    worse = decide(
+        maker, [hyp_with("payment-service", 0.5, "error_rate")], [incident(Severity.HIGH)]
+    )
+    clock.now += 30
+    still = decide(
+        maker, [hyp_with("payment-service", 0.5, "error_rate")], [incident(Severity.HIGH)]
+    )
+    assert (first.notify, worse.notify, still.notify) == (True, True, False)
+    assert "gravite en hausse (MEDIUM -> HIGH)" in worse.reason

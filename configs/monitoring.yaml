@@ -14,6 +14,11 @@ logs_enabled: true              # set to false when Loki is not running
 services:
   - service_id: payment-service   # test service, standard prometheus_client names
     namespace: local
+  - service_id: fraud-api         # team target app: prometheus-fastapi-instrumentator names
+    namespace: local
+    metrics:
+      path_label: handler           # the route label is "handler" (not "path")
+      excluded_paths: "/health|/metrics"
   # Another project, instrumented with other names (e.g. prometheus-fastapi-instrumentator):
   # - service_id: order-api
   #   metrics:
@@ -25,6 +30,10 @@ services:
   # - service_id: nexusfx-visual-api
   #   mode: container
   #   container: nexusfx-visual-api   # Docker container name (default: the service_id)
+
+availability:                   # is the service answering at all? (Prometheus up / cAdvisor)
+  enabled: true
+  down_after_seconds: 60        # not one answer for 60 s -> readiness incident, HIGH
 
 slo:
   latency_le: "0.5"             # must be a histogram bucket of the service (500 ms)

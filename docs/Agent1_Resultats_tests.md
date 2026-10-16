@@ -72,3 +72,29 @@ L'agent ne croit pas l'agent de déploiement sur parole : il mesure lui-même.
 - **Chronos s'habitue à une panne longue.** Après environ 6 minutes de fuite, la fuite entre dans son historique et il la prédit. La statistique (pente) prend le relais. Amélioration possible : figer l'historique de référence pendant un incident.
 - **Kafka et le Context Service de l'équipe ne sont pas encore implémentés.** Les événements passent pour l'instant par un fichier JSON Lines, à travers l'interface `EventPublisher` : le branchement sur Kafka ne changera pas l'agent.
 - **Kubernetes et les traces ne sont pas couverts.** Le banc local surveille uniquement des conteneurs Docker.
+
+## 8. Test réel sur l'API de détection de fraude (16/10/2026, 14:34 → 14:49)
+
+L'équipe a choisi comme application cible le projet `Fraud_Detection_MLOps` : une API FastAPI qui sert un modèle MLflow. Il est lancé **depuis son propre dépôt** (profil Docker `fraud`) ; son code n'est pas copié ici. L'agent le surveille en mode app, à partir de sa page `/metrics` (prometheus-fastapi-instrumentator, étiquette `handler`).
+
+Script : `python experiments/checks/fraud_scenario.py`, avec un historique Prometheus vierge au départ. Trafic : `experiments/load/fraud_traffic.py`.
+
+| Phase | Action | Ce que l'agent a fait | Délai |
+|---|---|---|---|
+| 0. Normal | transactions saines | service `UP`, **aucune alerte** | — |
+| 1. Panne | `docker stop fraud-api` à 14:36:31 | `DOWN`, incident `readiness` HIGH, alerte **P1** | 61 s |
+| 1b. Réparation | `docker start` à 14:39:33, puis `deployment.action.completed` | `UP`, puis vérification **RECOVERED** (erreurs, latence, mémoire et `service_up` = PASS) | 29 s |
+| 2. Vrais bugs | 50 % des transactions déclenchent un bug de l'API à partir de 14:42:05 | SLO disponibilité slow-burn, incident `error_rate` MEDIUM, alerte **P2** | 27 s |
+| | | SLO fast-burn, incident passé en HIGH | 57 s |
+
+Événements envoyés : `monitoring.anomaly.detected` (P1, readiness), `monitoring.recovery.verified` (RECOVERED) et `monitoring.anomaly.detected` (P2, error_rate).
+
+**Deux vrais bugs de l'API trouvés grâce à l'agent** (HTTP 500, à signaler à l'équipe) :
+1. `paymentMethodAgeDays` est converti en entier par l'API, alors que la signature du modèle MLflow attend un réel. Toute carte de plus d'un jour provoque une erreur 500.
+2. Une `Category` absente (autorisée par le schéma de l'API) fait échouer la concaténation `Category + "_" + paymentMethod` dans `Src/model.py`.
+
+Un premier essai, qui envoyait sans le savoir des catégories vides, a été signalé par l'agent dès la phase « normale » (`error_rate` HIGH). La vérification après redémarrage a répondu `NOT_RECOVERED` (l'API répondait, mais elle plantait toujours). Les deux réponses étaient justes.
+
+**Corrections apportées à l'agent à la suite de ces tests :**
+- **Détection « service mort »** (`detectors/availability.py`). Avant, un service arrêté ne donnait que « données insuffisantes ». La vérification de guérison inclut maintenant `service_up`.
+- **Nouvelle alerte quand la gravité augmente** (MEDIUM vers HIGH). Pendant la phase 2, le passage en HIGH n'avait pas été renvoyé, et l'Orchestrateur restait sur une alerte P2. La clé d'idempotence inclut désormais la gravité.
