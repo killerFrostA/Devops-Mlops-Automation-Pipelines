@@ -136,11 +136,17 @@ class SymptomGrouper:
         cooldown_seconds: float = 900,
         clock: Callable[[], float] = time.time,
         id_factory: Callable[[float], str] = new_incident_id,
+        reopen_after_seconds: float = 300,
     ) -> None:
         if cooldown_seconds <= 0:
             raise ValueError("cooldown_seconds must be > 0")
+        if not 0 < reopen_after_seconds <= cooldown_seconds:
+            raise ValueError("reopen_after_seconds must be > 0 and <= cooldown_seconds")
         self._store = store
         self._cooldown = cooldown_seconds
+        # A symptom back after this much silence is a new fault, not the tail of the last one.
+        # Seen live: a new latency fault 12 min after the previous one was merged into it.
+        self._reopen_after = reopen_after_seconds
         self._clock = clock
         self._id_factory = id_factory
 
@@ -149,6 +155,8 @@ class SymptomGrouper:
         decisions: dict[str, Decision] = {}
         for symptom in symptoms:
             current = self._store.get(symptom.signature)
+            if current is not None and now - current.last_seen_at > self._reopen_after:
+                current = None  # quiet for a while: the problem had stopped
             facts = {f"{symptom.source}.{k}": v for k, v in symptom.facts.items()}
             if current is None:
                 incident = Incident(

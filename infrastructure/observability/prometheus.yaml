@@ -10,6 +10,10 @@ scrape_configs:
     static_configs:
       - targets: [target-app:8080]
         labels: {service_id: payment-service, namespace: local}
+  - job_name: payments-db
+    static_configs:
+      - targets: [payments-db:8080]
+        labels: {service_id: payments-db, namespace: local}
   # Fraud-detection API (team target application, built from its own repository).
   - job_name: fraud-api
     static_configs:

@@ -110,3 +110,11 @@ Un premier essai, qui envoyait sans le savoir des catégories vides, a été sig
 
 - **Gravité en hausse.** Un premier essai (15:12 → 15:27) a montré que la comparaison par service ne suffisait pas : l'alerte HIGH de la panne précédente (readiness) masquait la hausse d'`error_rate`. La gravité est maintenant suivie **par catégorie de symptôme**.
 - **Catégories de l'événement.** L'alerte de 15:35:30 ne cite plus `readiness` (le service était de nouveau `UP` depuis 15:32:30) : seuls les incidents observés pendant le cycle sont listés.
+
+## 9. Corrections issues du test réel à deux services (payment-service → payments-db)
+
+- **L'alerte visait la victime.** Base lente : le raisonnement classait `payments-db` en premier (0,61), mais la règle métier « HIGH toujours alerté » alertait `payment-service`. Désormais, quand le raisonnement explique l'incident grave par une dépendance, l'alerte vise l'origine probable (« origine probable payments-db »). Vérifié en vrai le 19/10 à 16:28 et 19:44 : alerte sur `payments-db`.
+- **Une nouvelle panne était fusionnée avec l'ancienne.** Un problème du même type, sur le même service, revenu 12 min après le précédent, restait dans l'ancien incident (« deja alerte »). Désormais, après **5 min de silence**, son retour ouvre un **nouvel incident** et une **nouvelle alerte** (« nouvel incident »). Une panne qui clignote, avec des trous plus courts, reste un seul incident.
+- **Chronos désactivé par défaut** (`forecast.enabled: false`). Il confirmait les pannes environ 30 s après la statistique, s'habituait aux pannes longues et coûtait environ 350 Mo de RAM. Il reste disponible pour les comparaisons.
+
+Test du raisonnement, état actuel : essais 1 (base lente → `payments-db`) et 2 (paiement lent → `payment-service`) réussis. Essais 3 à 6 à refaire avec ces corrections.

@@ -11,6 +11,8 @@ import os
 import random
 import threading
 import time
+import urllib.error
+import urllib.request
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
@@ -24,6 +26,11 @@ SERVICE_NAME = os.getenv("SERVICE_NAME", "payment-service")
 CHAOS_ENABLED = os.getenv("CHAOS_ENABLED", "false").lower() == "true"
 INJECTION_LOG = Path(os.getenv("INJECTION_LOG", "experiments/runs/injections.jsonl"))
 MAX_MEMORY_MB = int(os.getenv("CHAOS_MAX_MEMORY_MB", "2048"))
+# Optional downstream service called on every /pay (e.g. http://payments-db:8080): its faults
+# propagate to this service, as in a real call chain. Empty: no dependency.
+DEPENDENCY_URL = os.getenv("DEPENDENCY_URL", "").rstrip("/")
+DEPENDENCY_NAME = os.getenv("DEPENDENCY_NAME", "payments-db")
+DEPENDENCY_TIMEOUT_SECONDS = float(os.getenv("DEPENDENCY_TIMEOUT_SECONDS", "2"))
 
 # Bucket 0.5 matches the 500 ms latency SLO: requests <= 0.5 s are "good events".
 LATENCY_BUCKETS = (0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0)
@@ -155,8 +162,39 @@ async def pay() -> dict[str, str]:
         request_id = f"r{random.randrange(10**6):06d}"
         log.error(ERROR_MESSAGES[chaos.error_kind].format(request_id=request_id))
         raise HTTPException(status_code=500, detail="injected failure")
-    await asyncio.sleep(random.uniform(0.01, 0.06))
+    if DEPENDENCY_URL:
+        await use_dependency()
+    else:
+        await asyncio.sleep(random.uniform(0.01, 0.06))
     return {"status": "ok"}
+
+
+def call_dependency() -> None:
+    """Blocking call to the downstream service (run in a worker thread)."""
+    with urllib.request.urlopen(f"{DEPENDENCY_URL}/pay", timeout=DEPENDENCY_TIMEOUT_SECONDS):
+        pass
+
+
+async def use_dependency() -> None:
+    """Call the dependency; its failure becomes this service's failure, with a log line."""
+    request_id = f"r{random.randrange(10**6):06d}"
+    try:
+        await asyncio.to_thread(call_dependency)
+    except urllib.error.HTTPError as error:
+        log.error(f"Dependency {DEPENDENCY_NAME} failed: HTTP {error.code} request_id={request_id}")
+        raise HTTPException(status_code=500, detail="dependency failure") from error
+    except TimeoutError as error:
+        log.error(
+            f"Timeout after {DEPENDENCY_TIMEOUT_SECONDS:g}s calling {DEPENDENCY_NAME} "
+            f"request_id={request_id}"
+        )
+        raise HTTPException(status_code=500, detail="dependency timeout") from error
+    except urllib.error.URLError as error:
+        if isinstance(error.reason, TimeoutError):
+            log.error(f"Timeout calling {DEPENDENCY_NAME} request_id={request_id}")
+        else:
+            log.error(f"Connection refused to {DEPENDENCY_NAME} request_id={request_id}")
+        raise HTTPException(status_code=500, detail="dependency unreachable") from error
 
 
 def require_chaos() -> None:

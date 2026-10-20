@@ -39,6 +39,8 @@ class MonitoringConfig(_Config):
     # Upper bound for one service's detectors in a cycle; a slow source cannot stall the loop.
     service_timeout_seconds: float = Field(default=30, gt=0)
     incident_cooldown_seconds: float = Field(default=900, gt=0)
+    # Silence after which a returning symptom opens a new incident (and a new alert).
+    incident_reopen_after_seconds: float = Field(default=300, gt=0)
     logs_enabled: bool = True
     services: tuple[WatchedService, ...] = (WatchedService(service_id="payment-service"),)
     availability: AvailabilityPolicy = AvailabilityPolicy()
@@ -66,6 +68,8 @@ class MonitoringConfig(_Config):
         keys = [(s.service_id, s.namespace) for s in self.services]
         if len(set(keys)) != len(keys):
             raise ValueError("Each (service_id, namespace) must be listed once")
+        if self.incident_reopen_after_seconds > self.incident_cooldown_seconds:
+            raise ValueError("incident_reopen_after_seconds must be <= incident_cooldown_seconds")
         if self.service_timeout_seconds >= self.interval_seconds:
             raise ValueError("service_timeout_seconds must be shorter than interval_seconds")
         return self

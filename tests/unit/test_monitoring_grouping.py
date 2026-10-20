@@ -64,7 +64,10 @@ def test_problem_crossing_the_hour_stays_one_incident() -> None:
     clock = Clock()  # 09:50
     g = grouper(clock)
     first = g.ingest([symptom()])[0]
-    clock.now = datetime(2026, 10, 7, 10, 3, tzinfo=UTC).timestamp()  # past 10:00
+    for minute in (54, 58):  # still observed, every 4 min
+        clock.now = datetime(2026, 10, 7, 9, minute, tzinfo=UTC).timestamp()
+        g.ingest([symptom()])
+    clock.now = datetime(2026, 10, 7, 10, 1, tzinfo=UTC).timestamp()  # past 10:00
     second = g.ingest([symptom()])[0]
     assert second.action is Action.UPDATED
     assert second.incident.incident_id == first.incident.incident_id
@@ -83,11 +86,11 @@ def test_same_symptom_on_different_services_are_separate_incidents() -> None:
     assert len({d.incident.incident_id for d in decisions}) == 2
 
 
-def test_flicker_within_cooldown_is_the_same_incident() -> None:
+def test_flicker_with_short_gaps_is_the_same_incident() -> None:
     clock = Clock()
     g = grouper(clock)
     first = g.ingest([symptom()])[0]
-    clock.now += 600  # 10 min of silence, below the 15 min cooldown
+    clock.now += 240  # 4 min of silence: the symptom flickers, below the 5 min reopen delay
     again = g.ingest([symptom()])[0]
     assert again.incident.incident_id == first.incident.incident_id
     assert not again.notify
@@ -211,3 +214,31 @@ def test_slo_and_log_evidence_of_errors_join_one_incident() -> None:
     decisions = g.ingest(symptoms)
     assert len(decisions) == 1
     assert decisions[0].incident.sources == {"slo", "logs"}
+
+
+def test_a_symptom_back_after_a_quiet_period_is_a_new_incident() -> None:
+    """Seen live (reasoning test, 19:59): a new latency fault 12 min after the previous one was
+    merged into the old incident, so the orchestrator was never told."""
+    from src.agents.monitoring.grouping import Category, InMemoryIncidentStore, Symptom
+
+    now = [1_000.0]
+    grouper = SymptomGrouper(
+        InMemoryIncidentStore(lambda: now[0]),
+        cooldown_seconds=900,
+        clock=lambda: now[0],
+        reopen_after_seconds=300,
+    )
+    slow = Symptom("payment-service", "local", Category.LATENCY, "slo", Severity.HIGH)
+    [first] = grouper.ingest([slow])
+    now[0] += 60
+    [still] = grouper.ingest([slow])  # same fault, still going
+    now[0] += 420  # 7 min without the symptom: the fault had stopped
+    [again] = grouper.ingest([slow])
+    assert (first.action, still.action, again.action) == (
+        Action.OPENED,
+        Action.UPDATED,
+        Action.OPENED,
+    )
+    assert still.incident.incident_id == first.incident.incident_id
+    assert again.incident.incident_id != first.incident.incident_id
+    assert again.notify

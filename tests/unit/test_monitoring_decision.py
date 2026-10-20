@@ -274,3 +274,85 @@ def test_rising_severity_is_seen_even_after_another_high_alert() -> None:
     )
     assert (outage.notify, medium.notify, high.notify) == (True, True, True)
     assert "gravite en hausse (error_rate MEDIUM -> HIGH)" in high.reason
+
+
+def chain_incident(
+    service: str, category: Category = Category.LATENCY, opened: float = 0
+) -> Incident:
+    return Incident(
+        f"INC-{service}",
+        f"{service}:local:{category}",
+        service,
+        "local",
+        category,
+        opened,
+        opened,
+        1,
+        Severity.HIGH,
+        frozenset({"slo"}),
+        {},
+    )
+
+
+DB_BLAMED = Hypothesis(
+    "payments-db",
+    0.61,
+    (
+        Evidence(
+            "dependent_symptom",
+            "payment-service",
+            "latency",
+            0.35,
+            "payment-service depend de payments-db",
+        ),
+        Evidence("own_symptom", "payments-db", "latency", 0.4, "sur le service"),
+    ),
+)
+
+
+def test_business_rule_alerts_the_probable_origin_not_the_victim() -> None:
+    """Seen live (15:55): the database was slow, reasoning ranked payments-db first (0.61),
+    but the HIGH-severity rule alerted payment-service, the victim."""
+    record = decide(
+        DecisionMaker(POLICY, Reader({})),
+        [DB_BLAMED, hyp_with("payment-service", 0.4, "latency")],
+        # As live: both HIGH, the victim's incident being the one the rule picks first.
+        [chain_incident("payment-service", opened=10), chain_incident("payments-db")],
+    )
+    assert record.target == "payments-db"
+    assert "sur payment-service ; origine probable payments-db" in record.reason
+
+
+def test_business_rule_keeps_its_service_when_reasoning_does_not_explain_it() -> None:
+    unrelated = hyp_with("payments-db", 0.7, "memory_pressure")  # no link to the incident
+    record = decide(
+        DecisionMaker(POLICY, Reader({})),
+        [unrelated],
+        [chain_incident("payment-service")],
+    )
+    assert record.target == "payment-service"
+    assert "origine probable" not in record.reason
+
+
+def test_new_incident_after_the_last_alert_is_alerted_again() -> None:
+    clock = Clock()
+    maker = DecisionMaker(POLICY, Reader({}), clock=clock)
+    old = chain_incident("payment-service", opened=clock.now)
+    first = decide(maker, [hyp_with("payment-service", 0.4, "latency")], [old])
+    clock.now += 720  # within the 15-min reminder, but a new incident has been opened
+    new = Incident(
+        "INC-new",
+        old.signature,
+        "payment-service",
+        "local",
+        Category.LATENCY,
+        clock.now,
+        clock.now,
+        1,
+        Severity.HIGH,
+        frozenset({"slo"}),
+        {},
+    )
+    again = decide(maker, [hyp_with("payment-service", 0.4, "latency")], [new])
+    assert (first.notify, again.notify) == (True, True)
+    assert "nouvel incident (latency)" in again.reason

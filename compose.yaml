@@ -168,12 +168,31 @@ services:
       SERVICE_NAME: payment-service
       CHAOS_ENABLED: "true"
       INJECTION_LOG: /app/runs/injections.jsonl
+      # Reasoning test: PAYMENT_DEPENDENCY_URL=http://payments-db:8080 makes every payment call
+      # the payments-db service (profile "chain"). Empty by default: no dependency.
+      DEPENDENCY_URL: ${PAYMENT_DEPENDENCY_URL:-}
     volumes: ["./experiments/runs:/app/runs"]
     # A memory limit lets an injected memory growth end in a real OOMKilled event.
     mem_limit: 512m
     cpus: 0.5
     # Promtail turns this container label into the Loki label used by Agent 1.
     labels: {service_id: payment-service}
+    restart: unless-stopped
+
+  # Second service of the call chain payment-service -> payments-db (reasoning test).
+  # Same test application, its own faults: /chaos/* on port 8082.
+  payments-db:
+    image: pids-target-app:local
+    profiles: [chain]
+    ports: ["127.0.0.1:8082:8080"]
+    environment:
+      SERVICE_NAME: payments-db
+      CHAOS_ENABLED: "true"
+      INJECTION_LOG: /app/runs/injections.jsonl
+    volumes: ["./experiments/runs:/app/runs"]
+    mem_limit: 256m
+    cpus: 0.5
+    labels: {service_id: payments-db}
     restart: unless-stopped
 
   # Team target application (fraud detection, FastAPI + MLflow model), watched by Agent 1.

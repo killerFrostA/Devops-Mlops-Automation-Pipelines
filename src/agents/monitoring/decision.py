@@ -142,16 +142,24 @@ class DecisionMaker:
         forced = [i for i in incidents if i.severity in self.policy.force_alert_severities]
         if forced:
             worst = most_relevant(forced)
+            reason = f"regle metier : incident {worst.category} de gravite {worst.severity}"
+            if top.service_id != worst.service_id and _explains(top, worst):
+                # Seen live (payment-service -> payments-db): the slow database made the payment
+                # service slow too; the alert must go to the probable origin, not the victim.
+                own = [i for i in incidents if i.service_id == top.service_id]
+                return self._alert(
+                    top.service_id,
+                    top.probability,
+                    {},
+                    f"{reason} sur {worst.service_id} ; origine probable {top.service_id}",
+                    _categories(top),
+                    most_relevant(own) if own else worst,
+                )
             categories: set[str] = {worst.category.value}
             if top.service_id == worst.service_id:
                 categories |= _categories(top)
             return self._alert(
-                worst.service_id,
-                top.probability,
-                {},
-                f"regle metier : incident {worst.category} de gravite {worst.severity}",
-                frozenset(categories),
-                worst,
+                worst.service_id, top.probability, {}, reason, frozenset(categories), worst
             )
 
         hypotheses, learned = self._remember(hypotheses)
@@ -266,6 +274,9 @@ class DecisionMaker:
             new = categories - last.categories
             if now - last.at >= self.policy.realert_after_seconds:
                 why_again = "rappel"
+            elif driver is not None and driver.opened_at > last.at:
+                # Opened after the last alert: a new fault, even if it looks like the last one.
+                why_again = f"nouvel incident ({driver.category})"
             elif (
                 driver is not None
                 and before is not None
@@ -308,6 +319,17 @@ class _LastAlert:
     probability: float
     # Highest severity already alerted, per symptom category, e.g. {"error_rate": MEDIUM}.
     severities: dict[str, Severity] = field(default_factory=dict)
+
+
+def _explains(hypothesis: Hypothesis, incident: Incident) -> bool:
+    """True when the hypothesis blames its service for this incident observed on another one
+    (a dependent symptom or a dependency log hint), i.e. the incident's service is a victim."""
+    return any(
+        e.kind != "own_symptom"
+        and e.observed_on == incident.service_id
+        and e.category == incident.category.value
+        for e in hypothesis.evidence
+    )
 
 
 def _categories(hypothesis: Hypothesis) -> frozenset[str]:

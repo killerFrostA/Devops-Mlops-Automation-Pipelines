@@ -89,7 +89,11 @@ async def build_runtime(
                 slo=SLODetector(collector, config.slo),
                 statistical=StatisticalDetector(collector, config.statistical),
                 logs=LogDetector(loki, LogPatternDetector(labeler, config.logs)),
-                grouper=SymptomGrouper(InMemoryIncidentStore(), config.incident_cooldown_seconds),
+                grouper=SymptomGrouper(
+                    InMemoryIncidentStore(),
+                    config.incident_cooldown_seconds,
+                    reopen_after_seconds=config.incident_reopen_after_seconds,
+                ),
                 reporter=ConsoleReporter(verbose=verbose),
                 health_checks={"prometheus": prometheus_up},
                 reasoner=reasoner,
