@@ -1,4 +1,5 @@
 import asyncio
+from pathlib import Path
 
 import httpx
 import pytest
@@ -10,6 +11,7 @@ from src.agents.monitoring.collectors.prometheus import (
     PrometheusCollector,
     build_sli_queries,
 )
+from src.agents.monitoring.config import MonitoringConfig, load_config
 from src.agents.monitoring.detectors.slo import (
     SLODefinition,
     SLODetector,
@@ -148,3 +150,35 @@ def test_detector_collects_every_rule_window_then_evaluates() -> None:
     assert {w for w in WINDOWS if any(f"[{w}]" in q for q in asked)} == set(WINDOWS)
     assert find(results, "availability", "fast-burn").status is SLOStatus.BREACH
     assert find(results, "latency-500ms", "fast-burn").status is SLOStatus.OK
+
+
+def project_config() -> MonitoringConfig:
+    return load_config(Path(__file__).resolve().parents[2] / "configs/monitoring.yaml")
+
+
+def ratios(**by_window: float) -> dict[str, SLIWindow]:
+    """Error ratio per window, e.g. ratios(m1=1.0, m5=0.2) for the 1m and 5m windows."""
+    return {key[1:] + key[0]: sli(error=value) for key, value in by_window.items()}
+
+
+def test_project_very_fast_rule_catches_a_violent_fault_in_about_a_minute() -> None:
+    """One minute of total outage: 20 % of the last 5 min, the 1h rule is still far below."""
+    data = ratios(m1=1.0, m5=0.2, m30=1 / 30, h1=1 / 60, h6=1 / 360)
+    results = evaluate(project_config().slo, data)
+    very_fast = find(results, "availability", "very-fast")
+    assert (very_fast.status, very_fast.severity) == (SLOStatus.BREACH, Severity.HIGH)
+    assert find(results, "availability", "fast-burn").status is SLOStatus.OK
+
+
+def test_project_very_fast_rule_ignores_a_short_blip() -> None:
+    """20 s of errors: 6.7 % of the last 5 min is a burn of 13, below 36."""
+    data = ratios(m1=1 / 3, m5=1 / 15, m30=1 / 90, h1=1 / 180, h6=1 / 1080)
+    results = evaluate(project_config().slo, data)
+    assert find(results, "availability", "very-fast").status is SLOStatus.OK
+
+
+def test_project_config_detects_sooner() -> None:
+    config = project_config()
+    assert config.interval_seconds == 30
+    assert config.availability.down_after_seconds == 45
+    assert "very-fast" in {rule.name for rule in config.slo.rules}

@@ -137,7 +137,8 @@ def test_after_false_alerts_the_same_evidence_no_longer_alerts() -> None:
 
 
 def test_business_rule_still_alerts_high_severity_after_false_alerts() -> None:
-    memory = AlertMemory(":memory:")
+    # The judged alerts are past ones (dated 0): not recent alerts to restore after a restart.
+    memory = AlertMemory(":memory:", clock=lambda: 0.0)
     judged(memory, Verdict.FALSE, 10, "memory_pressure")
     maker = DecisionMaker(DecisionPolicy(), Reader(), memory=memory)
     record = asyncio.run(

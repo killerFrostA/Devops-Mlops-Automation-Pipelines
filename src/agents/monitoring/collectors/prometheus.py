@@ -200,6 +200,47 @@ def build_series_queries(
 _CADVISOR_MARGIN_SECONDS = 30
 
 
+def build_oom_query(service_id: str, profile: ServiceProfile, window_seconds: int) -> str:
+    """Kernel OOM kills counted by cAdvisor for the service's container over the window.
+
+    App mode finds the container by its `service_id` Docker label, container mode by name.
+    """
+    if profile.mode is Mode.CONTAINER:
+        sel = f'name="{profile.container or service_id}"'
+    else:
+        sel = f'container_label_service_id="{service_id}"'
+    return f"sum(increase(container_oom_events_total{{{sel}}}[{window_seconds}s]))"
+
+
+def build_restart_query(
+    service_id: str, profile: ServiceProfile, window_seconds: int
+) -> str | None:
+    """Restarts of the service's process over the window (its start time changed).
+
+    App mode only: the service exposes `process_start_time_seconds`. Container mode has no
+    reliable signal (cAdvisor keeps the container start time across an in-place restart).
+    """
+    if profile.mode is Mode.CONTAINER:
+        return None
+    return (
+        f'sum(changes(process_start_time_seconds{{service_id="{service_id}"}}[{window_seconds}s]))'
+    )
+
+
+def build_memory_peak_ratio_query(
+    service_id: str, profile: ServiceProfile, window_seconds: int
+) -> str:
+    """Peak memory over the window divided by the container limit (empty when no limit)."""
+    if profile.mode is Mode.CONTAINER:
+        sel = f'name="{profile.container or service_id}"'
+    else:
+        sel = f'container_label_service_id="{service_id}"'
+    return (
+        f"max(max_over_time(container_memory_working_set_bytes{{{sel}}}[{window_seconds}s]))"
+        f" / (max(container_spec_memory_limit_bytes{{{sel}}}) > 0)"
+    )
+
+
 def build_alive_query(service_id: str, profile: ServiceProfile, window_seconds: int) -> str:
     """Liveness over the last `window_seconds`.
 
@@ -299,6 +340,26 @@ class PrometheusCollector:
             else:
                 series[name] = Series(signal=name, points=answer, source_available=True)
         return series
+
+    async def collect_oom_kills(self, service_id: str, window_seconds: int) -> float | None:
+        """OOM kills of the service's container during the window (cAdvisor), None if unknown."""
+        check_service_id(service_id)
+        return await self._client.query_value(
+            build_oom_query(service_id, self.profile(service_id), window_seconds)
+        )
+
+    async def collect_restarts(self, service_id: str, window_seconds: int) -> float | None:
+        """Process restarts during the window, None if not measurable (container mode)."""
+        check_service_id(service_id)
+        query = build_restart_query(service_id, self.profile(service_id), window_seconds)
+        return None if query is None else await self._client.query_value(query)
+
+    async def collect_memory_peak_ratio(self, service_id: str, window_seconds: int) -> float | None:
+        """Peak memory / container limit during the window, None if no limit or unknown."""
+        check_service_id(service_id)
+        return await self._client.query_value(
+            build_memory_peak_ratio_query(service_id, self.profile(service_id), window_seconds)
+        )
 
     async def collect_alive(self, service_id: str, window_seconds: int) -> bool | None:
         """True: answered in the window; False: not once; None: unknown (never scraped).

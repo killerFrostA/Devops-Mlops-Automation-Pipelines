@@ -43,6 +43,7 @@ def write_config() -> Path:
     config["services"] = [s for s in config["services"] if s["service_id"] == "fraud-api"]
     config["forecast"]["enabled"] = False  # needs 30 min of history; RAM is short
     config["memory"]["path"] = str(OUT / "memory.sqlite")
+    config["incident_store_path"] = str(OUT / "incidents.sqlite")
     config["events"]["path"] = str(OUT / "events.jsonl")
     path = OUT / "fraud.yaml"
     path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
@@ -69,7 +70,7 @@ def traffic(buggy_share: float) -> subprocess.Popen[bytes]:
 
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
-    for old in ("events.jsonl", "memory.sqlite"):
+    for old in ("events.jsonl", "memory.sqlite", "incidents.sqlite"):
         (OUT / old).unlink(missing_ok=True)
     config = write_config()
     log_path = OUT / "agent.log"

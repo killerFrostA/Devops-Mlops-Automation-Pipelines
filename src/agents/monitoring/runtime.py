@@ -18,10 +18,12 @@ from src.agents.monitoring.decision import DecisionMaker, SnapshotReader
 from src.agents.monitoring.detectors.availability import AvailabilityDetector
 from src.agents.monitoring.detectors.forecast import ChronosForecaster, ForecastDetector
 from src.agents.monitoring.detectors.logs import LogDetector, LogPatternDetector
+from src.agents.monitoring.detectors.oom import OomDetector
 from src.agents.monitoring.detectors.slo import SLODetector
 from src.agents.monitoring.detectors.statistical import StatisticalDetector
 from src.agents.monitoring.events import AnomalyEmitter, JsonlEventPublisher
-from src.agents.monitoring.grouping import InMemoryIncidentStore, SymptomGrouper
+from src.agents.monitoring.grouping import IncidentStore, InMemoryIncidentStore, SymptomGrouper
+from src.agents.monitoring.incident_store import SqliteIncidentStore
 from src.agents.monitoring.labelers.gemini import GeminiLabeler
 from src.agents.monitoring.loop import ConsoleReporter, MonitoringLoop
 from src.agents.monitoring.memory import AlertMemory
@@ -66,6 +68,10 @@ async def build_runtime(
             print(f"Chargement de Chronos ({config.forecast.model})...")
             await asyncio.to_thread(forecaster.warm_up)
     memory = AlertMemory(config.memory.path, config.memory) if config.memory.enabled else None
+    sqlite_store = (
+        SqliteIncidentStore(config.incident_store_path) if config.incident_store_path else None
+    )
+    store: IncidentStore = sqlite_store or InMemoryIncidentStore()
     publisher = JsonlEventPublisher(config.events.path) if config.events.enabled else None
     versions = {s.service_id: s.version for s in config.services}
     try:
@@ -90,7 +96,7 @@ async def build_runtime(
                 statistical=StatisticalDetector(collector, config.statistical),
                 logs=LogDetector(loki, LogPatternDetector(labeler, config.logs)),
                 grouper=SymptomGrouper(
-                    InMemoryIncidentStore(),
+                    store,
                     config.incident_cooldown_seconds,
                     reopen_after_seconds=config.incident_reopen_after_seconds,
                 ),
@@ -105,6 +111,7 @@ async def build_runtime(
                     if config.availability.enabled
                     else None
                 ),
+                oom=OomDetector(collector, config.oom) if config.oom.enabled else None,
                 emitter=(AnomalyEmitter(publisher, config.events, versions) if publisher else None),
                 decider=DecisionMaker(config.decision, reader, memory=memory),
             )
@@ -127,6 +134,8 @@ async def build_runtime(
             await labeler.aclose()
         if memory:
             memory.close()
+        if sqlite_store:
+            sqlite_store.close()
 
 
 class _NoPublisher:

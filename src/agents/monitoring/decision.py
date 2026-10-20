@@ -56,6 +56,12 @@ class DecisionPolicy(BaseModel):
     # rising by at least `realert_probability_increase`, is a new situation and alerts again.
     realert_after_seconds: float = Field(default=900, gt=0)
     realert_probability_increase: float = Field(default=0.15, gt=0, le=1)
+    # A symptom that propagates up a call chain (a slow database makes its callers slow) may
+    # show on a caller one cycle before its origin is measured. Seen live: the first alert
+    # went to payment-service, the victim, 30 s before payments-db showed. A fresh incident
+    # whose dependency is suspected but not yet seen sick is held this long, then alerted.
+    dependency_grace_seconds: float = Field(default=30, ge=0)
+    propagating_categories: tuple[str, ...] = ("latency", "error_rate", "network_errors")
     # A signal confirms the suspect when it is beyond these limits.
     confirm_error_rate: float = Field(default=0.02, ge=0)
     confirm_latency_p95_ms: float = Field(default=500, gt=0)
@@ -119,6 +125,17 @@ class DecisionMaker:
         self._memory = memory
         self._alerted: dict[str, _LastAlert] = {}  # service -> last alert raised for it
         self._cycle_incidents: list[Incident] = []  # incidents of the decision in progress
+        if memory is not None:
+            self._restore(memory)
+
+    def _restore(self, memory: AlertMemory) -> None:
+        """After a restart, alerts sent recently are not sent again for the same situation."""
+        horizon = self._clock() - self.policy.realert_after_seconds
+        for alert in reversed(memory.alerts(limit=200)):  # oldest first, newest kept
+            if alert.at >= horizon:
+                self._alerted[alert.service_id] = _LastAlert(
+                    alert.at, frozenset(alert.categories), alert.probability
+                )
 
     async def decide(
         self, hypotheses: list[Hypothesis], incidents: list[Incident]
@@ -143,6 +160,16 @@ class DecisionMaker:
         if forced:
             worst = most_relevant(forced)
             reason = f"regle metier : incident {worst.category} de gravite {worst.severity}"
+            pending = self._pending_dependency(worst, hypotheses)
+            if pending is not None:
+                return DecisionRecord(
+                    Action.WAIT,
+                    worst.service_id,
+                    top.probability,
+                    {},
+                    f"{reason} ; attente d'un cycle : {pending} (appele par "
+                    f"{worst.service_id}) n'est pas encore mesure, il peut etre l'origine",
+                )
             if top.service_id != worst.service_id and _explains(top, worst):
                 # Seen live (payment-service -> payments-db): the slow database made the payment
                 # service slow too; the alert must go to the probable origin, not the victim.
@@ -179,6 +206,22 @@ class DecisionMaker:
         if learned:
             record = dataclasses.replace(record, reason=f"{record.reason} ; {learned}")
         return record
+
+    def _pending_dependency(self, incident: Incident, hypotheses: list[Hypothesis]) -> str | None:
+        """A suspected dependency of the incident's service not yet seen sick, if the incident
+        is fresh and its symptom can come from below; None when there is nothing to wait for."""
+        p = self.policy
+        fresh = self._clock() - incident.opened_at < p.dependency_grace_seconds
+        if not fresh or incident.category.value not in p.propagating_categories:
+            return None
+        for h in hypotheses:
+            blamed_for_it = any(
+                e.kind != "own_symptom" and e.observed_on == incident.service_id for e in h.evidence
+            )
+            seen_sick = any(e.kind == "own_symptom" for e in h.evidence)
+            if h.service_id != incident.service_id and blamed_for_it and not seen_sick:
+                return h.service_id
+        return None
 
     def _driver_on(self, service_id: str) -> Incident | None:
         """The incident this cycle's alert on the service is about, if it has any."""
@@ -322,11 +365,12 @@ class _LastAlert:
 
 
 def _explains(hypothesis: Hypothesis, incident: Incident) -> bool:
-    """True when the hypothesis blames its service for this incident observed on another one
-    (a dependent symptom or a dependency log hint), i.e. the incident's service is a victim."""
+    """True when the top hypothesis blames its service for this kind of symptom seen on the
+    services that depend on it (dependent symptom or log hint): the incident's service is then
+    a victim, possibly several hops away (checkout -> payment -> db, db is the origin)."""
     return any(
         e.kind != "own_symptom"
-        and e.observed_on == incident.service_id
+        and e.observed_on != hypothesis.service_id
         and e.category == incident.category.value
         for e in hypothesis.evidence
     )

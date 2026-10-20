@@ -195,6 +195,24 @@ services:
     labels: {service_id: payments-db}
     restart: unless-stopped
 
+  # Third service, in front of the chain: checkout-api -> payment-service -> payments-db.
+  # Started on demand (profile "chain3"); clients call it on port 8083.
+  checkout-api:
+    image: pids-target-app:local
+    profiles: [chain3]
+    ports: ["127.0.0.1:8083:8080"]
+    environment:
+      SERVICE_NAME: checkout-api
+      CHAOS_ENABLED: "true"
+      INJECTION_LOG: /app/runs/injections.jsonl
+      DEPENDENCY_URL: http://target-app:8080
+      DEPENDENCY_NAME: payment-service
+    volumes: ["./experiments/runs:/app/runs"]
+    mem_limit: 256m
+    cpus: 0.5
+    labels: {service_id: checkout-api}
+    restart: unless-stopped
+
   # Team target application (fraud detection, FastAPI + MLflow model), watched by Agent 1.
   # Built from its own repository, cloned next to this one: its code is not copied here.
   # Start: docker compose --profile observability --profile fraud up -d fraud-api

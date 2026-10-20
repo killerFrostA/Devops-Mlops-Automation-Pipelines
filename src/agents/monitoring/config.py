@@ -14,6 +14,7 @@ from src.agents.monitoring.decision import DecisionPolicy
 from src.agents.monitoring.detectors.availability import AvailabilityPolicy
 from src.agents.monitoring.detectors.forecast import ForecastPolicy
 from src.agents.monitoring.detectors.logs import LogPolicy
+from src.agents.monitoring.detectors.oom import OomPolicy
 from src.agents.monitoring.detectors.slo import SLOPolicy
 from src.agents.monitoring.detectors.statistical import StatisticalPolicy
 from src.agents.monitoring.events import EventsPolicy
@@ -41,9 +42,12 @@ class MonitoringConfig(_Config):
     incident_cooldown_seconds: float = Field(default=900, gt=0)
     # Silence after which a returning symptom opens a new incident (and a new alert).
     incident_reopen_after_seconds: float = Field(default=300, gt=0)
+    # Open incidents kept on disk (SQLite) to survive a restart; None keeps them in memory.
+    incident_store_path: str | None = None
     logs_enabled: bool = True
     services: tuple[WatchedService, ...] = (WatchedService(service_id="payment-service"),)
     availability: AvailabilityPolicy = AvailabilityPolicy()
+    oom: OomPolicy = OomPolicy()
     slo: SLOPolicy = SLOPolicy()
     statistical: StatisticalPolicy = StatisticalPolicy()
     forecast: ForecastPolicy = ForecastPolicy()

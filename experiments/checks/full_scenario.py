@@ -53,6 +53,7 @@ def write_config() -> Path:
     config = yaml.safe_load((ROOT / "configs/monitoring.yaml").read_text(encoding="utf-8"))
     config.update(interval_seconds=30, service_timeout_seconds=25, logs_enabled=False)
     config["memory"]["path"] = str(OUT / "memory.sqlite")
+    config["incident_store_path"] = str(OUT / "incidents.sqlite")
     config["events"]["path"] = str(OUT / "events.jsonl")
     path = OUT / "scenario.yaml"
     path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
@@ -136,7 +137,7 @@ def phase(
 
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
-    for old in ("events.jsonl", "memory.sqlite"):
+    for old in ("events.jsonl", "memory.sqlite", "incidents.sqlite"):
         (OUT / old).unlink(missing_ok=True)
     config = write_config()
     traffic = subprocess.Popen(

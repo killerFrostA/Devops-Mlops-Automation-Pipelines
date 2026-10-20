@@ -56,6 +56,10 @@ class ReasoningConfig(_Config):
     own_symptom_weights: dict[Category, float] = {}
     dependent_symptom_weight: float = Field(default=0.35, ge=0, lt=1)
     dependency_log_hints: tuple[LogHint, ...] = ()
+    # Explaining away: a symptom also present on a service this one calls is probably
+    # inherited from it, so it weighs less against this service. Without it, in a chain
+    # checkout -> payment -> db with a slow db, payment ranked as high as db (one-hop only).
+    explained_away_factor: float = Field(default=0.5, gt=0, le=1)
 
     @model_validator(mode="after")
     def coherent(self) -> "ReasoningConfig":
@@ -117,8 +121,9 @@ class Reasoner:
         horizon = self._clock() - self.config.window_seconds
         self._recent = {k: v for k, v in self._recent.items() if v.last_seen_at >= horizon}
         evidence: dict[str, list[Evidence]] = {}
+        seen = {(i.service_id, i.category) for i in self._recent.values()}
         for incident in self._recent.values():
-            for target, item in self._evidence_from(incident):
+            for target, item in self._evidence_from(incident, seen):
                 evidence.setdefault(target, []).append(item)
         hypotheses = [
             Hypothesis(service, noisy_or([e.weight for e in items]), tuple(items))
@@ -126,19 +131,23 @@ class Reasoner:
         ]
         return sorted(hypotheses, key=lambda h: (-h.probability, h.service_id))
 
-    def _evidence_from(self, incident: Incident) -> list[tuple[str, Evidence]]:
+    def _evidence_from(
+        self, incident: Incident, seen: set[tuple[str, Category]]
+    ) -> list[tuple[str, Evidence]]:
         cfg = self.config
         observed = incident.service_id
         found: list[tuple[str, Evidence]] = []
+        dependencies = cfg.dependencies(observed)
         own = cfg.own_symptom_weights.get(incident.category, 0.0)
+        inherited = [d for d in dependencies if (d, incident.category) in seen]
+        detail = "sur le service"
+        if inherited:
+            own *= cfg.explained_away_factor
+            detail = f"sur le service, aussi vu sur {', '.join(inherited)}"
         if own > 0:
             found.append(
-                (
-                    observed,
-                    Evidence("own_symptom", observed, incident.category, own, "sur le service"),
-                )
+                (observed, Evidence("own_symptom", observed, incident.category, own, detail))
             )
-        dependencies = cfg.dependencies(observed)
         if cfg.dependent_symptom_weight > 0:
             for dependency in dependencies:
                 found.append(

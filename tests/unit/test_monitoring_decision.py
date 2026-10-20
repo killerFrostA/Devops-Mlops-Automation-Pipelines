@@ -356,3 +356,90 @@ def test_new_incident_after_the_last_alert_is_alerted_again() -> None:
     again = decide(maker, [hyp_with("payment-service", 0.4, "latency")], [new])
     assert (first.notify, again.notify) == (True, True)
     assert "nouvel incident (latency)" in again.reason
+
+
+def test_business_rule_alerts_the_origin_two_hops_away() -> None:
+    """checkout-api -> payment-service -> payments-db, slow database: the HIGH incident picked
+    first may be the checkout's, two hops above the origin."""
+    db_blamed = Hypothesis(
+        "payments-db",
+        0.61,
+        (
+            Evidence("dependent_symptom", "payment-service", "latency", 0.35, "depend de"),
+            Evidence("own_symptom", "payments-db", "latency", 0.4, "sur le service"),
+        ),
+    )
+    record = decide(
+        DecisionMaker(POLICY, Reader({})),
+        [db_blamed, hyp_with("payment-service", 0.48, "latency")],
+        [
+            chain_incident("checkout-api", opened=20),
+            chain_incident("payment-service", opened=10),
+            chain_incident("payments-db"),
+        ],
+    )
+    assert record.target == "payments-db"
+    assert "sur checkout-api ; origine probable payments-db" in record.reason
+
+
+def payment_first_cycle() -> list[Hypothesis]:
+    """Only the caller is measured sick yet; its dependency is suspected, not seen."""
+    return [
+        hyp_with("payment-service", 0.4, "latency"),
+        Hypothesis(
+            "payments-db",
+            0.35,
+            (Evidence("dependent_symptom", "payment-service", "latency", 0.35, "depend de"),),
+        ),
+    ]
+
+
+def test_live_case_waits_one_cycle_then_alerts_the_origin() -> None:
+    """Seen live at 10:38: the first alert went to payment-service, 30 s before payments-db
+    was measured sick. Now the agent waits that cycle and alerts the origin directly."""
+    clock = Clock()
+    maker = DecisionMaker(POLICY, Reader({}), clock=clock)
+    payment = chain_incident("payment-service", opened=clock.now)
+    first = decide(maker, payment_first_cycle(), [payment])
+    assert first.action is Action.WAIT and not first.notify
+    assert "attente d'un cycle : payments-db" in first.reason
+
+    clock.now += 30  # next cycle: the database is now measured slow too
+    db = chain_incident("payments-db", opened=clock.now)
+    db_blamed = Hypothesis(
+        "payments-db",
+        0.61,
+        (
+            Evidence("dependent_symptom", "payment-service", "latency", 0.35, "depend de"),
+            Evidence("own_symptom", "payments-db", "latency", 0.4, "sur le service"),
+        ),
+    )
+    second = decide(maker, [db_blamed, hyp_with("payment-service", 0.4, "latency")], [payment, db])
+    assert (second.action, second.target, second.notify) == (Action.ALERT, "payments-db", True)
+
+
+def test_caller_really_at_fault_is_alerted_after_one_cycle() -> None:
+    clock = Clock()
+    maker = DecisionMaker(POLICY, Reader({}), clock=clock)
+    payment = chain_incident("payment-service", opened=clock.now)
+    assert decide(maker, payment_first_cycle(), [payment]).action is Action.WAIT
+    clock.now += 30  # the database is still fine: the payment service is the origin
+    later = decide(maker, payment_first_cycle(), [payment])
+    assert (later.action, later.target, later.notify) == (Action.ALERT, "payment-service", True)
+
+
+def test_dead_service_is_alerted_at_once() -> None:
+    """readiness does not come from a dependency: no grace period."""
+    clock = Clock()
+    dead = chain_incident("payment-service", Category.READINESS, opened=clock.now)
+    blamed = Hypothesis(
+        "payments-db",
+        0.35,
+        (Evidence("dependent_symptom", "payment-service", "readiness", 0.35, "depend de"),),
+    )
+    record = decide(
+        DecisionMaker(POLICY, Reader({}), clock=clock),
+        [hyp_with("payment-service", 0.6, "readiness"), blamed],
+        [dead],
+    )
+    assert (record.action, record.target) == (Action.ALERT, "payment-service")

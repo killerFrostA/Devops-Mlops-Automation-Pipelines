@@ -1,10 +1,11 @@
 # Agent 1 - Monitoring: autonomous loop configuration.
 # Thresholds are starting values, to be calibrated on the test bench (see docs).
 
-interval_seconds: 60            # one cycle per minute (allowed: 10 to 600)
-service_timeout_seconds: 30     # max time for one service's detectors in a cycle
+interval_seconds: 30            # one cycle every 30 s: up to 30 s sooner on every detection
+service_timeout_seconds: 20     # max time for one service's detectors in a cycle
 incident_cooldown_seconds: 900  # a symptom back within 15 min reuses the same incident...
 incident_reopen_after_seconds: 300  # ...unless it was quiet for 5 min: then it is a new fault
+incident_store_path: experiments/runs/agent1-incidents.sqlite  # open incidents survive a restart
 logs_enabled: true              # set to false when Loki is not running
 
 # Any project can be watched: list its services here, no code change needed.
@@ -34,7 +35,12 @@ services:
 
 availability:                   # is the service answering at all? (Prometheus up / cAdvisor)
   enabled: true
-  down_after_seconds: 60        # not one answer for 60 s -> readiness incident, HIGH
+  down_after_seconds: 45        # not one answer for 45 s (3 scrapes) -> readiness incident, HIGH
+
+oom:                            # killed by the kernel for lack of memory (OOM kill)
+  enabled: true
+  window_seconds: 300           # any OOM kill in the last 5 min -> memory_oom, CRITICAL (P0)
+  memory_limit_ratio: 0.9       # restart with peak memory >= 90 % of the limit = OOM kill (WSL2)
 
 slo:
   latency_le: "0.5"             # must be a histogram bucket of the service (500 ms)
@@ -43,6 +49,9 @@ slo:
     - {name: availability, sli: availability, objective: 0.995}
     - {name: latency-500ms, sli: latency, objective: 0.995}
   rules:                        # Google SRE Workbook multi-window, multi-burn-rate
+    # Violent fault: 18 % of the last 5 min bad and still going -> about 1 min to detect.
+    # A burst shorter than ~50 s stays below 36 over 5 min and does not fire.
+    - {name: very-fast, long_window: 5m, short_window: 1m, burn_rate: 36, severity: HIGH}
     - {name: fast-burn, long_window: 1h, short_window: 5m, burn_rate: 14.4, severity: HIGH}
     - {name: slow-burn, long_window: 6h, short_window: 30m, burn_rate: 6.0, severity: MEDIUM}
 
@@ -68,6 +77,7 @@ decision:                       # expected utility: benefit - risk - cost of eac
   disconfirm_factor: 0.5        # probability kept when it does not confirm it
   force_alert_severities: [HIGH, CRITICAL]   # business rule: always alert these
   realert_after_seconds: 900    # do not repeat the same alert within 15 min
+  dependency_grace_seconds: 30  # caller sick, its dependency not measured yet: wait 1 cycle
 
 memory:                         # alert history + operator feedback (SQLite, survives restarts)
   enabled: true

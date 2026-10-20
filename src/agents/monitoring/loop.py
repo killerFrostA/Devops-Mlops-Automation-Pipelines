@@ -16,6 +16,7 @@ from src.agents.monitoring.config import MonitoringConfig, WatchedService
 from src.agents.monitoring.decision import Action, DecisionMaker, DecisionRecord
 from src.agents.monitoring.detectors.availability import AvailabilityFinding
 from src.agents.monitoring.detectors.logs import LogFinding
+from src.agents.monitoring.detectors.oom import OomFinding
 from src.agents.monitoring.detectors.slo import SLOEvaluation
 from src.agents.monitoring.detectors.statistical import StatisticalFinding
 from src.agents.monitoring.events import AnomalyEmitter
@@ -25,6 +26,7 @@ from src.agents.monitoring.grouping import (
     SymptomGrouper,
     from_availability,
     from_logs,
+    from_oom,
     from_slo,
     from_statistical,
 )
@@ -54,6 +56,7 @@ class ServiceReport:
     logs_checked: bool = False
     forecast: tuple[StatisticalFinding, ...] = ()  # Chronos, when enabled
     availability: tuple[AvailabilityFinding, ...] = ()  # is the service answering at all
+    oom: tuple[OomFinding, ...] = ()  # killed for lack of memory
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,6 +105,7 @@ class MonitoringLoop:
     forecast: ServiceDetector[StatisticalFinding] | None = None
     emitter: AnomalyEmitter | None = None
     availability: ServiceDetector[AvailabilityFinding] | None = None
+    oom: ServiceDetector[OomFinding] | None = None
 
     async def run_cycle(self) -> CycleReport:
         started = time.perf_counter()
@@ -171,6 +175,7 @@ class MonitoringLoop:
         statistical: list[StatisticalFinding] = []
         forecast: list[StatisticalFinding] = []
         availability: list[AvailabilityFinding] = []
+        oom: list[OomFinding] = []
         logs: list[LogFinding] = []
 
         async def run[T](
@@ -204,6 +209,8 @@ class MonitoringLoop:
                     availability,
                 )
             )
+        if self.oom is not None:
+            jobs.append(run("oom", self.oom, lambda r: from_oom(sid, ns, r), oom))
         if self.forecast is not None:
             jobs.append(
                 run("forecast", self.forecast, lambda r: from_statistical(sid, ns, r), forecast)
@@ -229,6 +236,7 @@ class MonitoringLoop:
             logs_checked,
             tuple(forecast),
             tuple(availability),
+            tuple(oom),
         )
         return report, symptoms
 
@@ -320,6 +328,18 @@ class ConsoleReporter:
         for a in service.availability:
             detail = f"repond-il ? (fenetre {a.window_seconds}s)"
             write(f"     Disponible   {'service':15} {detail:48} -> {a.status}")
+        for o in service.oom:
+            if o.killed:
+                status = "KILLED"
+            elif o.restarted:
+                status = "RESTARTED"
+            else:
+                status = "UNKNOWN" if o.kills is None and o.restarts is None else "OK"
+            detail = (
+                f"tue faute de memoire ? kills={_num(o.kills)} redem={_num(o.restarts)} "
+                f"pic/limite={_num(o.memory_peak_ratio)} ({o.window_seconds}s)"
+            )
+            write(f"     OOM          {'conteneur':15} {detail:48} -> {status}")
         for r in service.slo:
             write(
                 f"     SLO          {r.slo:15} {r.rule:10} burn long={_num(r.burn_rate_long)} "

@@ -21,6 +21,7 @@ from pydantic import JsonValue
 
 from src.agents.monitoring.detectors.availability import Availability, AvailabilityFinding
 from src.agents.monitoring.detectors.logs import LogFinding, LogLabel
+from src.agents.monitoring.detectors.oom import OomFinding
 from src.agents.monitoring.detectors.slo import SLOEvaluation, SLOStatus
 from src.agents.monitoring.detectors.statistical import FindingStatus, StatisticalFinding
 from src.contracts.enums import Severity
@@ -278,6 +279,32 @@ def from_availability(
         for f in findings
         if f.status is Availability.DOWN
     ]
+
+
+def from_oom(service_id: str, namespace: str, findings: list[OomFinding]) -> list[Symptom]:
+    """An observed OOM kill: memory_oom, CRITICAL (P0, always alerted).
+
+    A restart without memory at the limit is an unplanned restart: readiness, HIGH.
+    """
+    symptoms = []
+    for f in findings:
+        facts: dict[str, JsonValue] = {
+            "oom_kills": f.kills,
+            "restarts": f.restarts,
+            "memory_peak_ratio": f.memory_peak_ratio,
+            "window_seconds": f.window_seconds,
+        }
+        if f.killed:
+            symptoms.append(
+                Symptom(
+                    service_id, namespace, Category.MEMORY_OOM, "events", Severity.CRITICAL, facts
+                )
+            )
+        elif f.restarted:
+            symptoms.append(
+                Symptom(service_id, namespace, Category.READINESS, "events", Severity.HIGH, facts)
+            )
+    return symptoms
 
 
 def from_logs(service_id: str, namespace: str, findings: list[LogFinding]) -> list[Symptom]:

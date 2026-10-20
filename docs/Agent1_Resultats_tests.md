@@ -118,3 +118,52 @@ Un premier essai, qui envoyait sans le savoir des catégories vides, a été sig
 - **Chronos désactivé par défaut** (`forecast.enabled: false`). Il confirmait les pannes environ 30 s après la statistique, s'habituait aux pannes longues et coûtait environ 350 Mo de RAM. Il reste disponible pour les comparaisons.
 
 Test du raisonnement, état actuel : essais 1 (base lente → `payments-db`) et 2 (paiement lent → `payment-service`) réussis. Essais 3 à 6 à refaire avec ces corrections.
+
+## 10. Test réel « tué faute de mémoire » (OOM, 20/10/2026)
+
+Fuite de mémoire injectée sur payment-service (400 Mo/min, limite du conteneur 512 Mo).
+
+**1er essai (12:14) : échec.** Le conteneur a bien été tué et redémarré, mais sous Docker Desktop /
+WSL2 le compteur de cAdvisor `container_oom_events_total` reste à 0 (Docker affiche même
+`OOMKilled=false`). L'agent attendait une preuve qui n'arrive jamais sur ce poste.
+
+**Correction :** un OOM est maintenant reconnu par deux faits observés sur 5 minutes :
+le processus a redémarré (`changes(process_start_time_seconds)` > 0) **et** sa mémoire avait atteint
+au moins 90 % de la limite du conteneur (pic du working set / limite). Le compteur cAdvisor reste
+utilisé quand il fonctionne (hôte Linux). Un redémarrage sans mémoire à la limite devient un
+symptôme `readiness` HIGH (redémarrage imprévu).
+
+**2e essai (12:28) : réussi.**
+
+| Heure | Fait |
+|---|---|
+| 12:28:37 | fuite injectée |
+| 12:31:06 | conteneur tué et redémarré (Docker : `OOMKilled=false`) |
+| 12:31:23 | `redem=1.00 pic/limite=1.00 -> KILLED`, incident memory_oom CRITICAL, événement **P0** (confiance 0.9) |
+
+Délai entre la mort du conteneur et l'alerte : **17 s**. Un seul événement émis sur les 14 cycles
+(les 5 cycles suivants : « déjà alerté, situation inchangée »), aucune fausse alerte.
+
+Limite : en mode conteneur (service non instrumenté), le redémarrage n'est pas encore mesurable ;
+seul le compteur cAdvisor est utilisé, qui fonctionne sur un hôte Linux mais pas sous WSL2.
+
+## 11. Test réel final sur l'API de fraude (20/10/2026, 13:13 → 13:27)
+
+Même scénario qu'en section 8, avec la version finale de l'agent (cycle de 30 s, fenêtre de
+disponibilité de 45 s, règle SLO très rapide, détection des redémarrages).
+
+| Étape | Heure | Ce que l'agent a envoyé à l'orchestrateur | Délai |
+|---|---|---|---|
+| 0. Trafic normal | 13:13 | rien (aucune fausse alerte) | — |
+| 1. API arrêtée (`docker stop`) | 13:15:03 | `anomaly.detected` readiness, **P1** HIGH, confiance 0.6 | **31 s** (62 s le 16/10) |
+| 1b. API redémarrée | 13:18:04 | `recovery.verified` **RECOVERED** | après la fenêtre de vérification |
+| 2. Vrais bugs (50 % de HTTP 500) | 13:20:37 | `anomaly.detected` error_rate, **P2** MEDIUM, confiance 0.8 | **27 s** |
+| 2. Les erreurs continuent | ~13:22 | `anomaly.detected` « gravité en hausse » MEDIUM → HIGH, **P1** | — |
+
+Quatre événements au total, aucun doublon : pendant que la situation ne change pas, l'agent
+note « déjà alerté, situation inchangée » et n'envoie rien.
+
+Défaut observé : après le redémarrage volontaire (réparation), la détection des redémarrages
+rattache ce redémarrage à l'incident readiness, qui reste donc ouvert jusqu'à 5 min de plus. Aucune
+alerte supplémentaire n'est envoyée, mais un redémarrage voulu ne devrait pas compter comme
+symptôme.

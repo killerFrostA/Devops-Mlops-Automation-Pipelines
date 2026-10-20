@@ -152,3 +152,38 @@ def test_project_graph_file_is_valid() -> None:
     config = load_reasoning_config(ROOT / "configs/dependencies.yaml")
     assert config.dependencies("payment-api") == ("payments-db",)
     assert config.own_symptom_weights[Category.MEMORY_OOM] == 0.9
+
+
+CHAIN = ReasoningConfig(
+    services={
+        "checkout-api": ServiceNode(depends_on=("payment-service",)),
+        "payment-service": ServiceNode(depends_on=("payments-db",)),
+        "payments-db": ServiceNode(),
+    },
+    own_symptom_weights={Category.LATENCY: 0.4},
+    dependent_symptom_weight=0.35,
+)
+
+
+def ranking(*slow: str) -> list[tuple[str, float]]:
+    clock = Clock()
+    reasoner = Reasoner(CHAIN, clock)
+    reasoner.observe(incidents_for(clock, *(symptom(s, Category.LATENCY) for s in slow)))
+    return [(h.service_id, round(h.probability, 2)) for h in reasoner.rank()]
+
+
+def test_slow_database_is_ranked_first_in_a_three_service_chain() -> None:
+    """Without explaining away, payment-service tied with payments-db (0.61 each)."""
+    assert ranking("checkout-api", "payment-service", "payments-db") == [
+        ("payments-db", 0.61),  # own 0.4 + payment depends on it 0.35
+        ("payment-service", 0.48),  # own 0.4 halved (also on payments-db) + checkout 0.35
+        ("checkout-api", 0.2),  # own 0.4 halved (also on payment-service)
+    ]
+
+
+def test_slow_middle_service_is_ranked_first() -> None:
+    assert ranking("checkout-api", "payment-service")[0] == ("payment-service", 0.61)
+
+
+def test_slow_entry_service_alone_is_ranked_first() -> None:
+    assert ranking("checkout-api")[0] == ("checkout-api", 0.4)

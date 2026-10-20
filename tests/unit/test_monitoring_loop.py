@@ -218,7 +218,8 @@ def test_console_report_is_readable() -> None:
 def test_project_config_file_is_valid() -> None:
     config = load_config(ROOT / "configs/monitoring.yaml")
     assert config.services[0].service_id == "payment-service"
-    assert config.slo.rules[0].burn_rate == 14.4
+    rules = {rule.name: rule.burn_rate for rule in config.slo.rules}
+    assert (rules["very-fast"], rules["fast-burn"], rules["slow-burn"]) == (36, 14.4, 6.0)
 
 
 def test_config_rejects_incoherent_values(tmp_path: Path) -> None:

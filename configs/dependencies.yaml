@@ -10,6 +10,8 @@ services:
     depends_on: [payment-api]
   payment-api:
     depends_on: [payments-db]
+  checkout-api:                  # chain of 3 (profile chain3): calls payment-service
+    depends_on: [payment-service]
   payment-service:               # test bench service; calls payments-db when the chain is on
     depends_on: [payments-db]
   payments-db:
