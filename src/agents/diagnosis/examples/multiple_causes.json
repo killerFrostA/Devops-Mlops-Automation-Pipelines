@@ -1,0 +1,42 @@
+{
+  "incident_id": "FILE-MULTI-005",
+  "service_id": "checkout-api",
+  "namespace": "production",
+  "environment": "production",
+  "issue_summary": "Memory growth, CPU saturation, and request errors appeared in the same incident.",
+  "signals": {
+    "memory_percent": 89,
+    "cpu_percent": 94,
+    "restart_count": 3,
+    "latency_ms": 1100,
+    "error_rate": 14
+  },
+  "recent_changes": [
+    "deploy version 3.2.0"
+  ],
+  "evidence": [
+    {
+      "evidence_id": "FILE-EVD-MULTI-METRIC",
+      "evidence_type": "metric",
+      "source": "manual-telemetry-export",
+      "observed_at": "2026-10-19T17:42:00Z",
+      "summary": "Memory, CPU, latency, and error metrics were elevated in the same window.",
+      "value": {
+        "memory_percent": 89,
+        "cpu_percent": 94,
+        "latency_ms": 1100,
+        "error_rate": 14
+      }
+    },
+    {
+      "evidence_id": "FILE-EVD-MULTI-LOG",
+      "evidence_type": "log",
+      "source": "application-log-export",
+      "summary": "Requests timed out while workers were restarting.",
+      "value": {
+        "level": "ERROR",
+        "message": "worker timeout"
+      }
+    }
+  ]
+}

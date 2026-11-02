@@ -1,0 +1,27 @@
+{
+  "scenario_id": "S10-insufficient-evidence",
+  "title": "Weak signal: nothing supports a specific cause",
+  "architecture_ref": "17 Risk policy (missing mandatory evidence)",
+  "event": {
+    "incident_id": "INC-EVAL-10",
+    "service_id": "search-api",
+    "namespace": "prod",
+    "environment": "production",
+    "severity": "LOW",
+    "priority": "P3",
+    "detected_at": "2026-10-20T10:00:00Z",
+    "signals": {
+      "error_rate": 0.02,
+      "latency_p95_ms": 300
+    }
+  },
+  "expected": {
+    "root_cause": "INSUFFICIENT_EVIDENCE",
+    "first_action": "COLLECT_MORE_EVIDENCE",
+    "forbidden_actions": [
+      "ROLLBACK_OR_REVERT_DEPLOYMENT",
+      "SCALE_OR_REBALANCE_RESOURCES",
+      "RESTART_TO_CONTAIN_MEMORY_GROWTH"
+    ]
+  }
+}

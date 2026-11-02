@@ -1,0 +1,26 @@
+{
+  "format_version": 1,
+  "documents": [
+    {
+      "reference_id": "LOCAL-RUNBOOK-11",
+      "summary": "For CrashLoopBackOff, read the previous container logs, compare recent ConfigMap and Secret changes, and revert the faulty configuration.",
+      "tags": ["crashloop", "config", "logs", "configmap"],
+      "root_cause": null,
+      "origin": "synthetic_example"
+    },
+    {
+      "reference_id": "LOCAL-RUNBOOK-12",
+      "summary": "For dependency failures, check dependency health, connection errors and circuit breakers before changing the calling service.",
+      "tags": ["dependency", "connection", "refused", "timeout"],
+      "root_cause": null,
+      "origin": "synthetic_example"
+    },
+    {
+      "reference_id": "LOCAL-RUNBOOK-13",
+      "summary": "For traffic spikes, compare the request rate with its baseline, then scale replicas within policy limits.",
+      "tags": ["traffic", "spike", "scaling", "replicas"],
+      "root_cause": null,
+      "origin": "synthetic_example"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "format_version": 1,
+  "documents": [
+    {
+      "reference_id": "LOCAL-RUNBOOK-01",
+      "summary": "For memory pressure, compare memory use and restarts over time, then inspect recent releases.",
+      "tags": ["memory", "restart", "deploy", "release"],
+      "root_cause": null,
+      "origin": "synthetic_example"
+    },
+    {
+      "reference_id": "LOCAL-RUNBOOK-02",
+      "summary": "For CPU pressure, inspect saturation, queue depth, error rate, and replica capacity.",
+      "tags": ["cpu", "saturation", "queue", "errors", "replicas"],
+      "root_cause": null,
+      "origin": "synthetic_example"
+    },
+    {
+      "reference_id": "LOCAL-RUNBOOK-03",
+      "summary": "For database latency, inspect connection pool saturation and database availability.",
+      "tags": ["database", "pool", "latency", "connections"],
+      "root_cause": null,
+      "origin": "synthetic_example"
+    }
+  ]
+}

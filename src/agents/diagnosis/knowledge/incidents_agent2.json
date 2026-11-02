@@ -1,0 +1,33 @@
+{
+  "format_version": 1,
+  "documents": [
+    {
+      "reference_id": "LOCAL-INC-201",
+      "summary": "Pods entered CrashLoopBackOff after a ConfigMap change removed a required environment variable; reverting the configuration fixed it.",
+      "tags": ["crashloop", "config", "configmap", "restart", "env"],
+      "root_cause": "CONFIG_ERROR_CRASHLOOP",
+      "origin": "synthetic_example"
+    },
+    {
+      "reference_id": "LOCAL-INC-202",
+      "summary": "Checkout errors and timeouts rose while the payments database refused connections; the calling service was healthy.",
+      "tags": ["dependency", "database", "connection", "refused", "timeout"],
+      "root_cause": "DEPENDENCY_UNAVAILABLE",
+      "origin": "synthetic_example"
+    },
+    {
+      "reference_id": "LOCAL-INC-203",
+      "summary": "A campaign doubled the request rate; CPU saturated and latency rose until replicas were added.",
+      "tags": ["traffic", "spike", "cpu", "saturation", "scaling"],
+      "root_cause": "TRAFFIC_SPIKE",
+      "origin": "synthetic_example"
+    },
+    {
+      "reference_id": "LOCAL-INC-204",
+      "summary": "A container was OOMKilled at its memory limit under normal load without memory growth; raising the limit resolved it.",
+      "tags": ["oom", "limit", "reached", "container"],
+      "root_cause": "MEMORY_LIMIT_REACHED",
+      "origin": "synthetic_example"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "format_version": 1,
+  "documents": [
+    {
+      "reference_id": "LOCAL-INC-120",
+      "summary": "Memory usage rose after deployment; the service restarted and latency increased.",
+      "tags": ["memory", "deploy", "restart", "latency"],
+      "root_cause": "MEMORY_LEAK_POST_DEPLOY",
+      "origin": "synthetic_example"
+    },
+    {
+      "reference_id": "LOCAL-INC-121",
+      "summary": "CPU saturation after a configuration change increased queue time and errors.",
+      "tags": ["cpu", "config", "saturation", "errors"],
+      "root_cause": "RESOURCE_PRESSURE_OR_CPU_STARVATION",
+      "origin": "synthetic_example"
+    },
+    {
+      "reference_id": "LOCAL-INC-122",
+      "summary": "A worker pod ran out of memory after its memory limit was reduced.",
+      "tags": ["memory", "limit", "oom", "worker"],
+      "root_cause": "INSUFFICIENT_MEMORY_LIMIT",
+      "origin": "synthetic_example"
+    },
+    {
+      "reference_id": "LOCAL-INC-123",
+      "summary": "Database connection pool exhaustion during a traffic peak increased latency.",
+      "tags": ["database", "pool", "latency", "traffic"],
+      "root_cause": "CONNECTION_POOL_EXHAUSTION",
+      "origin": "synthetic_example"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "scenario_id": "S09-scale-vs-rollback",
+  "title": "Degradation where scaling is only a temporary alternative to rollback",
+  "architecture_ref": "18.1 Service degradation where scale-up is a temporary alternative to rollback",
+  "event": {
+    "incident_id": "INC-EVAL-09",
+    "service_id": "payment-service",
+    "namespace": "prod",
+    "environment": "production",
+    "severity": "HIGH",
+    "priority": "P1",
+    "detected_at": "2026-10-20T10:00:00Z",
+    "signals": {
+      "memory_pct": 91,
+      "pod_restarts": 2,
+      "cpu_percent": 75,
+      "latency_p95_ms": 1100,
+      "error_rate": 0.06,
+      "detected_at": "2026-10-20T10:00:00Z",
+      "change_context": {
+        "deployment_id": "DEP-900",
+        "minutes_since_deployment": 30
+      }
+    }
+  },
+  "expected": {
+    "root_cause": "MEMORY_LEAK_POST_DEPLOY",
+    "first_action": "ROLLBACK_OR_REVERT_DEPLOYMENT"
+  }
+}

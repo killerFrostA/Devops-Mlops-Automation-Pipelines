@@ -1,0 +1,29 @@
+{
+  "scenario_id": "S03-agent1-memory-growth-old-deploy",
+  "title": "Agent 1 memory growth; the only deployment is two days old",
+  "architecture_ref": "Agent 1 handover (memory_pressure)",
+  "agent1_fixture": "agent1_memory_pressure.json",
+  "tool_responses": {
+    "kubernetes": {
+      "deployment_history": [
+        {
+          "evidence_type": "k8s_event",
+          "observed_at": "2026-10-18T09:00:00+00:00",
+          "summary": "Deployment revision 41 rolled out at 2026-10-18T09:00:00+00:00.",
+          "value": {
+            "change_id": "payment-service-rev41",
+            "description": "Deployment revision 41",
+            "changed_at": "2026-10-18T09:00:00+00:00"
+          }
+        }
+      ]
+    }
+  },
+  "expected": {
+    "root_cause": "MEMORY_GROWTH",
+    "first_action": "RESTART_TO_CONTAIN_MEMORY_GROWTH",
+    "forbidden_actions": [
+      "ROLLBACK_OR_REVERT_DEPLOYMENT"
+    ]
+  }
+}

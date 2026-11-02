@@ -1,0 +1,22 @@
+{
+  "scenario_id": "S11-deployment-too-close",
+  "title": "Deployment only 2 minutes before detection: correlation uncertain",
+  "architecture_ref": "Agent 1 detection margin",
+  "agent1_fixture": "agent1_architecture_example.json",
+  "signals_patch": {
+    "change_context": {
+      "deployment_id": "DEP-773",
+      "minutes_since_deployment": 2
+    }
+  },
+  "expected": {
+    "root_cause": "MEMORY_PRESSURE",
+    "acceptable_root_causes": [
+      "MEMORY_GROWTH"
+    ],
+    "first_action": "COLLECT_MORE_EVIDENCE",
+    "forbidden_actions": [
+      "ROLLBACK_OR_REVERT_DEPLOYMENT"
+    ]
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "message_id": "MSG-01JXYZ-ARCH-EXAMPLE",
+  "schema_version": "1.0",
+  "correlation_id": "INC-2026-0087",
+  "causation_id": "MSG-01JPREV",
+  "trace_id": "TRACE-6f3a",
+  "source": "monitoring-agent",
+  "target": "orchestrator",
+  "topic": "monitoring.anomaly.detected",
+  "message_type": "ANOMALY_DETECTED",
+  "priority": "P1",
+  "severity": "HIGH",
+  "timestamp": "2026-09-15T16:45:02Z",
+  "deadline": "2026-09-15T16:50:02Z",
+  "environment": "production",
+  "service": {
+    "service_id": "payment-service",
+    "namespace": "prod",
+    "version": "v2.7"
+  },
+  "evidence_refs": [
+    "EVD-metric-442",
+    "EVD-log-913"
+  ],
+  "confidence": 0.93,
+  "requires_ack": true,
+  "idempotency_key": "INC-2026-0087:ANOMALY_DETECTED:v1",
+  "payload": {
+    "anomaly_id": "ANM-442",
+    "detector": "isolation_forest_v3",
+    "anomaly_score": 0.94,
+    "signals": {
+      "memory_pct": 94.0,
+      "memory_slope_mb_min": 12.1,
+      "latency_p95_ms": 1250,
+      "error_rate": 0.17,
+      "pod_restarts": 3,
+      "detected_at": "2026-09-15T16:40:00Z",
+      "baseline": {
+        "memory_pct_p95": 68.0,
+        "latency_p95_ms": 220,
+        "error_rate": 0.006
+      },
+      "change_context": {
+        "deployment_id": "DEP-773",
+        "minutes_since_deployment": 9
+      }
+    },
+    "verification_required_after_action": true
+  }
+}

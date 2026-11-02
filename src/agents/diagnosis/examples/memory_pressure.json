@@ -1,0 +1,30 @@
+{
+  "incident_id": "FILE-MEMORY-001",
+  "service_id": "payments-api",
+  "namespace": "production",
+  "environment": "production",
+  "issue_summary": "Memory utilization rose sharply and the service restarted several times.",
+  "signals": {
+    "memory_percent": 92,
+    "restart_count": 4,
+    "latency_ms": 780
+  },
+  "recent_changes": [],
+  "evidence": [
+    {
+      "evidence_id": "FILE-EVD-MEMORY-001",
+      "evidence_type": "metric",
+      "source": "manual-incident-export",
+      "observed_at": "2026-10-19T17:10:00Z",
+      "summary": "Memory utilization reached 92% during the incident window.",
+      "value": {
+        "memory_percent": 92
+      },
+      "confidence": 0.9
+    }
+  ],
+  "context": {
+    "workload": "payments-api deployment",
+    "observation_window": "last 15 minutes"
+  }
+}

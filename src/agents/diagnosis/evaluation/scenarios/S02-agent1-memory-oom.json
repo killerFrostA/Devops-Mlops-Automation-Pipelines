@@ -1,0 +1,16 @@
+{
+  "scenario_id": "S02-agent1-memory-oom",
+  "title": "Agent 1 memory_oom at the container limit, no deployment",
+  "architecture_ref": "Agent 1 handover (memory_oom)",
+  "agent1_fixture": "agent1_memory_oom.json",
+  "expected": {
+    "root_cause": "MEMORY_LIMIT_REACHED",
+    "acceptable_root_causes": [
+      "INSUFFICIENT_MEMORY_LIMIT"
+    ],
+    "first_action": "INCREASE_MEMORY_LIMIT",
+    "forbidden_actions": [
+      "ROLLBACK_OR_REVERT_DEPLOYMENT"
+    ]
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "scenario_id": "S05-cpu-load-spike",
+  "title": "CPU saturation caused by a controlled load spike",
+  "architecture_ref": "18.1 CPU saturation caused by a controlled load spike",
+  "event": {
+    "incident_id": "INC-EVAL-05",
+    "service_id": "checkout-api",
+    "namespace": "prod",
+    "environment": "production",
+    "severity": "HIGH",
+    "priority": "P1",
+    "detected_at": "2026-10-20T10:00:00Z",
+    "signals": {
+      "cpu_percent": 93,
+      "latency_p95_ms": 950,
+      "error_rate": 0.03
+    }
+  },
+  "tool_responses": {
+    "prometheus": {
+      "request_rate": [
+        {
+          "evidence_type": "metric",
+          "summary": "Prometheus reports 1500 requests/s versus 700 one day earlier.",
+          "value": {
+            "rps": 1500,
+            "rps_baseline": 700
+          }
+        }
+      ]
+    }
+  },
+  "expected": {
+    "root_cause": "RESOURCE_PRESSURE_OR_CPU_STARVATION",
+    "acceptable_root_causes": [
+      "TRAFFIC_SPIKE"
+    ],
+    "first_action": "SCALE_OR_REBALANCE_RESOURCES",
+    "forbidden_actions": [
+      "ROLLBACK_OR_REVERT_DEPLOYMENT"
+    ]
+  }
+}

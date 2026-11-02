@@ -1,0 +1,53 @@
+{
+  "message_id": "88d4728a-b409-4162-ab8a-cd48f4846c35",
+  "schema_version": "1.0",
+  "correlation_id": "INC-2026-25bc2c7bae",
+  "causation_id": null,
+  "trace_id": "TRACE-INC-2026-25bc2c7bae",
+  "source": "monitoring-agent",
+  "target": "orchestrator",
+  "topic": "monitoring.anomaly.detected",
+  "message_type": "ANOMALY_DETECTED",
+  "priority": "P0",
+  "severity": "CRITICAL",
+  "timestamp": "2026-10-20T11:31:24.137938Z",
+  "deadline": null,
+  "environment": "local",
+  "service": {"service_id": "payment-service", "namespace": "local", "version": "unknown"},
+  "evidence_refs": ["INC-2026-25bc2c7bae"],
+  "confidence": 0.9,
+  "requires_ack": true,
+  "idempotency_key": "monitoring-agent:anomaly:INC-2026-25bc2c7bae:memory_oom:CRITICAL",
+  "payload": {
+    "anomaly_id": "ANM-INC-2026-25bc2c7bae-memory_oom",
+    "detector": "events",
+    "anomaly_score": 0.9,
+    "signals": {
+      "categories": ["memory_oom"],
+      "observed_on": ["payment-service"],
+      "incidents": [{
+        "incident_id": "INC-2026-25bc2c7bae",
+        "service_id": "payment-service",
+        "category": "memory_oom",
+        "severity": "CRITICAL",
+        "sources": ["events"],
+        "occurrences": 1,
+        "first_seen": "2026-10-20T11:31:24.113437+00:00",
+        "last_seen": "2026-10-20T11:31:24.113437+00:00",
+        "facts": {
+          "events.oom_kills": 0.0,
+          "events.restarts": 1.0,
+          "events.memory_peak_ratio": 0.9998,
+          "events.window_seconds": 300
+        }
+      }],
+      "suspects": [
+        {"service_id": "payment-service", "probability": 0.9},
+        {"service_id": "payments-db", "probability": 0.35}
+      ],
+      "decision_reason": "regle metier : incident memory_oom de gravite CRITICAL",
+      "alert_id": 1
+    },
+    "verification_required_after_action": true
+  }
+}

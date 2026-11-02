@@ -1,0 +1,26 @@
+{
+  "scenario_id": "S04-agent1-memory-growth-recent-deploy",
+  "title": "Agent 1 memory growth; Kubernetes shows a rollout 20 minutes earlier",
+  "architecture_ref": "18.1 Memory leak introduced by a deployment (found by tools)",
+  "agent1_fixture": "agent1_memory_pressure.json",
+  "tool_responses": {
+    "kubernetes": {
+      "deployment_history": [
+        {
+          "evidence_type": "k8s_event",
+          "observed_at": "2026-10-20T11:09:00+00:00",
+          "summary": "Deployment revision 42 (payment:v2.7) rolled out at 2026-10-20T11:09:00+00:00.",
+          "value": {
+            "change_id": "payment-service-rev42",
+            "description": "Deployment revision 42 (payment:v2.7)",
+            "changed_at": "2026-10-20T11:09:00+00:00"
+          }
+        }
+      ]
+    }
+  },
+  "expected": {
+    "root_cause": "MEMORY_LEAK_POST_DEPLOY",
+    "first_action": "ROLLBACK_OR_REVERT_DEPLOYMENT"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "scenario_id": "S08-connection-pool-exhaustion",
+  "title": "Database connection pool exhaustion",
+  "architecture_ref": "18.1 Dependency outage (pool exhaustion variant)",
+  "event": {
+    "incident_id": "INC-EVAL-08",
+    "service_id": "orders-api",
+    "namespace": "prod",
+    "environment": "production",
+    "severity": "HIGH",
+    "priority": "P1",
+    "detected_at": "2026-10-20T10:00:00Z",
+    "signals": {
+      "error_rate": 0.08,
+      "latency_p95_ms": 1800
+    }
+  },
+  "tool_responses": {
+    "loki": {
+      "error_logs": [
+        {
+          "evidence_type": "log",
+          "summary": "95 error log lines for orders-api (pool_exhausted).",
+          "value": {
+            "lines": [
+              "HikariPool-1 - Connection is not available, connection pool exhausted"
+            ],
+            "line_count": 95
+          }
+        }
+      ]
+    }
+  },
+  "expected": {
+    "root_cause": "CONNECTION_POOL_EXHAUSTION",
+    "first_action": "TUNE_CONNECTION_POOL",
+    "forbidden_actions": [
+      "ROLLBACK_OR_REVERT_DEPLOYMENT"
+    ]
+  }
+}

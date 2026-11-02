@@ -1,0 +1,57 @@
+{
+  "message_id": "88d4728a-b409-4162-ab8a-cd48f4846c36",
+  "schema_version": "1.0",
+  "correlation_id": "INC-2026-25bc2c7bae",
+  "causation_id": null,
+  "trace_id": "TRACE-INC-2026-25bc2c7bae",
+  "source": "monitoring-agent",
+  "target": "orchestrator",
+  "topic": "monitoring.anomaly.detected",
+  "message_type": "ANOMALY_DETECTED",
+  "priority": "P0",
+  "severity": "MEDIUM",
+  "timestamp": "2026-10-20T11:31:24.137938Z",
+  "deadline": null,
+  "environment": "local",
+  "service": {"service_id": "payment-service", "namespace": "local", "version": "unknown"},
+  "evidence_refs": ["INC-2026-25bc2c7bae"],
+  "confidence": 0.9,
+  "requires_ack": true,
+  "idempotency_key": "monitoring-agent:anomaly:INC-2026-25bc2c7bae:memory_pressure:MEDIUM",
+  "payload": {
+    "anomaly_id": "ANM-INC-2026-25bc2c7bae-memory_pressure",
+    "detector": "statistical",
+    "anomaly_score": 0.9,
+    "signals": {
+      "categories": ["memory_pressure"],
+      "observed_on": ["payment-service"],
+      "incidents": [{
+        "incident_id": "INC-2026-25bc2c7bae",
+        "service_id": "payment-service",
+        "category": "memory_pressure",
+        "severity": "MEDIUM",
+        "sources": ["statistical"],
+        "occurrences": 1,
+        "first_seen": "2026-10-20T11:29:10+00:00",
+        "last_seen": "2026-10-20T11:31:24+00:00",
+        "facts": {
+          "statistical.signal": "memory_mb",
+          "statistical.method": "growth",
+          "statistical.current": 412.5,
+          "statistical.baseline_median": 61.0,
+          "statistical.slope_per_minute": 126.9,
+          "statistical.robust_z": null,
+          "statistical.expected_high": null,
+          "statistical.outside_share": null
+        }
+      }],
+      "suspects": [
+        {"service_id": "payment-service", "probability": 0.9},
+        {"service_id": "payments-db", "probability": 0.35}
+      ],
+      "decision_reason": "regle statistique : croissance memoire reguliere (memory_pressure) de gravite MEDIUM",
+      "alert_id": 2
+    },
+    "verification_required_after_action": true
+  }
+}

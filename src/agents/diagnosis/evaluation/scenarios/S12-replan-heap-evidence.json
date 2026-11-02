@@ -1,0 +1,42 @@
+{
+  "scenario_id": "S12-replan-heap-evidence",
+  "title": "Replan after a rejected rollback: heap and GC evidence requested",
+  "architecture_ref": "8.4 Continuation after REJECT (required_evidence)",
+  "agent1_fixture": "agent1_architecture_example.json",
+  "signals_patch": {
+    "required_evidence": [
+      "heap_usage_breakdown",
+      "gc_metrics"
+    ]
+  },
+  "tool_responses": {
+    "prometheus": {
+      "heap_usage": [
+        {
+          "evidence_type": "metric",
+          "summary": "Process resident memory is 1840 MB and rising.",
+          "value": {
+            "heap_mb": 1840
+          }
+        }
+      ],
+      "gc_pause": [
+        {
+          "evidence_type": "metric",
+          "summary": "GC pauses take 0.31 s per second.",
+          "value": {
+            "gc_pause_seconds_per_second": 0.31
+          }
+        }
+      ]
+    }
+  },
+  "expected": {
+    "root_cause": "MEMORY_LEAK_POST_DEPLOY",
+    "first_action": "ROLLBACK_OR_REVERT_DEPLOYMENT",
+    "required_tool_calls": [
+      "prometheus.heap_usage",
+      "prometheus.gc_pause"
+    ]
+  }
+}

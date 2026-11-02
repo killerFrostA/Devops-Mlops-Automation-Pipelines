@@ -1,0 +1,10 @@
+{
+  "incident_id": "FILE-UNKNOWN-004",
+  "service_id": "profile-api",
+  "namespace": "staging",
+  "environment": "staging",
+  "issue_summary": "The service is reported as slow, but no measurements or logs were collected.",
+  "evidence_refs": [
+    "UPSTREAM-EVIDENCE-NOT-INCLUDED"
+  ]
+}

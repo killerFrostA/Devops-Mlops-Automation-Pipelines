@@ -1,0 +1,71 @@
+{
+  "scenario_id": "S06-crashloop-invalid-config",
+  "title": "CrashLoopBackOff caused by invalid configuration",
+  "architecture_ref": "18.1 CrashLoopBackOff caused by invalid configuration",
+  "event": {
+    "incident_id": "INC-EVAL-06",
+    "service_id": "orders-api",
+    "namespace": "prod",
+    "environment": "production",
+    "severity": "HIGH",
+    "priority": "P1",
+    "detected_at": "2026-10-20T10:00:00Z",
+    "signals": {
+      "pod_restarts": 7,
+      "error_rate": 0.4
+    }
+  },
+  "tool_responses": {
+    "kubernetes": {
+      "pod_status": [
+        {
+          "evidence_type": "k8s_event",
+          "summary": "3 pods of orders-api: max 7 restarts; reasons CrashLoopBackOff, Error.",
+          "value": {
+            "restart_count": 7,
+            "reason": "CrashLoopBackOff Error",
+            "exit_codes": [
+              1
+            ]
+          }
+        }
+      ]
+    },
+    "loki": {
+      "error_logs": [
+        {
+          "evidence_type": "log",
+          "summary": "42 error log lines for orders-api (config_invalid).",
+          "value": {
+            "lines": [
+              "FATAL invalid configuration: missing required env DATABASE_URL"
+            ],
+            "line_count": 42
+          }
+        }
+      ]
+    },
+    "git": {
+      "recent_changes": [
+        {
+          "evidence_type": "git_change",
+          "observed_at": "2026-10-20T09:35:00+00:00",
+          "summary": "Commit 9f2c1ab at 2026-10-20T09:35:00+00:00: Update configmap values.yaml.",
+          "value": {
+            "change_id": "9f2c1ab",
+            "description": "Update configmap values.yaml [deploy/values.yaml]",
+            "changed_at": "2026-10-20T09:35:00+00:00"
+          }
+        }
+      ]
+    }
+  },
+  "expected": {
+    "root_cause": "CONFIG_ERROR_CRASHLOOP",
+    "first_action": "ROLLBACK_OR_REVERT_DEPLOYMENT",
+    "forbidden_actions": [
+      "SCALE_OR_REBALANCE_RESOURCES",
+      "RESTART_TO_CONTAIN_MEMORY_GROWTH"
+    ]
+  }
+}

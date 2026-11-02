@@ -1,0 +1,38 @@
+{
+  "incident_id": "FILE-DEPLOY-002",
+  "service_id": "orders-api",
+  "namespace": "production",
+  "environment": "production",
+  "issue_summary": "Request failures and latency increased shortly after a release.",
+  "signals": {
+    "error_rate": 12,
+    "latency_ms": 940
+  },
+  "recent_changes": [
+    "deploy version 4.8.1 started at 2026-10-19T17:20:00Z"
+  ],
+  "evidence": [
+    {
+      "evidence_id": "FILE-EVD-LOG-002",
+      "evidence_type": "log",
+      "source": "application-log-export",
+      "observed_at": "2026-10-19T17:24:00Z",
+      "summary": "HTTP 503 responses and upstream timeout errors increased after release.",
+      "value": {
+        "level": "ERROR",
+        "error_count": 148,
+        "window_seconds": 300
+      }
+    },
+    {
+      "evidence_id": "FILE-EVD-ALERT-002",
+      "evidence_type": "metric",
+      "source": "manual-alert-export",
+      "observed_at": "2026-10-19T17:24:00Z",
+      "summary": "The five-minute request error rate exceeded the 5% alert threshold.",
+      "value": {
+        "error_rate_percent": 12
+      }
+    }
+  ]
+}

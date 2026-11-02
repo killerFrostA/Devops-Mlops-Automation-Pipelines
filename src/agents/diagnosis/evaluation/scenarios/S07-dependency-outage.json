@@ -1,0 +1,43 @@
+{
+  "scenario_id": "S07-dependency-outage",
+  "title": "Dependency outage: the database refuses connections",
+  "architecture_ref": "18.1 Dependency outage",
+  "event": {
+    "incident_id": "INC-EVAL-07",
+    "service_id": "checkout-api",
+    "namespace": "prod",
+    "environment": "production",
+    "severity": "HIGH",
+    "priority": "P1",
+    "detected_at": "2026-10-20T10:00:00Z",
+    "signals": {
+      "error_rate": 0.25,
+      "latency_p95_ms": 2400
+    }
+  },
+  "tool_responses": {
+    "loki": {
+      "error_logs": [
+        {
+          "evidence_type": "log",
+          "summary": "310 error log lines for checkout-api (connection_refused).",
+          "value": {
+            "lines": [
+              "dial tcp payments-db:5432: connect: connection refused"
+            ],
+            "line_count": 310,
+            "dependency": "payments-db"
+          }
+        }
+      ]
+    }
+  },
+  "expected": {
+    "root_cause": "DEPENDENCY_UNAVAILABLE",
+    "first_action": "INVESTIGATE_DEPENDENCY",
+    "forbidden_actions": [
+      "ROLLBACK_OR_REVERT_DEPLOYMENT",
+      "SCALE_OR_REBALANCE_RESOURCES"
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "scenario_id": "S01-memory-leak-post-deploy",
+  "title": "Memory leak introduced by a deployment (architecture example 11.1)",
+  "architecture_ref": "18.1 Memory leak introduced by a deployment",
+  "agent1_fixture": "agent1_architecture_example.json",
+  "expected": {
+    "root_cause": "MEMORY_LEAK_POST_DEPLOY",
+    "first_action": "ROLLBACK_OR_REVERT_DEPLOYMENT"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "incident_id": "FILE-INVALID-006",
+  "namespace": "test",
+  "environment": "test",
+  "issue_summary": "This input intentionally omits the required service_id field."
+}

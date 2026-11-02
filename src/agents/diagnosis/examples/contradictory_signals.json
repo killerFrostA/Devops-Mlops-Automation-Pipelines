@@ -1,0 +1,27 @@
+{
+  "incident_id": "FILE-CONFLICT-003",
+  "service_id": "catalog-api",
+  "namespace": "production",
+  "environment": "production",
+  "issue_summary": "Memory readings disagree during a period of repeated restarts.",
+  "signals": {
+    "memory_percent": 91,
+    "memory_pct": 24,
+    "restart_count": 3
+  },
+  "recent_changes": [
+    "deploy version 7.2.0"
+  ],
+  "evidence": [
+    {
+      "evidence_id": "FILE-EVD-CONFLICT-003",
+      "evidence_type": "metric",
+      "source": "manual-export",
+      "summary": "Two memory measurements from the same incident window are inconsistent.",
+      "value": {
+        "memory_percent": 91,
+        "memory_pct": 24
+      }
+    }
+  ]
+}
