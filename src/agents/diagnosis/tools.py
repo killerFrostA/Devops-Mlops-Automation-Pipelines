@@ -26,22 +26,28 @@ from urllib.request import urlopen
 from pydantic import ValidationError
 
 from src.agents.diagnosis.contracts import EvidenceItem, ToolCallRecord
-from src.agents.diagnosis.signatures import line_signatures
+from src.agents.diagnosis.signatures import DEPENDENCY_SIGNATURES, line_signatures
 
 
 DEFAULT_TOOL_TIMEOUT_SECONDS = 10.0
 DEFAULT_LOOKBACK = timedelta(hours=1)
+# Error logs of an active incident are recent; a longer window also reads the errors of an
+# earlier, already resolved incident (seen in the lab: dependency errors polluted a pool incident).
+DEFAULT_LOG_WINDOW = timedelta(minutes=15)
+# A quiet period this long separates two incidents; only the latest error episode is kept.
+ERROR_EPISODE_GAP = timedelta(minutes=3)
 MAX_LOG_LINES = 5
 MAX_LOG_LINE_LENGTH = 300
 # Kubernetes names and label values; anything else is refused before a query is built.
 _SAFE_NAME = re.compile(r"^[a-z0-9]([a-z0-9.\-]{0,251}[a-z0-9])?$")
 _DEPENDENCY_HOST = re.compile(
-    r"(?:to|connect(?:ing)? to|host|upstream|tcp)\s+['\"]?([a-z0-9][a-z0-9.\-]*[a-z0-9])(?::\d+)?",
+    # "(?" also covers gRPC/Envoy wording such as "no healthy upstream (inventory-svc)".
+    r"(?:to|connect(?:ing)? to|host|upstream|tcp)\s+[('\"]?([a-z0-9][a-z0-9.\-]*[a-z0-9])(?::\d+)?",
     re.IGNORECASE,
 )
 
 
-_DEPENDENCY_SIGNATURES = frozenset({"connection_refused", "dependency_timeout", "pool_exhausted"})
+_DEPENDENCY_SIGNATURES = DEPENDENCY_SIGNATURES | {"pool_exhausted"}
 
 
 class ToolError(RuntimeError):
@@ -198,7 +204,9 @@ class PrometheusMetricsTool:
         payload: dict[str, Any] = {key: round(value, 3), "query": promql}
         summary = f"Prometheus reports {key}={value:.3g} for {service}."
         if operation == "request_rate":
-            baseline = self._query(f"{promql} offset 1d", context)
+            # PromQL only accepts offset right after a selector, not after sum(...).
+            baseline_query = self._QUERIES[operation].replace("[5m]", "[5m] offset 1d").format(**selectors)
+            baseline = self._query(baseline_query, context)
             if baseline is not None:
                 payload["rps_baseline"] = round(baseline, 3)
                 summary = (
@@ -230,10 +238,12 @@ class LokiLogsTool:
         base_url: str,
         timeout: float = DEFAULT_TOOL_TIMEOUT_SECONDS,
         app_label: str = "app",
+        window: timedelta = DEFAULT_LOG_WINDOW,
     ) -> None:
         self._base_url = base_url
         self._timeout = timeout
         self._app_label = app_label
+        self._window = window
 
     def run(self, operation: str, context: ToolContext) -> list[EvidenceItem]:
         service = _safe_name(context.service_id, "service")
@@ -248,22 +258,39 @@ class LokiLogsTool:
             "/loki/api/v1/query_range",
             {
                 "query": logql,
-                "start": str(int((end - context.lookback).timestamp() * 1e9)),
+                "start": str(int((end - min(context.lookback, self._window)).timestamp() * 1e9)),
                 "end": str(int(end.timestamp() * 1e9)),
                 "limit": "200",
                 "direction": "backward",
             },
             context.remaining_seconds(self._timeout),
         )
-        lines = [
-            entry[1]
+        entries = [
+            (int(entry[0]), entry[1])
             for stream in data.get("data", {}).get("result", [])
             for entry in stream.get("values", [])
             if isinstance(entry, list) and len(entry) == 2 and isinstance(entry[1], str)
+            and str(entry[0]).isdigit()
         ]
+        lines = current_error_episode(entries)
         if not lines:
             return []
         return [_log_evidence(context, self.name, lines, source="loki")]
+
+
+def current_error_episode(entries: Sequence[tuple[int, str]], gap: timedelta = ERROR_EPISODE_GAP) -> list[str]:
+    """Lines after the last quiet gap: errors of an earlier, resolved incident are dropped.
+
+    ``entries`` are (nanosecond timestamp, line) pairs in any order; newest first in the result.
+    """
+    ordered = sorted(entries, key=lambda item: item[0], reverse=True)
+    gap_ns = int(gap.total_seconds() * 1e9)
+    kept = ordered[:1]
+    for previous, current in zip(ordered, ordered[1:]):
+        if previous[0] - current[0] > gap_ns:
+            break
+        kept.append(current)
+    return [line for _, line in kept]
 
 
 def _log_evidence(
@@ -629,7 +656,11 @@ def build_toolbox_from_env(env: Mapping[str, str] | None = None) -> Toolbox | No
     if env.get("PIDS_PROMETHEUS_URL"):
         tools.append(PrometheusMetricsTool(env["PIDS_PROMETHEUS_URL"]))
     if env.get("PIDS_LOKI_URL"):
-        tools.append(LokiLogsTool(env["PIDS_LOKI_URL"], app_label=app_label))
+        try:
+            window = timedelta(minutes=float(env.get("PIDS_LOKI_WINDOW_MINUTES") or 15))
+        except ValueError as exc:
+            raise ToolError("PIDS_LOKI_WINDOW_MINUTES must be a number of minutes") from exc
+        tools.append(LokiLogsTool(env["PIDS_LOKI_URL"], app_label=app_label, window=window))
     if env.get("PIDS_DIAGNOSIS_KUBECTL"):
         tools.append(
             KubernetesTool(

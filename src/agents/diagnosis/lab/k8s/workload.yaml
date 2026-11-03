@@ -1,0 +1,109 @@
+# Lab workload in namespace prod: payment-service, its ledger-db dependency and a load generator.
+# lab.py changes payment-service's environment to inject faults, which creates real rollouts.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: prod
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ledger-db
+  namespace: prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: ledger-db}
+  template:
+    metadata:
+      labels: {app: ledger-db}
+    spec:
+      containers:
+        - name: ledger-db
+          image: pids-lab/app:1
+          imagePullPolicy: Never
+          env: [{name: ROLE, value: db}]
+          ports: [{containerPort: 5432}]
+          resources:
+            requests: {cpu: 20m, memory: 24Mi}
+            limits: {cpu: 200m, memory: 48Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ledger-db
+  namespace: prod
+spec:
+  selector: {app: ledger-db}
+  ports: [{port: 5432, targetPort: 5432}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  namespace: prod
+  annotations:
+    kubernetes.io/change-cause: "release 1.3.0 (baseline)"
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels: {app: payment-service}
+  template:
+    metadata:
+      labels: {app: payment-service}
+      annotations: {prometheus.io/scrape: "true"}
+    spec:
+      containers:
+        - name: payment-service
+          image: pids-lab/app:1
+          imagePullPolicy: Never
+          env:
+            - {name: ROLE, value: api}
+            - {name: APP_VERSION, value: "1.3.0"}
+            - {name: PAYMENT_TIMEOUT_MS, value: "500"}
+            - {name: LEAK_KB_PER_REQUEST, value: "0"}
+            - {name: DB_POOL_SIZE, value: "10"}
+            - {name: DB_QUERY_MS, value: "20"}
+          ports: [{containerPort: 8080, name: http}]
+          readinessProbe:
+            httpGet: {path: /healthz, port: 8080}
+            periodSeconds: 5
+          resources:
+            requests: {cpu: 50m, memory: 48Mi}
+            limits: {cpu: 500m, memory: 96Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+  namespace: prod
+spec:
+  selector: {app: payment-service}
+  ports: [{port: 8080, targetPort: 8080}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loadgen
+  namespace: prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: loadgen}
+  template:
+    metadata:
+      labels: {app: loadgen}
+    spec:
+      containers:
+        - name: loadgen
+          image: pids-lab/app:1
+          imagePullPolicy: Never
+          env:
+            - {name: ROLE, value: loadgen}
+            - {name: TARGET_URL, value: "http://payment-service:8080/pay"}
+            - {name: REQUESTS_PER_SECOND, value: "2"}
+            - {name: CONCURRENCY, value: "3"}
+          resources:
+            requests: {cpu: 20m, memory: 24Mi}
+            limits: {cpu: 200m, memory: 48Mi}

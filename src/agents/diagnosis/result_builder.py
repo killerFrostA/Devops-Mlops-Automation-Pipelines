@@ -602,8 +602,17 @@ def _apply_supplemental_ranking(
     """Let a language model reorder close rule candidates; report larger disagreements."""
     selected = analysis.selected_cause
     top = hypotheses[0]
-    if analysis.source != "llm" or selected is None or selected == top.code:
+    if analysis.source != "llm" or selected == top.code:
         return hypotheses, False
+    if selected is None:
+        if top.code == "INSUFFICIENT_EVIDENCE":
+            return hypotheses, False
+        # An explicit rejection of every candidate is a disagreement, not an abstention.
+        limitations.append(
+            f"The language-model analysis found no candidate supported, including {top.code}; "
+            f"the rule ranking was kept and needs review. Its reasoning: {analysis.summary[:300]}"
+        )
+        return hypotheses, True
     chosen = next(hypothesis for hypothesis in hypotheses if hypothesis.code == selected)
     if top.probability - chosen.probability <= LLM_RERANK_MARGIN:
         reordered = [chosen, *(item for item in hypotheses if item.code != selected)]

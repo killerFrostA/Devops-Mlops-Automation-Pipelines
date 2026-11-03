@@ -1,0 +1,64 @@
+{
+  "scenario_id": "S13-hard-limit-cut-in-release",
+  "title": "Hard: OOM kills right after a release that only lowered the memory limit (no leak)",
+  "architecture_ref": "18.1 Hard case: multiple plausible causes",
+  "event": {
+    "incident_id": "INC-EVAL-13",
+    "service_id": "checkout-api",
+    "namespace": "prod",
+    "environment": "production",
+    "severity": "HIGH",
+    "priority": "P1",
+    "detected_at": "2026-10-20T10:00:00Z",
+    "signals": {
+      "memory_pct": 97.0,
+      "pod_restarts": 3,
+      "change_context": {"deployment_id": "checkout-api-rev19", "minutes_since_deployment": 25}
+    }
+  },
+  "tool_responses": {
+    "kubernetes": {
+      "pod_status": [
+        {
+          "evidence_type": "k8s_event",
+          "summary": "checkout-api pods restarted 3 times; last termination OOMKilled (exit code 137).",
+          "value": {"restart_count": 3, "reason": "OOMKilled", "exit_codes": [137]}
+        }
+      ]
+    },
+    "prometheus": {
+      "memory_percent": [
+        {
+          "evidence_type": "metric",
+          "summary": "Working set flat at 245 MiB since the release, 96% of the new 256 MiB limit (was 48% of 512 MiB before).",
+          "value": {"memory_percent": 96.0, "working_set_mib": 245, "previous_limit_mib": 512, "limit_mib": 256}
+        }
+      ],
+      "heap_usage": [
+        {
+          "evidence_type": "metric",
+          "summary": "Heap steady at 230 MB for 7 days, before and after the release.",
+          "value": {"heap_mb": 230.0, "heap_mb_7d_ago": 228.0}
+        }
+      ]
+    },
+    "git": {
+      "recent_changes": [
+        {
+          "evidence_type": "git_change",
+          "summary": "Commit c0ffee1 at 2026-10-20T09:30:00+00:00: chore: lower memory limit to 256Mi to save cost [deploy/checkout/values.yaml].",
+          "value": {
+            "change_id": "c0ffee1",
+            "description": "chore: lower memory limit to 256Mi to save cost [deploy/checkout/values.yaml]",
+            "changed_at": "2026-10-20T09:30:00+00:00"
+          }
+        }
+      ]
+    }
+  },
+  "expected": {
+    "root_cause": "MEMORY_LIMIT_REACHED",
+    "first_action": "INCREASE_MEMORY_LIMIT",
+    "forbidden_actions": ["RESTART_TO_CONTAIN_MEMORY_GROWTH"]
+  }
+}

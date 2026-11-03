@@ -1,0 +1,269 @@
+{
+  "scenario_id": "S19-lab-pool",
+  "title": "Lab (real run): Release 1.4.2 shrinks the DB pool to 1 with slow queries: pool exhaustion under load.",
+  "architecture_ref": "18.1 Live lab incident (kind), recorded tool responses",
+  "event": {
+    "incident_id": "INC-LAB-POOL-20261102T143406Z",
+    "service_id": "payment-service",
+    "namespace": "prod",
+    "environment": "production",
+    "severity": "HIGH",
+    "priority": "P1",
+    "detected_at": "2026-11-02T14:34:06.507871+00:00",
+    "signals": {
+      "memory_pct": 14.4,
+      "memory_slope_mb_min": -0.0,
+      "latency_p95_ms": 348.1,
+      "error_rate": 0.1076,
+      "pod_restarts": 1.0,
+      "detected_at": "2026-11-02T14:34:06.507871+00:00"
+    }
+  },
+  "tool_responses": {
+    "prometheus": {
+      "memory_percent": [
+        {
+          "evidence_type": "metric",
+          "source": "prometheus",
+          "observed_at": "2026-11-02T14:36:43.483518Z",
+          "summary": "Prometheus reports memory_percent=14.1 for payment-service.",
+          "value": {
+            "memory_percent": 14.107,
+            "query": "100 * max(container_memory_working_set_bytes{namespace=\"prod\",pod=~\"payment-service-.*\"}) / max(kube_pod_container_resource_limits{namespace=\"prod\",pod=~\"payment-service-.*\",resource=\"memory\"})"
+          }
+        }
+      ],
+      "cpu_percent": [
+        {
+          "evidence_type": "metric",
+          "source": "prometheus",
+          "observed_at": "2026-11-02T14:36:43.491871Z",
+          "summary": "Prometheus reports cpu_percent=7.88 for payment-service.",
+          "value": {
+            "cpu_percent": 7.88,
+            "query": "100 * sum(rate(container_cpu_usage_seconds_total{namespace=\"prod\",pod=~\"payment-service-.*\"}[5m])) / sum(kube_pod_container_resource_limits{namespace=\"prod\",pod=~\"payment-service-.*\",resource=\"cpu\"})"
+          }
+        }
+      ],
+      "restart_count": [
+        {
+          "evidence_type": "metric",
+          "source": "prometheus",
+          "observed_at": "2026-11-02T14:36:43.508785Z",
+          "summary": "Prometheus reports restart_count=1.02 for payment-service.",
+          "value": {
+            "restart_count": 1.023,
+            "query": "max(increase(kube_pod_container_status_restarts_total{namespace=\"prod\",pod=~\"payment-service-.*\"}[3600s]))"
+          }
+        }
+      ],
+      "error_rate": [
+        {
+          "evidence_type": "metric",
+          "source": "prometheus",
+          "observed_at": "2026-11-02T14:36:43.513126Z",
+          "summary": "Prometheus reports error_rate_percent=20.1 for payment-service.",
+          "value": {
+            "error_rate_percent": 20.056,
+            "query": "100 * sum(rate(http_requests_total{namespace=\"prod\",service=\"payment-service\",status=~\"5..\"}[5m])) / sum(rate(http_requests_total{namespace=\"prod\",service=\"payment-service\"}[5m]))"
+          }
+        }
+      ],
+      "latency_p95_ms": [
+        {
+          "evidence_type": "metric",
+          "source": "prometheus",
+          "observed_at": "2026-11-02T14:36:43.519673Z",
+          "summary": "Prometheus reports latency_ms=761 for payment-service.",
+          "value": {
+            "latency_ms": 761.272,
+            "query": "1000 * histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{namespace=\"prod\",service=\"payment-service\"}[5m])))"
+          }
+        }
+      ],
+      "request_rate": [
+        {
+          "evidence_type": "metric",
+          "source": "prometheus",
+          "observed_at": "2026-11-02T14:36:43.531243Z",
+          "summary": "Prometheus reports rps=4.33 for payment-service.",
+          "value": {
+            "rps": 4.326,
+            "query": "sum(rate(http_requests_total{namespace=\"prod\",service=\"payment-service\"}[5m]))"
+          }
+        }
+      ],
+      "heap_usage": [
+        {
+          "evidence_type": "metric",
+          "source": "prometheus",
+          "observed_at": "2026-11-02T14:36:43.534338Z",
+          "summary": "Prometheus reports heap_mb=21.7 for payment-service.",
+          "value": {
+            "heap_mb": 21.73,
+            "query": "max(process_resident_memory_bytes{namespace=\"prod\",pod=~\"payment-service-.*\"}) / 1048576"
+          }
+        }
+      ]
+    },
+    "loki": {
+      "error_logs": [
+        {
+          "evidence_type": "log",
+          "source": "loki",
+          "observed_at": "2026-11-02T14:36:43.594083Z",
+          "summary": "200 error log lines for payment-service (pool_exhausted).",
+          "value": {
+            "line_count": 200,
+            "lines": [
+              "2026-11-02T14:36:42.664+00:00 ERROR could not obtain a connection: connection pool exhausted (size=1)",
+              "2026-11-02T14:36:41.768+00:00 ERROR could not obtain a connection: connection pool exhausted (size=1)",
+              "2026-11-02T14:36:41.054+00:00 ERROR could not obtain a connection: connection pool exhausted (size=1)",
+              "2026-11-02T14:36:40.346+00:00 ERROR could not obtain a connection: connection pool exhausted (size=1)",
+              "2026-11-02T14:36:39.532+00:00 ERROR could not obtain a connection: connection pool exhausted (size=1)"
+            ],
+            "signatures": [
+              "pool_exhausted"
+            ]
+          }
+        }
+      ]
+    },
+    "kubernetes": {
+      "pod_status": [
+        {
+          "evidence_type": "k8s_event",
+          "source": "kubernetes",
+          "observed_at": "2026-11-02T14:36:43.749586Z",
+          "summary": "1 pods of payment-service: max 0 restarts.",
+          "value": {
+            "restart_count": 0,
+            "reason": "",
+            "waiting_reasons": {},
+            "termination_reasons": {},
+            "exit_codes": []
+          }
+        }
+      ],
+      "events": [
+        {
+          "evidence_type": "k8s_event",
+          "source": "kubernetes",
+          "observed_at": "2026-11-02T14:36:43.921098Z",
+          "summary": "Kubernetes warning events: {'Unhealthy': 4}.",
+          "value": {
+            "reason": "Unhealthy",
+            "event_counts": {
+              "Unhealthy": 4
+            },
+            "lines": [
+              "Readiness probe failed: Get \"http://10.244.0.14:8080/healthz\": dial tcp 10.244.0.14:8080: connect: connection refused",
+              "Readiness probe failed: Get \"http://10.244.0.10:8080/healthz\": dial tcp 10.244.0.10:8080: connect: connection refused",
+              "Readiness probe failed: Get \"http://10.244.0.15:8080/healthz\": dial tcp 10.244.0.15:8080: connect: connection refused",
+              "Readiness probe failed: Get \"http://10.244.0.18:8080/healthz\": dial tcp 10.244.0.18:8080: connect: connection refused"
+            ]
+          }
+        }
+      ],
+      "deployment_history": [
+        {
+          "evidence_type": "k8s_event",
+          "source": "kubernetes",
+          "observed_at": "2026-11-02T14:03:16Z",
+          "summary": "Deployment revision 3 rolled out at 2026-11-02T14:03:16+00:00 (pids-lab/app:1).",
+          "value": {
+            "change_id": "payment-service-rev3",
+            "description": "Deployment revision 3 (pids-lab/app:1)",
+            "changed_at": "2026-11-02T14:03:16+00:00"
+          }
+        },
+        {
+          "evidence_type": "k8s_event",
+          "source": "kubernetes",
+          "observed_at": "2026-11-02T14:05:51Z",
+          "summary": "Deployment revision 2 rolled out at 2026-11-02T14:05:51+00:00 (pids-lab/app:1).",
+          "value": {
+            "change_id": "payment-service-rev2",
+            "description": "Deployment revision 2 (pids-lab/app:1)",
+            "changed_at": "2026-11-02T14:05:51+00:00"
+          }
+        },
+        {
+          "evidence_type": "k8s_event",
+          "source": "kubernetes",
+          "observed_at": "2026-11-02T14:33:04Z",
+          "summary": "Deployment revision 4 rolled out at 2026-11-02T14:33:04+00:00 (pids-lab/app:1).",
+          "value": {
+            "change_id": "payment-service-rev4",
+            "description": "Deployment revision 4 (pids-lab/app:1)",
+            "changed_at": "2026-11-02T14:33:04+00:00"
+          }
+        }
+      ]
+    },
+    "git": {
+      "recent_changes": [
+        {
+          "evidence_type": "git_change",
+          "source": "git",
+          "observed_at": "2026-11-02T15:33:03+01:00",
+          "summary": "Commit ee0bece1b38b at 2026-11-02T15:33:03+01:00: config: DB pool size 1 [config/values.yaml].",
+          "value": {
+            "change_id": "ee0bece1b38b",
+            "description": "config: DB pool size 1 [config/values.yaml]",
+            "changed_at": "2026-11-02T15:33:03+01:00",
+            "files": [
+              "config/values.yaml"
+            ]
+          }
+        },
+        {
+          "evidence_type": "git_change",
+          "source": "git",
+          "observed_at": "2026-11-02T15:16:55+01:00",
+          "summary": "Commit 9bc6b36666b5 at 2026-11-02T15:16:55+01:00: Revert \"release 1.4.0: in-memory response cache\" [src/cache.py].",
+          "value": {
+            "change_id": "9bc6b36666b5",
+            "description": "Revert \"release 1.4.0: in-memory response cache\" [src/cache.py]",
+            "changed_at": "2026-11-02T15:16:55+01:00",
+            "files": [
+              "src/cache.py"
+            ]
+          }
+        },
+        {
+          "evidence_type": "git_change",
+          "source": "git",
+          "observed_at": "2026-11-02T15:05:50+01:00",
+          "summary": "Commit b9bdee793111 at 2026-11-02T15:05:50+01:00: release 1.4.0: in-memory response cache [src/cache.py].",
+          "value": {
+            "change_id": "b9bdee793111",
+            "description": "release 1.4.0: in-memory response cache [src/cache.py]",
+            "changed_at": "2026-11-02T15:05:50+01:00",
+            "files": [
+              "src/cache.py"
+            ]
+          }
+        },
+        {
+          "evidence_type": "git_change",
+          "source": "git",
+          "observed_at": "2026-11-02T15:03:49+01:00",
+          "summary": "Commit 7a3e1e5694c6 at 2026-11-02T15:03:49+01:00: release 1.3.0 (baseline) [config/values.yaml].",
+          "value": {
+            "change_id": "7a3e1e5694c6",
+            "description": "release 1.3.0 (baseline) [config/values.yaml]",
+            "changed_at": "2026-11-02T15:03:49+01:00",
+            "files": [
+              "config/values.yaml"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "expected": {
+    "root_cause": "CONNECTION_POOL_EXHAUSTION",
+    "first_action": "TUNE_CONNECTION_POOL"
+  }
+}

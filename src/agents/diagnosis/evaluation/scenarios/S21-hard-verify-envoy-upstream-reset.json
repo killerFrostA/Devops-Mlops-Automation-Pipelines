@@ -1,0 +1,42 @@
+{
+  "scenario_id": "S21-hard-verify-envoy-upstream-reset",
+  "title": "Hard (verification of S15): pricing dependency failing behind an Istio sidecar, other wording",
+  "architecture_ref": "18.1 Hard case: unusual logs (verification variant)",
+  "event": {
+    "incident_id": "INC-EVAL-21",
+    "service_id": "checkout-web",
+    "namespace": "shop",
+    "environment": "production",
+    "severity": "HIGH",
+    "priority": "P1",
+    "detected_at": "2026-10-21T08:00:00Z",
+    "signals": {
+      "error_rate": 0.19,
+      "latency_p95_ms": 1900,
+      "cpu_pct": 64.0
+    }
+  },
+  "tool_responses": {
+    "loki": {
+      "error_logs": [
+        {
+          "evidence_type": "log",
+          "summary": "233 error log lines for checkout-web.",
+          "value": {
+            "line_count": 233,
+            "lines": [
+              "[2026-10-21T07:58:12.114Z] \"GET /v2/prices HTTP/1.1\" 503 UF,URX upstream_reset_before_response_started{remote_connection_failure} pricing-svc.shop.svc.cluster.local:8080",
+              "upstream connect error or disconnect/reset before headers. retried and the latest reset reason: remote connection failure",
+              "price lookup failed: rpc error: code = Unavailable desc = upstream request timeout"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "expected": {
+    "root_cause": "DEPENDENCY_UNAVAILABLE",
+    "first_action": "INVESTIGATE_DEPENDENCY",
+    "forbidden_actions": ["SCALE_OR_REBALANCE_RESOURCES", "ROLLBACK_OR_REVERT_DEPLOYMENT"]
+  }
+}

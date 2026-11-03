@@ -1,0 +1,56 @@
+{
+  "format_version": 1,
+  "documents": [
+    {
+      "reference_id": "LAB-LEAK-20261102T141323Z",
+      "summary": "Release 1.4.0 keeps every response in memory: real growth up to the OOM kill. Lab incident on payment-service, injected 2026-11-02T14:05Z.",
+      "tags": [
+        "memory",
+        "leak",
+        "deployment",
+        "oom",
+        "restart"
+      ],
+      "root_cause": "MEMORY_LEAK_POST_DEPLOY",
+      "origin": "lab_observation"
+    },
+    {
+      "reference_id": "LAB-DEPENDENCY-DOWN-20261102T142636Z",
+      "summary": "ledger-db is scaled to 0: payment-service gets connection refused (no release). Lab incident on payment-service, injected 2026-11-02T14:25Z.",
+      "tags": [
+        "dependency",
+        "database",
+        "connection",
+        "refused"
+      ],
+      "root_cause": "DEPENDENCY_UNAVAILABLE",
+      "origin": "lab_observation"
+    },
+    {
+      "reference_id": "LAB-POOL-20261102T143406Z",
+      "summary": "Release 1.4.2 shrinks the DB pool to 1 with slow queries: pool exhaustion under load. Lab incident on payment-service, injected 2026-11-02T14:33Z.",
+      "tags": [
+        "dependency",
+        "pool",
+        "connection",
+        "exhausted",
+        "config"
+      ],
+      "root_cause": "CONNECTION_POOL_EXHAUSTION",
+      "origin": "lab_observation"
+    },
+    {
+      "reference_id": "LAB-BAD-CONFIG-20261102T144108Z",
+      "summary": "Release 1.4.1 sets PAYMENT_TIMEOUT_MS=5s: the new pod exits at start (CrashLoopBackOff). Lab incident on payment-service, injected 2026-11-02T14:40Z.",
+      "tags": [
+        "crashloop",
+        "config",
+        "deployment",
+        "restart",
+        "env"
+      ],
+      "root_cause": "CONFIG_ERROR_CRASHLOOP",
+      "origin": "lab_observation"
+    }
+  ]
+}

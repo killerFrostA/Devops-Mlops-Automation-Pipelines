@@ -9,8 +9,9 @@ architecture:
    evidence IDs that support them.
 3. **RAG** (`rag_retriever.py` lexical, or `qdrant_retriever.py` vector search): similar past
    incidents and runbooks, ordered by agreement with the leading cause.
-4. **LLM tool-calling** (optional `ClaudeSupplementalAnalyzer`): Claude reviews the candidates,
-   may call the same read-only tools, and may reorder close candidates. Evidence it collects is
+4. **LLM tool-calling** (optional `OpenAICompatibleAnalyzer` — Groq, Gemini, Ollama — or
+   `ClaudeSupplementalAnalyzer`): the model reviews the candidates, may call the same read-only
+   tools, and may reorder close candidates. Evidence it collects is
    re-evaluated by the rules; a cause outside the rule candidates is rejected.
 5. **Result**: ranked hypotheses, recommendations, limitations, `evidence_strength`, tool call
    audit, and the shared `DiagnosisCompleted` payload.
@@ -25,10 +26,12 @@ calibrated probabilities.
 | Recorded tool responses | `--tool-responses tools.json` | off |
 | Live read-only tools | `--live-tools` + `PIDS_PROMETHEUS_URL`, `PIDS_LOKI_URL`, `PIDS_DIAGNOSIS_KUBECTL` (path to kubectl, optional `PIDS_DIAGNOSIS_KUBE_CONTEXT`), `PIDS_DIAGNOSIS_GIT_REPO`, `PIDS_DIAGNOSIS_K8S_APP_LABEL` (default `app`) | off |
 | Qdrant RAG | `--rag qdrant` (in-memory), `--qdrant-url` or `--qdrant-path` (indexed store) | lexical JSON search |
-| Claude review | `--llm` + `ANTHROPIC_API_KEY`; `PIDS_DIAGNOSIS_LLM_MODEL` (default `claude-opus-5-5`), `PIDS_DIAGNOSIS_LLM_EFFORT` (default `high`), `PIDS_DIAGNOSIS_LLM_FALLBACKS=false` to disable server-side refusal fallbacks | deterministic simulation |
+| LLM review (default: OpenAI-compatible) | `--llm` + `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY_ENV` (see below) | deterministic simulation |
+| Claude review (option) | `--llm anthropic` + `ANTHROPIC_API_KEY`; `PIDS_DIAGNOSIS_LLM_MODEL` (default `claude-opus-5-5`), `PIDS_DIAGNOSIS_LLM_EFFORT` (default `high`), `PIDS_DIAGNOSIS_LLM_FALLBACKS=false` to disable server-side refusal fallbacks | deterministic simulation |
 
-Python packages: `anthropic` (Claude) and `qdrant-client` (already in the project's `storage`
-extra) are imported only when those components are used.
+Python packages: `anthropic` (Claude option only) and `qdrant-client` (already in the project's
+`storage` extra) are imported only when those components are used. The OpenAI-compatible client
+uses the standard library only.
 
 `TaskContext.evidence_refs` contains identifiers only. Resolved evidence content is passed to
 `DiagnosisAgent.handle(task, resolved_evidence)` as `ResolvedEvidence` records defined in this
@@ -121,7 +124,43 @@ events, so a deployment found by Kubernetes can establish a post-deployment leak
 responses (`--tool-responses`, format `{"tools": {"<tool>": {"<operation>": [evidence...]}}}`)
 replay the same path offline with `fixture` provenance.
 
-## Claude supplemental review
+## LLM supplemental review (OpenAI-compatible, default)
+
+`OpenAICompatibleAnalyzer` (in `llm_analyzer.py`) calls `POST {LLM_BASE_URL}/chat/completions`
+with function tools for the read-only toolbox. The answer schema is given in the system prompt
+(not every compatible endpoint enforces JSON schemas); the last round offers no tools and asks
+for `response_format: json_object`, so the model must answer. Fenced JSON is accepted, and
+evidence IDs the model invents are dropped with a limitation.
+
+| Variable | Meaning | Default |
+|---|---|---|
+| `LLM_BASE_URL` | endpoint base URL | `http://localhost:11434/v1` (Ollama) |
+| `LLM_MODEL` | model name | required |
+| `LLM_API_KEY_ENV` | **name** of the variable holding the key (the key itself is never in a file) | unset: no key (Ollama) |
+| `LLM_MAX_RETRIES` | retries after 429 / 5xx | `5` |
+| `LLM_RETRY_BASE_SECONDS` | backoff base when the server gives no delay | `2` |
+| `LLM_TIMEOUT_SECONDS` | budget per diagnosis, waits included | `300` |
+| `LLM_JSON_MODE` | `false` if the endpoint rejects `response_format` | `true` |
+| `LLM_SCENARIO_DELAY_SECONDS` | evaluation pause between LLM scenarios (`--scenario-delay`) | `0` |
+
+| Target | `LLM_BASE_URL` | `LLM_API_KEY_ENV` |
+|---|---|---|
+| Groq | `https://api.groq.com/openai/v1` | `GROQ_API_KEY` |
+| Gemini | `https://generativelanguage.googleapis.com/v1beta/openai/` | `GEMINI_API_KEY` |
+| Ollama (local) | `http://localhost:11434/v1` | unset |
+
+Rate limits: a 429 (or 500/502/503/504) is retried after the server's `Retry-After` header or
+Gemini's `retryDelay`, else after `base × 2^attempt` seconds, capped at 90 s and within the
+time budget. When retries run out, the diagnosis falls back to the rules with a limitation.
+
+```powershell
+$env:LLM_BASE_URL = "https://api.groq.com/openai/v1"
+$env:LLM_MODEL = "llama-3.3-70b-versatile"
+$env:LLM_API_KEY_ENV = "GROQ_API_KEY"   # GROQ_API_KEY itself is set separately
+py -3 -m src.agents.diagnosis.evaluation.evaluate --output-dir out\evaluation --llm --scenario-delay 3
+```
+
+## Claude supplemental review (option)
 
 `ClaudeSupplementalAnalyzer` (in `llm_analyzer.py`) runs a manual tool-use loop on the Messages
 API with `claude-opus-5-5`, `output_config.effort` and a strict JSON answer schema whose
@@ -336,7 +375,10 @@ the tool calls a replan must trigger.
 
 ```powershell
 py -3 -m src.agents.diagnosis.evaluation.evaluate --output-dir out\evaluation
-py -3 -m src.agents.diagnosis.evaluation.evaluate --output-dir out\evaluation --llm   # billed
+py -3 -m src.agents.diagnosis.evaluation.evaluate --output-dir out\evaluation --llm --scenario-delay 3
+py -3 -m src.agents.diagnosis.evaluation.evaluate --output-dir out\evaluation --llm anthropic   # billed
+py -3 -m src.agents.diagnosis.evaluation.evaluate --output-dir out\evaluation --qdrant-url http://127.0.0.1:6333
+py -3 -m src.agents.diagnosis.evaluation.evaluate --output-dir out\evaluation --llm --scenario-delay 3 --repeat 3
 ```
 
 The report (`evaluation_report.md` / `.json`) compares configurations on the section 18
@@ -355,4 +397,21 @@ produce one `diagnosis.completed`). Results at the time of writing:
 
 These scenarios were written together with the rules, so they measure coverage and regressions,
 not accuracy on unseen incidents; replace or extend them with real incidents as they occur. The
-`full+llm` column appears only with `--llm` and needs Anthropic API credentials.
+`full+llm` column appears only with `--llm`. Scenarios named `S13-hard-*` and later are
+built to defeat the rules (wrong candidate confidently on top, unusual log wording, misleading
+change, contradictory readings). On them the LLM review is measured by the **confident errors**
+it avoids: a wrong cause reported without `requires_additional_evidence`, counted per scenario
+("1 sur 16"). The LLM only reorders close candidates or flags a disagreement (including an
+explicit `NONE`); it never adds a cause or triggers an action. `--repeat N` re-runs the LLM mode
+and reports each run, the mean, the worst case and the timeouts.
+
+S13 and S15 were first failed by the rules; two rules were then added (Envoy/Istio/gRPC wording
+such as `no healthy upstream` or `503 UF` counts as a dependency failure, signature
+`upstream_unavailable`; a change that lowers the memory limit, with OOM kills and no measured
+growth, is `MEMORY_LIMIT_REACHED` rather than a leak). S21 and S22 were written **before** that
+fix, with different services, wording and notation (`limits.memory 1Gi -> 512Mi`), to check that
+the rules generalise beyond the two scenarios; they were still written by us, so they are not a
+substitute for unseen real incidents. Scenarios `Snn-lab-*` are real lab incidents (see
+`lab/README.md`). The report names the model used by each
+configuration, the share of scenarios where the LLM answer was usable, the 429 retries, and the
+reason for each fallback to the rules.

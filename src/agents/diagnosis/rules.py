@@ -11,7 +11,13 @@ from src.agents.diagnosis.contracts import (
     Hypothesis,
     RecentChangeEvent,
 )
-from src.agents.diagnosis.signatures import dependency_of, is_config_change, signatures_of
+from src.agents.diagnosis.signatures import (
+    DEPENDENCY_SIGNATURES,
+    dependency_of,
+    is_config_change,
+    memory_limit_lowered,
+    signatures_of,
+)
 
 
 AGENT1_MEMORY_GROWTH_MIN_SLOPE_MO_PER_MIN = 5.0
@@ -20,6 +26,7 @@ AGENT1_DEPLOYMENT_DETECTION_MARGIN = timedelta(minutes=5)
 # Older deployments are too weakly correlated to explain a new memory rise.
 POST_DEPLOY_CORRELATION_WINDOW = timedelta(hours=6)
 POST_DEPLOY_CORRELATION_BONUS = 0.1
+MEMORY_GROWTH_BONUS = 0.15
 SYMPTOM_ONLY_CPU_PERCENT = 50.0
 SYMPTOM_ONLY_RESOURCE_FACTOR = 0.5
 DEPENDENCY_SUSPECT_MIN_PROBABILITY = 0.3
@@ -364,9 +371,17 @@ def _memory_hypothesis(
             growth_ref = f"EVD-{payload.incident_id}-MEMORY-GROWTH"
             if any(item.evidence_id == growth_ref for item in payload.evidence):
                 evidence_refs.append(growth_ref)
+                # A measured growth is the core evidence of a leak; caught early (before OOM
+                # restarts or latency impact) the other terms are still low (lab: 0.57).
+                score += MEMORY_GROWTH_BONUS
         qualifying_refs = _qualifying_deployment_refs(payload)
         evidence_refs.extend(qualifying_refs)
         if qualifying_refs:
+            score += POST_DEPLOY_CORRELATION_BONUS
+    if cause == "MEMORY_LIMIT_REACHED":
+        limit_refs = _memory_limit_cut_refs(payload)
+        evidence_refs.extend(limit_refs)
+        if limit_refs:
             score += POST_DEPLOY_CORRELATION_BONUS
     return Hypothesis(
         rank=1,
@@ -497,6 +512,15 @@ def _uncertain_deployment_correlation(payload: DiagnosisInput) -> bool:
     )
 
 
+def _memory_limit_cut_refs(payload: DiagnosisInput) -> tuple[str, ...]:
+    """Change records (commits, configs, rollouts) that lowered the memory limit."""
+    return tuple(
+        item.evidence_id
+        for item in payload.evidence
+        if item.evidence_type in ("git_change", "config", "k8s_event") and memory_limit_lowered(item)
+    )
+
+
 def _refs_with_signature(payload: DiagnosisInput, *names: str) -> tuple[str, ...]:
     wanted = set(names)
     return tuple(
@@ -569,7 +593,7 @@ def _dependency_hypotheses(
                 evidence_refs=pool_refs,
             )
         )
-    dependency_refs = _refs_with_signature(payload, "connection_refused", "dependency_timeout")
+    dependency_refs = _refs_with_signature(payload, *sorted(DEPENDENCY_SIGNATURES))
     if dependency_refs:
         hypotheses.append(
             Hypothesis(
@@ -699,11 +723,14 @@ def evaluate_hypotheses(payload: DiagnosisInput) -> list[Hypothesis]:
             )
         )
         qualifying_change = _qualifying_deployment_precedes_memory_rise(payload)
-        memory_cause = (
-            "MEMORY_LEAK_POST_DEPLOY"
-            if has_memory_failure_signal and qualifying_change
-            else "MEMORY_PRESSURE"
-        )
+        if has_memory_failure_signal and _memory_limit_cut_refs(payload) and not payload.memory_growth_observed:
+            # The release lowered the limit and memory did not grow: the workload no longer
+            # fits, it does not leak (raise the limit or revert the change, no restart loop).
+            memory_cause = "MEMORY_LIMIT_REACHED"
+        elif has_memory_failure_signal and qualifying_change:
+            memory_cause = "MEMORY_LEAK_POST_DEPLOY"
+        else:
+            memory_cause = "MEMORY_PRESSURE"
         hypotheses.append(_memory_hypothesis(payload, memory_cause, conflicts))
 
     crash_loop = _crash_loop_hypothesis(payload)

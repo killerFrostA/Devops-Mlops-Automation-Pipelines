@@ -1,0 +1,262 @@
+{
+  "scenario_id": "S20-lab-bad-config",
+  "title": "Lab (real run): Release 1.4.1 sets PAYMENT_TIMEOUT_MS=5s: the new pod exits at start (CrashLoopBackOff).",
+  "architecture_ref": "18.1 Live lab incident (kind), recorded tool responses",
+  "event": {
+    "incident_id": "INC-LAB-BAD-CONFIG-20261102T144108Z",
+    "service_id": "payment-service",
+    "namespace": "prod",
+    "environment": "production",
+    "severity": "MEDIUM",
+    "priority": "P2",
+    "detected_at": "2026-11-02T14:41:08.158489+00:00",
+    "signals": {
+      "memory_pct": 22.0,
+      "memory_slope_mb_min": 0.2,
+      "latency_p95_ms": 43.1,
+      "pod_restarts": 2.2,
+      "detected_at": "2026-11-02T14:41:08.158489+00:00"
+    }
+  },
+  "tool_responses": {
+    "prometheus": {
+      "memory_percent": [
+        {
+          "evidence_type": "metric",
+          "source": "prometheus",
+          "observed_at": "2026-11-02T14:41:08.233757Z",
+          "summary": "Prometheus reports memory_percent=22 for payment-service.",
+          "value": {
+            "memory_percent": 22.013,
+            "query": "100 * max(container_memory_working_set_bytes{namespace=\"prod\",pod=~\"payment-service-.*\"}) / max(kube_pod_container_resource_limits{namespace=\"prod\",pod=~\"payment-service-.*\",resource=\"memory\"})"
+          }
+        }
+      ],
+      "cpu_percent": [
+        {
+          "evidence_type": "metric",
+          "source": "prometheus",
+          "observed_at": "2026-11-02T14:41:08.247102Z",
+          "summary": "Prometheus reports cpu_percent=1.67 for payment-service.",
+          "value": {
+            "cpu_percent": 1.672,
+            "query": "100 * sum(rate(container_cpu_usage_seconds_total{namespace=\"prod\",pod=~\"payment-service-.*\"}[5m])) / sum(kube_pod_container_resource_limits{namespace=\"prod\",pod=~\"payment-service-.*\",resource=\"cpu\"})"
+          }
+        }
+      ],
+      "restart_count": [
+        {
+          "evidence_type": "metric",
+          "source": "prometheus",
+          "observed_at": "2026-11-02T14:41:08.252042Z",
+          "summary": "Prometheus reports restart_count=2.24 for payment-service.",
+          "value": {
+            "restart_count": 2.245,
+            "query": "max(increase(kube_pod_container_status_restarts_total{namespace=\"prod\",pod=~\"payment-service-.*\"}[3600s]))"
+          }
+        }
+      ],
+      "latency_p95_ms": [
+        {
+          "evidence_type": "metric",
+          "source": "prometheus",
+          "observed_at": "2026-11-02T14:41:08.270292Z",
+          "summary": "Prometheus reports latency_ms=43.1 for payment-service.",
+          "value": {
+            "latency_ms": 43.08,
+            "query": "1000 * histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{namespace=\"prod\",service=\"payment-service\"}[5m])))"
+          }
+        }
+      ],
+      "request_rate": [
+        {
+          "evidence_type": "metric",
+          "source": "prometheus",
+          "observed_at": "2026-11-02T14:41:08.305028Z",
+          "summary": "Prometheus reports rps=1.64 for payment-service.",
+          "value": {
+            "rps": 1.637,
+            "query": "sum(rate(http_requests_total{namespace=\"prod\",service=\"payment-service\"}[5m]))"
+          }
+        }
+      ],
+      "heap_usage": [
+        {
+          "evidence_type": "metric",
+          "source": "prometheus",
+          "observed_at": "2026-11-02T14:41:08.314025Z",
+          "summary": "Prometheus reports heap_mb=21.2 for payment-service.",
+          "value": {
+            "heap_mb": 21.23,
+            "query": "max(process_resident_memory_bytes{namespace=\"prod\",pod=~\"payment-service-.*\"}) / 1048576"
+          }
+        }
+      ]
+    },
+    "loki": {
+      "error_logs": [
+        {
+          "evidence_type": "log",
+          "source": "loki",
+          "observed_at": "2026-11-02T14:41:08.411542Z",
+          "summary": "4 error log lines for payment-service (config_invalid).",
+          "value": {
+            "line_count": 4,
+            "lines": [
+              "2026-11-02T14:40:54.931+00:00 FATAL invalid configuration: PAYMENT_TIMEOUT_MS='5s' is not a valid positive integer",
+              "2026-11-02T14:40:25.550+00:00 FATAL invalid configuration: PAYMENT_TIMEOUT_MS='5s' is not a valid positive integer",
+              "2026-11-02T14:40:11.906+00:00 FATAL invalid configuration: PAYMENT_TIMEOUT_MS='5s' is not a valid positive integer",
+              "2026-11-02T14:40:09.831+00:00 FATAL invalid configuration: PAYMENT_TIMEOUT_MS='5s' is not a valid positive integer"
+            ],
+            "signatures": [
+              "config_invalid"
+            ]
+          }
+        }
+      ]
+    },
+    "kubernetes": {
+      "pod_status": [
+        {
+          "evidence_type": "k8s_event",
+          "source": "kubernetes",
+          "observed_at": "2026-11-02T14:41:08.553213Z",
+          "summary": "2 pods of payment-service: max 3 restarts; reasons Error.",
+          "value": {
+            "restart_count": 3,
+            "reason": "Error",
+            "waiting_reasons": {},
+            "termination_reasons": {
+              "Error": 1
+            },
+            "exit_codes": [
+              1
+            ]
+          }
+        }
+      ],
+      "events": [
+        {
+          "evidence_type": "k8s_event",
+          "source": "kubernetes",
+          "observed_at": "2026-11-02T14:41:08.685929Z",
+          "summary": "Kubernetes warning events: {'Unhealthy': 2, 'BackOff': 1}.",
+          "value": {
+            "reason": "Unhealthy BackOff",
+            "event_counts": {
+              "Unhealthy": 2,
+              "BackOff": 1
+            },
+            "lines": [
+              "Readiness probe failed: Get \"http://10.244.0.10:8080/healthz\": dial tcp 10.244.0.10:8080: connect: connection refused",
+              "Readiness probe failed: Get \"http://10.244.0.12:8080/healthz\": dial tcp 10.244.0.12:8080: connect: connection refused",
+              "Back-off restarting failed container payment-service in pod payment-service-845768d6f8-lwcrp_prod(da5f72bc-c2f4-43ce-a765-3d35ed080fa4)"
+            ]
+          }
+        }
+      ],
+      "deployment_history": [
+        {
+          "evidence_type": "k8s_event",
+          "source": "kubernetes",
+          "observed_at": "2026-11-02T14:39:31Z",
+          "summary": "Deployment revision 1 rolled out at 2026-11-02T14:39:31+00:00 (pids-lab/app:1).",
+          "value": {
+            "change_id": "payment-service-rev1",
+            "description": "Deployment revision 1 (pids-lab/app:1)",
+            "changed_at": "2026-11-02T14:39:31+00:00"
+          }
+        },
+        {
+          "evidence_type": "k8s_event",
+          "source": "kubernetes",
+          "observed_at": "2026-11-02T14:40:05Z",
+          "summary": "Deployment revision 2 rolled out at 2026-11-02T14:40:05+00:00 (pids-lab/app:1).",
+          "value": {
+            "change_id": "payment-service-rev2",
+            "description": "Deployment revision 2 (pids-lab/app:1)",
+            "changed_at": "2026-11-02T14:40:05+00:00"
+          }
+        }
+      ]
+    },
+    "git": {
+      "recent_changes": [
+        {
+          "evidence_type": "git_change",
+          "source": "git",
+          "observed_at": "2026-11-02T15:40:04+01:00",
+          "summary": "Commit 39258aa44991 at 2026-11-02T15:40:04+01:00: config: PAYMENT_TIMEOUT_MS=5s [config/values.yaml].",
+          "value": {
+            "change_id": "39258aa44991",
+            "description": "config: PAYMENT_TIMEOUT_MS=5s [config/values.yaml]",
+            "changed_at": "2026-11-02T15:40:04+01:00",
+            "files": [
+              "config/values.yaml"
+            ]
+          }
+        },
+        {
+          "evidence_type": "git_change",
+          "source": "git",
+          "observed_at": "2026-11-02T15:33:03+01:00",
+          "summary": "Commit ee0bece1b38b at 2026-11-02T15:33:03+01:00: config: DB pool size 1 [config/values.yaml].",
+          "value": {
+            "change_id": "ee0bece1b38b",
+            "description": "config: DB pool size 1 [config/values.yaml]",
+            "changed_at": "2026-11-02T15:33:03+01:00",
+            "files": [
+              "config/values.yaml"
+            ]
+          }
+        },
+        {
+          "evidence_type": "git_change",
+          "source": "git",
+          "observed_at": "2026-11-02T15:16:55+01:00",
+          "summary": "Commit 9bc6b36666b5 at 2026-11-02T15:16:55+01:00: Revert \"release 1.4.0: in-memory response cache\" [src/cache.py].",
+          "value": {
+            "change_id": "9bc6b36666b5",
+            "description": "Revert \"release 1.4.0: in-memory response cache\" [src/cache.py]",
+            "changed_at": "2026-11-02T15:16:55+01:00",
+            "files": [
+              "src/cache.py"
+            ]
+          }
+        },
+        {
+          "evidence_type": "git_change",
+          "source": "git",
+          "observed_at": "2026-11-02T15:05:50+01:00",
+          "summary": "Commit b9bdee793111 at 2026-11-02T15:05:50+01:00: release 1.4.0: in-memory response cache [src/cache.py].",
+          "value": {
+            "change_id": "b9bdee793111",
+            "description": "release 1.4.0: in-memory response cache [src/cache.py]",
+            "changed_at": "2026-11-02T15:05:50+01:00",
+            "files": [
+              "src/cache.py"
+            ]
+          }
+        },
+        {
+          "evidence_type": "git_change",
+          "source": "git",
+          "observed_at": "2026-11-02T15:03:49+01:00",
+          "summary": "Commit 7a3e1e5694c6 at 2026-11-02T15:03:49+01:00: release 1.3.0 (baseline) [config/values.yaml].",
+          "value": {
+            "change_id": "7a3e1e5694c6",
+            "description": "release 1.3.0 (baseline) [config/values.yaml]",
+            "changed_at": "2026-11-02T15:03:49+01:00",
+            "files": [
+              "config/values.yaml"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "expected": {
+    "root_cause": "CONFIG_ERROR_CRASHLOOP",
+    "first_action": "ROLLBACK_OR_REVERT_DEPLOYMENT"
+  }
+}

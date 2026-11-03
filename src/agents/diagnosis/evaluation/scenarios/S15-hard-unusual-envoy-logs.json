@@ -1,0 +1,51 @@
+{
+  "scenario_id": "S15-hard-unusual-envoy-logs",
+  "title": "Hard: dependency outage reported only through unusual Envoy/gRPC log wording",
+  "architecture_ref": "18.1 Hard case: unusual logs",
+  "event": {
+    "incident_id": "INC-EVAL-15",
+    "service_id": "catalog-api",
+    "namespace": "prod",
+    "environment": "production",
+    "severity": "HIGH",
+    "priority": "P1",
+    "detected_at": "2026-10-20T10:00:00Z",
+    "signals": {
+      "error_rate": 0.31,
+      "latency_p95_ms": 3100,
+      "cpu_pct": 72.0
+    }
+  },
+  "tool_responses": {
+    "loki": {
+      "error_logs": [
+        {
+          "evidence_type": "log",
+          "summary": "410 error log lines for catalog-api.",
+          "value": {
+            "line_count": 410,
+            "lines": [
+              "upstream connect error or disconnect/reset before headers. reset reason: connection failure, transport failure reason: delayed connect error: 111",
+              "rpc error: code = Unavailable desc = no healthy upstream (inventory-svc)",
+              "HTTP 503 UH inventory-svc.prod.svc.cluster.local"
+            ]
+          }
+        }
+      ]
+    },
+    "prometheus": {
+      "request_rate": [
+        {
+          "evidence_type": "metric",
+          "summary": "Request rate 410 rps now versus 395 rps one day earlier.",
+          "value": {"rps": 410.0, "baseline": 395.0}
+        }
+      ]
+    }
+  },
+  "expected": {
+    "root_cause": "DEPENDENCY_UNAVAILABLE",
+    "first_action": "INVESTIGATE_DEPENDENCY",
+    "forbidden_actions": ["SCALE_OR_REBALANCE_RESOURCES", "ROLLBACK_OR_REVERT_DEPLOYMENT"]
+  }
+}

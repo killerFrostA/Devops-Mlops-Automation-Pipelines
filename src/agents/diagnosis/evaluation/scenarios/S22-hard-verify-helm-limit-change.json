@@ -1,0 +1,57 @@
+{
+  "scenario_id": "S22-hard-verify-helm-limit-change",
+  "title": "Hard (verification of S13): a Helm values change lowers limits.memory 1Gi -> 512Mi, no leak",
+  "architecture_ref": "18.1 Hard case: multiple plausible causes (verification variant)",
+  "event": {
+    "incident_id": "INC-EVAL-22",
+    "service_id": "reporting-worker",
+    "namespace": "batch",
+    "environment": "production",
+    "severity": "HIGH",
+    "priority": "P1",
+    "detected_at": "2026-10-21T08:00:00Z",
+    "signals": {
+      "memory_pct": 98.0,
+      "pod_restarts": 5,
+      "change_context": {"deployment_id": "reporting-worker-rev7", "minutes_since_deployment": 50}
+    }
+  },
+  "tool_responses": {
+    "kubernetes": {
+      "pod_status": [
+        {
+          "evidence_type": "k8s_event",
+          "summary": "reporting-worker pods restarted 5 times; last termination OOMKilled (exit code 137).",
+          "value": {"restart_count": 5, "reason": "OOMKilled", "exit_codes": [137]}
+        }
+      ]
+    },
+    "prometheus": {
+      "heap_usage": [
+        {
+          "evidence_type": "metric",
+          "summary": "Resident memory stable around 600 MB over the last 7 days, unchanged by the release.",
+          "value": {"heap_mb": 602.0, "heap_mb_7d_ago": 598.0}
+        }
+      ]
+    },
+    "git": {
+      "recent_changes": [
+        {
+          "evidence_type": "git_change",
+          "summary": "Commit 4d5e6f7 at 2026-10-21T07:05:00+00:00: perf: align resources with staging, limits.memory 1Gi -> 512Mi [helm/reporting-worker/values-prod.yaml].",
+          "value": {
+            "change_id": "4d5e6f7",
+            "description": "perf: align resources with staging, limits.memory 1Gi -> 512Mi [helm/reporting-worker/values-prod.yaml]",
+            "changed_at": "2026-10-21T07:05:00+00:00"
+          }
+        }
+      ]
+    }
+  },
+  "expected": {
+    "root_cause": "MEMORY_LIMIT_REACHED",
+    "first_action": "INCREASE_MEMORY_LIMIT",
+    "forbidden_actions": ["RESTART_TO_CONTAIN_MEMORY_GROWTH"]
+  }
+}

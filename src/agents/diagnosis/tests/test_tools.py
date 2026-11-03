@@ -134,10 +134,48 @@ def test_git_tool_parses_commits_and_changed_files() -> None:
     assert item.value["changed_at"] == committed
 
 
+def test_loki_reads_only_recent_errors_so_a_resolved_incident_does_not_pollute(monkeypatch) -> None:
+    seen = {}
+
+    def fake_get(base_url, path, params, timeout):
+        seen.update(params)
+        return {"data": {"result": []}}
+
+    monkeypatch.setattr(tools, "_http_get_json", fake_get)
+    LokiLogsTool("http://loki").run("error_logs", _context())  # context lookback: 1 hour
+    window_minutes = (int(seen["end"]) - int(seen["start"])) / 1e9 / 60
+    assert window_minutes == pytest.approx(15, abs=0.01)
+
+    toolbox = tools.build_toolbox_from_env({"PIDS_LOKI_URL": "http://loki", "PIDS_LOKI_WINDOW_MINUTES": "40"})
+    assert toolbox.tools[0]._window == timedelta(minutes=40)
+    with pytest.raises(ToolError, match="PIDS_LOKI_WINDOW_MINUTES"):
+        tools.build_toolbox_from_env({"PIDS_LOKI_URL": "http://loki", "PIDS_LOKI_WINDOW_MINUTES": "abc"})
+
+
+def test_only_the_current_error_episode_is_kept() -> None:
+    # Lab timeline: dependency errors at 14:26-14:27 (resolved), quiet, then pool errors from 14:33.
+    def at(minute: int, second: int = 0) -> int:
+        return int(datetime(2026, 11, 2, 14, minute, second, tzinfo=UTC).timestamp() * 1e9)
+
+    entries = [
+        (at(26, 40), "connect timed out to ledger-db:5432"),
+        (at(27, 8), "dial tcp ledger-db:5432: connect: connection refused"),
+        (at(33, 10), "connection pool exhausted (size=1)"),
+        (at(34, 55), "connection pool exhausted (size=1)"),
+        (at(35, 50), "connection pool exhausted (size=1)"),
+    ]
+
+    assert tools.current_error_episode(entries) == ["connection pool exhausted (size=1)"] * 3
+    assert len(tools.current_error_episode(entries, gap=timedelta(minutes=10))) == 5
+    assert tools.current_error_episode([]) == []
+
+
 def test_prometheus_and_loki_tools_turn_responses_into_evidence(monkeypatch) -> None:
     def fake_get(base_url, path, params, timeout):
         if path == "/api/v1/query":
-            value = "700" if "offset 1d" in params["query"] else "1500"
+            # Real Prometheus rejects "sum(...) offset 1d" (HTTP 400): offset must follow a selector.
+            assert not params["query"].endswith(") offset 1d"), params["query"]
+            value = "700" if "[5m] offset 1d" in params["query"] else "1500"
             return {"status": "success", "data": {"result": [{"value": [0, value]}]}}
         return {"data": {"result": [{"values": [
             ["1", "dial tcp payments-db:5432: connect: connection refused"],

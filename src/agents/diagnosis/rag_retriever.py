@@ -17,7 +17,7 @@ class _CorpusDocument(BaseModel):
     summary: str = Field(min_length=1)
     tags: tuple[str, ...] = Field(min_length=1)
     root_cause: str | None
-    origin: Literal["synthetic_example", "repository_source"]
+    origin: Literal["synthetic_example", "repository_source", "lab_observation"]
 
     @field_validator("tags")
     @classmethod

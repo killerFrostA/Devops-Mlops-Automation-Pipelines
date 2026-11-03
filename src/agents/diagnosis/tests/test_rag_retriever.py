@@ -13,8 +13,12 @@ from src.agents.diagnosis.rag_retriever import (
 from src.agents.diagnosis.result_builder import build_result
 
 
-def test_valid_json_corpora_load_and_lexical_ranking_is_exact_and_deterministic() -> None:
-    retrieval = LocalKnowledgeRetriever().retrieve("memory restart latency", limit=3)
+def test_valid_json_corpora_load_and_lexical_ranking_is_exact_and_deterministic(tmp_path: Path) -> None:
+    # Exact ranks are checked on the curated corpus; lab captures (*_lab.json) keep growing.
+    for path in rag_retriever._DEFAULT_KNOWLEDGE_DIR.glob("*.json"):
+        if not path.stem.endswith("_lab"):
+            (tmp_path / path.name).write_bytes(path.read_bytes())
+    retrieval = LocalKnowledgeRetriever(tmp_path).retrieve("memory restart latency", limit=3)
 
     assert [(item.reference_id, item.score) for item in retrieval.similar_incidents] == [
         ("LOCAL-INC-120", 0.75),

@@ -1,9 +1,11 @@
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
 from src.agents.diagnosis.contracts import DiagnosisInput, EvidenceItem, RecentChangeEvent
 from src.agents.diagnosis.result_builder import build_result, evidence_strength
 from src.agents.diagnosis.rules import evaluate_hypotheses
-from src.agents.diagnosis.signatures import line_signatures, signatures_of
+from src.agents.diagnosis.signatures import line_signatures, memory_limit_lowered, signatures_of
 
 
 def _item(evidence_id: str, evidence_type: str, summary: str, **value: object) -> EvidenceItem:
@@ -191,3 +193,38 @@ def test_evidence_strength_rewards_variety_and_observed_provenance() -> None:
     assert result.evidence_strength == round(0.6 * (2 / 3) + 0.4 * 1.0, 2)
     assert 0 < derived_only.evidence_strength < result.evidence_strength
     assert evidence_strength(result.hypotheses[0], []) == 0.0
+
+
+def _change(text: str) -> EvidenceItem:
+    return EvidenceItem(
+        evidence_id="EVD-CHANGE", evidence_type="git_change", source="git", provenance="provided",
+        observed_at=datetime(2026, 10, 20, 9, tzinfo=UTC), summary=text, value={"description": text},
+    )
+
+
+@pytest.mark.parametrize(
+    ("text", "lowered"),
+    [
+        ("chore: lower memory limit to 256Mi to save cost", True),
+        ("perf: align resources, limits.memory 1Gi -> 512Mi", True),
+        ("set memory limit from 512Mi to 256Mi", True),
+        ("raise limits.memory 512Mi -> 1Gi", False),
+        ("memory limit 1Gi -> 1024Mi (same size)", False),
+        ("fix memory leak in cache", False),
+    ],
+)
+def test_memory_limit_lowered_compares_sizes(text: str, lowered: bool) -> None:
+    assert memory_limit_lowered(_change(text)) is lowered
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "upstream connect error or disconnect/reset before headers. reset reason: connection failure",
+        "rpc error: code = Unavailable desc = no healthy upstream",
+        '"GET /v2/prices HTTP/1.1" 503 UF,URX upstream_reset_before_response_started',
+    ],
+)
+def test_envoy_and_grpc_wording_is_a_dependency_failure(line: str) -> None:
+    assert "upstream_unavailable" in line_signatures(line)
+    assert "upstream_unavailable" not in line_signatures("HTTP 503 from our own handler: maintenance mode")

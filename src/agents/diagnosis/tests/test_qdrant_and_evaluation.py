@@ -15,6 +15,7 @@ from src.agents.diagnosis.qdrant_retriever import (
     QdrantKnowledgeRetriever,
     index_knowledge,
 )
+from src.agents.diagnosis.rag_retriever import load_corpus
 from src.agents.diagnosis.tools import ToolError
 
 
@@ -52,7 +53,8 @@ def test_on_disk_store_can_be_indexed_and_reopened(tmp_path: Path) -> None:
     retriever.client.close()
 
     reopened = QdrantKnowledgeRetriever.connect(path=store)
-    assert counts == {COLLECTIONS["incident"]: 8, COLLECTIONS["runbook"]: 6}
+    incidents, runbooks = load_corpus()  # grows with lab captures (incidents_lab.json)
+    assert counts == {COLLECTIONS["incident"]: len(incidents), COLLECTIONS["runbook"]: len(runbooks)}
     assert reopened.retrieve("container oom memory limit reached", 1).similar_incidents
     reopened.client.close()
     with pytest.raises(ValueError, match="exactly one"):
@@ -91,10 +93,15 @@ def test_runner_replays_recorded_tool_responses(tmp_path: Path) -> None:
 
 
 def test_scenarios_cover_the_architecture_list_and_evaluate_without_regressions() -> None:
-    scenarios = load_scenarios()
+    # S01-S12 cover the architecture list and are solved by the rules with tools; the "hard"
+    # scenarios (S13+) are meant to defeat the rules and are measured separately.
+    all_scenarios = load_scenarios()
+    scenarios = [
+        item for item in all_scenarios if not any(tag in item.scenario_id for tag in ("-hard-", "-lab-"))
+    ]
     report = run_evaluation(scenarios)
 
-    assert len(scenarios) == 12
+    assert len(scenarios) == 12 and len(all_scenarios) >= 15
     baseline = report["metrics"]["rules"]
     tools = report["metrics"]["rules+tools"]
     vector = report["metrics"]["rules+tools+qdrant"]

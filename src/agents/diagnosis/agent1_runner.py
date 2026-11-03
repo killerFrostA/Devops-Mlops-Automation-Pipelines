@@ -11,7 +11,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-import os
 import re
 import sys
 from copy import deepcopy
@@ -28,7 +27,7 @@ from src.agents.diagnosis.envelope_builder import (
     append_diagnosis_jsonl,
 )
 from src.agents.diagnosis.file_runner import IncidentFile, render_markdown_report
-from src.agents.diagnosis.llm_analyzer import build_analyzer_from_env
+from src.agents.diagnosis.llm_analyzer import LLMConfigurationError, build_analyzer_from_env
 from src.agents.diagnosis.qdrant_retriever import QdrantKnowledgeRetriever
 from src.agents.diagnosis.rules import AGENT1_MEMORY_GROWTH_MIN_SLOPE_MO_PER_MIN
 from src.agents.diagnosis.service import DiagnosisAgent
@@ -217,6 +216,10 @@ def _incident_tasks(received: EventEnvelope) -> list[AgentTask]:
             and slope >= AGENT1_MEMORY_GROWTH_MIN_SLOPE_MO_PER_MIN
         ):
             signals["memory_growth_observed"] = True
+            # Without change_context the deployment may still be found by the tools, so the
+            # rise must be dated here too (detection time, as in _change_context_signals).
+            detected_at = _aware_timestamp(signals.get("detected_at")) or received.timestamp
+            signals.setdefault("memory_rise_started_at", detected_at.isoformat())
         per_incident.append(
             (received.correlation_id, received.service.service_id, None, signals)
         )
@@ -345,7 +348,7 @@ def build_agent(
     rag: str = "local",
     qdrant_url: str | None = None,
     qdrant_path: Path | None = None,
-    llm: bool = False,
+    llm: str | None = None,
 ) -> DiagnosisAgent:
     """Assemble the agent from optional tools, retriever and language model."""
     toolbox: Toolbox | None = None
@@ -365,9 +368,7 @@ def build_agent(
     elif rag == "qdrant":
         retriever = QdrantKnowledgeRetriever.in_memory()
 
-    analyzer = None
-    if llm:
-        analyzer = build_analyzer_from_env(toolbox, {**os.environ, "PIDS_DIAGNOSIS_LLM": "claude"})
+    analyzer = build_analyzer_from_env(toolbox, provider=llm) if llm else None
     return DiagnosisAgent(retriever=retriever, analyzer=analyzer, toolbox=toolbox)
 
 
@@ -407,8 +408,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--qdrant-path", type=Path, help="Use an indexed local Qdrant store instead.")
     parser.add_argument(
         "--llm",
-        action="store_true",
-        help="Add Claude's supplemental review (needs ANTHROPIC_API_KEY; billed API calls).",
+        nargs="?",
+        const="openai",
+        choices=("openai", "anthropic"),
+        help="Add an LLM supplemental review. openai (default): OpenAI-compatible endpoint from "
+        "LLM_BASE_URL, LLM_MODEL, LLM_API_KEY_ENV (Groq, Gemini, Ollama); anthropic: Claude "
+        "(ANTHROPIC_API_KEY, billed).",
     )
     args = parser.parse_args(argv)
 
@@ -422,7 +427,7 @@ def main(argv: list[str] | None = None) -> int:
             llm=args.llm,
         )
         written = run_agent1_file(args.agent1_file, args.output_dir, args.output_jsonl, agent)
-    except (Agent1InputError, DiagnosisEnvelopeError, ToolError) as exc:
+    except (Agent1InputError, DiagnosisEnvelopeError, ToolError, LLMConfigurationError) as exc:
         print(f"Agent 1 diagnosis error: {exc}", file=sys.stderr)
         return 2
 
