@@ -15,7 +15,6 @@ from src.agents.diagnosis.file_runner import (
 )
 from src.contracts.enums import ResultStatus
 
-
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
 
 
@@ -186,13 +185,15 @@ def test_file_runner_reports_reference_without_attached_evidence(tmp_path: Path)
     result, _, markdown_path = run_incident_file(EXAMPLES / "insufficient_evidence.json", tmp_path)
 
     assert any(
-        "UPSTREAM-EVIDENCE-NOT-INCLUDED" in limitation
-        and "not resolved" in limitation
+        "UPSTREAM-EVIDENCE-NOT-INCLUDED" in limitation and "not resolved" in limitation
         for limitation in result.diagnosis.limitations
     )
     assert result.diagnosis.primary_root_cause == "INSUFFICIENT_EVIDENCE"
     assert result.diagnosis.requires_additional_evidence is True
-    assert any("No memory utilization measurement" in item for item in result.explainability.missing_information)
+    assert any(
+        "No memory utilization measurement" in item
+        for item in result.explainability.missing_information
+    )
     assert "No memory utilization measurement" in markdown_path.read_text(encoding="utf-8")
 
 
@@ -230,7 +231,9 @@ def test_input_rejects_unknown_fields_and_duplicate_evidence_refs() -> None:
         )
 
 
-def test_cli_writes_both_reports_and_prints_paths(tmp_path: Path, capsys) -> None:
+def test_cli_writes_both_reports_and_prints_paths(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     exit_code = main(
         [
             str(EXAMPLES / "insufficient_evidence.json"),

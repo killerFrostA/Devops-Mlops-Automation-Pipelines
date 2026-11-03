@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import Draft202012Validator, FormatChecker  # type: ignore[import-untyped]
 
 from src.agents.diagnosis.contracts import DiagnosisAgentResult
 from src.agents.diagnosis.envelope_builder import (
@@ -14,14 +14,12 @@ from src.agents.diagnosis.envelope_builder import (
     DIAGNOSIS_SCHEMA_PATH,
     DiagnosisEnvelopeError,
     append_diagnosis_jsonl,
-    build_diagnosis_envelope,
 )
 from src.agents.diagnosis.run_demo import run_demo
 from src.agents.diagnosis.service import DiagnosisAgent
 from src.contracts.enums import AgentId, ResultStatus
 from src.contracts.events import EventEnvelope
 from src.contracts.tasks import AgentTask, TaskContext
-
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

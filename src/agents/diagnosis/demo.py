@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import sys
+from typing import Any
 
 from src.agents.diagnosis.contracts import DiagnosisInput
 from src.agents.diagnosis.evidence_collector import collect_evidence
 from src.agents.diagnosis.result_builder import build_result
-
+from src.contracts.enums import Environment
 
 SIGNAL_LABELS = {
     "memory_percent": "mémoire (%)",
@@ -18,7 +19,7 @@ SIGNAL_LABELS = {
     "error_rate": "taux d’erreur",
 }
 
-INCIDENTS = (
+INCIDENTS: tuple[dict[str, Any], ...] = (
     {
         "incident_id": "DEMO-001",
         "title": "Mémoire élevée après déploiement",
@@ -74,16 +75,13 @@ def main() -> None:
             incident_id=incident["incident_id"],
             service_id="demo-api",
             namespace="demo",
-            environment="test",
+            environment=Environment.TEST,
             issue_summary=incident["issue_summary"],
             signals=incident["signals"],
             recent_changes=incident["recent_changes"],
         )
         result = build_result(payload)
-        evidence_by_id = {
-            evidence.evidence_id: evidence
-            for evidence in collect_evidence(payload)
-        }
+        evidence_by_id = {evidence.evidence_id: evidence for evidence in collect_evidence(payload)}
         used_evidence_ids = {
             evidence_id
             for hypothesis in result.hypotheses

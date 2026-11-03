@@ -2,18 +2,17 @@ from __future__ import annotations
 
 import json
 from copy import deepcopy
-from pathlib import Path
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
 
-from src.agents.diagnosis.contracts import DiagnosisAgentResult, DiagnosisInput
-from src.agents.diagnosis.service import DiagnosisAgent
 from src.agents.diagnosis import rules
+from src.agents.diagnosis.contracts import DiagnosisAgentResult, DiagnosisInput, RecentChangeEvent
+from src.agents.diagnosis.service import DiagnosisAgent
 from src.agents.diagnosis.signal_adapter import adapt_agent1_signals
 from src.contracts.enums import ActionType, AgentId, Environment, ResultStatus
 from src.contracts.tasks import AgentTask, TaskContext
-
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -30,7 +29,9 @@ def _diagnose_fixture(
         environment=Environment.LOCAL,
         issue_summary="Agent 1 anomaly event for payment-service.",
         signals=signals,
-        recent_change_events=recent_change_events or [],
+        recent_change_events=[
+            RecentChangeEvent.model_validate(event) for event in recent_change_events or []
+        ],
     )
     task = AgentTask(
         task_id="TASK-AGENT1-ADAPTER",
@@ -81,15 +82,16 @@ def test_agent1_fixtures_adapt_end_to_end_without_mutation(
     assert not adaptation.payload.recent_change_events
     assert signals == original_signals
     assert fixture_path.read_bytes() == original_bytes
-    assert any("first_seen" in item and "detection time" in item for item in result.diagnosis.limitations)
+    assert any(
+        "first_seen" in item and "detection time" in item for item in result.diagnosis.limitations
+    )
 
     if filename == "agent1_memory_oom.json":
         assert adaptation.payload.signals["memory_percent"] == pytest.approx(99.98)
         assert adaptation.payload.signals["restart_count"] == 1
         assert adaptation.payload.memory_rise_started_at is not None
         assert any(
-            item.value.get("memory_percent") == pytest.approx(99.98)
-            for item in result.evidence
+            item.value.get("memory_percent") == pytest.approx(99.98) for item in result.evidence
         )
         ratio_ref = next(
             item.evidence_id
@@ -180,7 +182,10 @@ def test_agent1_memory_pressure_deployment_two_minutes_before_detection_is_uncer
 
     assert result.diagnosis.primary_root_cause == "MEMORY_GROWTH"
     assert result.diagnosis.requires_additional_evidence is True
-    assert any("less than the 5-minute detection margin" in item for item in result.explainability.missing_information)
+    assert any(
+        "less than the 5-minute detection margin" in item
+        for item in result.explainability.missing_information
+    )
     assert any("uncertainty margin" in item for item in result.diagnosis.limitations)
     assert ActionType.ROLLBACK not in [
         action.action for action in result.diagnosis.recommended_actions
@@ -328,7 +333,8 @@ def test_cpu_cores_remain_raw_context_without_invented_percentage() -> None:
 
     assert any("CPU in cores" in item for item in result.diagnosis.limitations)
     assert "cpu_percent" not in adapted.payload.signals
-    assert adapted.payload.signals["agent1_context"]["incidents"][0]["facts"][
-        "statistical.current"
-    ] == 2.5
+    assert (
+        adapted.payload.signals["agent1_context"]["incidents"][0]["facts"]["statistical.current"]
+        == 2.5
+    )
     assert any("CPU in cores" in item and "no CPU limit" in item for item in adapted.limitations)

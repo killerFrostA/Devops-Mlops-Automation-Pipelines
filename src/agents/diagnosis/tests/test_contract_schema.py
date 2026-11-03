@@ -2,7 +2,7 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
-import jsonschema
+import jsonschema  # type: ignore[import-untyped]
 
 from src.agents.diagnosis.contracts import DiagnosisInput
 from src.agents.diagnosis.evidence_collector import collect_evidence
@@ -10,7 +10,6 @@ from src.agents.diagnosis.result_builder import build_result, to_diagnosis_compl
 from src.contracts.enums import AgentId, Environment
 from src.contracts.payloads import DiagnosisCompleted
 from src.contracts.tasks import AgentTask, TaskContext
-
 
 SCHEMA_PATH = (
     Path(__file__).resolve().parents[4]
@@ -60,7 +59,7 @@ def test_conversion_keeps_schema_and_withholds_unproven_rollback() -> None:
         incident_id="INC-FROM-PAYLOAD",
         service_id="payment-api",
         namespace="prod",
-        environment="production",
+        environment=Environment.PRODUCTION,
         issue_summary="Memory is high after a deployment.",
         signals={"memory_pct": 84, "restart_count": 4},
         recent_changes=["deploy v2.6"],
@@ -87,7 +86,7 @@ def test_insufficient_evidence_conversion_has_no_action_and_valid_schema() -> No
         incident_id="INC-FROM-PAYLOAD",
         service_id="payment-api",
         namespace="prod",
-        environment="production",
+        environment=Environment.PRODUCTION,
         issue_summary="The cause is unknown.",
     )
 
@@ -105,7 +104,7 @@ def test_error_rate_signal_can_rank_resource_pressure() -> None:
         incident_id="INC-003",
         service_id="payment-api",
         namespace="prod",
-        environment="production",
+        environment=Environment.PRODUCTION,
         issue_summary="Requests are failing.",
         signals={"error_rate": 1.0},
     )
@@ -122,7 +121,7 @@ def test_resource_recommendation_maps_to_shared_scale_action() -> None:
         incident_id="INC-SCALE",
         service_id="payment-api",
         namespace="prod",
-        environment="production",
+        environment=Environment.PRODUCTION,
         issue_summary="CPU pressure is causing long request latency.",
         signals={"cpu_percent": 95, "latency_ms": 900},
     )

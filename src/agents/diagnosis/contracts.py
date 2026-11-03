@@ -100,7 +100,7 @@ class DiagnosisInput(DiagnosisContract):
         return cleaned
 
     @model_validator(mode="after")
-    def validate_unique_evidence_ids(self) -> "DiagnosisInput":
+    def validate_unique_evidence_ids(self) -> DiagnosisInput:
         evidence_ids = [item.evidence_id for item in self.evidence]
         if len(evidence_ids) != len(set(evidence_ids)):
             raise ValueError("Evidence identifiers must be unique within a diagnosis input")

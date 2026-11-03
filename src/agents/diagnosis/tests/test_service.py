@@ -4,7 +4,14 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from pydantic import JsonValue
 
-from src.agents.diagnosis.contracts import DiagnosisAgentResult, KnowledgeRetrieval
+from src.agents.diagnosis.contracts import (
+    DiagnosisAgentResult,
+    DiagnosisInput,
+    EvidenceItem,
+    Hypothesis,
+    KnowledgeRetrieval,
+    SupplementalAnalysis,
+)
 from src.agents.diagnosis.evidence import ResolvedEvidence
 from src.agents.diagnosis.service import DiagnosisAgent
 from src.contracts.enums import ActionType, AgentId, Environment, ResultStatus
@@ -51,7 +58,13 @@ class FailingRetriever:
 
 
 class FailingAnalyzer:
-    def analyze(self, payload, hypotheses, evidence, knowledge):
+    def analyze(
+        self,
+        payload: DiagnosisInput,
+        hypotheses: tuple[Hypothesis, ...],
+        evidence: tuple[EvidenceItem, ...],
+        knowledge: KnowledgeRetrieval,
+    ) -> SupplementalAnalysis:
         raise RuntimeError(
             f"offline test analyzer failure for {payload.incident_id} with "
             f"{len(hypotheses)} candidates, {len(evidence)} evidence items, and "
@@ -124,10 +137,7 @@ def test_service_returns_insufficient_evidence_without_inventing_proofs() -> Non
         "EVD-UNRESOLVED-1" in item and "not resolved" in item
         for item in result.diagnosis.limitations
     )
-    assert any(
-        "EVD-UNRESOLVED-1" in item
-        for item in result.explainability.missing_information
-    )
+    assert any("EVD-UNRESOLVED-1" in item for item in result.explainability.missing_information)
 
 
 def test_service_uses_resolved_evidence_and_preserves_hypothesis_traceability() -> None:
@@ -178,8 +188,7 @@ def test_service_reports_unresolved_reference_alongside_resolved_evidence() -> N
     assert result.diagnosis.primary_root_cause == "MEMORY_PRESSURE"
     assert evidence.evidence_id in result.diagnosis.hypotheses[0].evidence_refs
     assert any(
-        "EVD-UNKNOWN" in item and "not resolved" in item
-        for item in result.diagnosis.limitations
+        "EVD-UNKNOWN" in item and "not resolved" in item for item in result.diagnosis.limitations
     )
     assert result.diagnosis.requires_additional_evidence is True
     assert any("EVD-UNKNOWN" in item for item in result.explainability.missing_information)
@@ -242,9 +251,7 @@ def test_service_reports_invalid_signals_as_failed_result() -> None:
 
 
 def test_service_reports_invalid_recent_changes_as_failed_result() -> None:
-    result = asyncio.run(
-        DiagnosisAgent().handle(_task(signals={"recent_changes": ["deploy", 12]}))
-    )
+    result = asyncio.run(DiagnosisAgent().handle(_task(signals={"recent_changes": ["deploy", 12]})))
 
     assert result.status is ResultStatus.FAILED
     assert "recent_changes" in result.rationale_summary

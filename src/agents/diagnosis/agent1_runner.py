@@ -32,15 +32,14 @@ from src.agents.diagnosis.qdrant_retriever import QdrantKnowledgeRetriever
 from src.agents.diagnosis.rules import AGENT1_MEMORY_GROWTH_MIN_SLOPE_MO_PER_MIN
 from src.agents.diagnosis.service import DiagnosisAgent
 from src.agents.diagnosis.tools import (
-    ToolError,
     Toolbox,
+    ToolError,
     build_toolbox_from_env,
     load_static_toolbox,
 )
 from src.contracts.enums import AgentId, ResultStatus
 from src.contracts.events import EventEnvelope
 from src.contracts.tasks import AgentTask, TaskContext
-
 
 ANOMALY_TOPIC = "monitoring.anomaly.detected"
 ANOMALY_MESSAGE_TYPE = "ANOMALY_DETECTED"
@@ -199,7 +198,8 @@ def _incident_tasks(received: EventEnvelope) -> list[AgentTask]:
             per_incident.append(
                 (
                     incident_id,
-                    service_id if isinstance(service_id, str) and service_id.strip()
+                    service_id
+                    if isinstance(service_id, str) and service_id.strip()
                     else received.service.service_id,
                     category if isinstance(category, str) else None,
                     signals,
@@ -220,9 +220,7 @@ def _incident_tasks(received: EventEnvelope) -> list[AgentTask]:
             # rise must be dated here too (detection time, as in _change_context_signals).
             detected_at = _aware_timestamp(signals.get("detected_at")) or received.timestamp
             signals.setdefault("memory_rise_started_at", detected_at.isoformat())
-        per_incident.append(
-            (received.correlation_id, received.service.service_id, None, signals)
-        )
+        per_incident.append((received.correlation_id, received.service.service_id, None, signals))
 
     tasks = []
     for incident_id, service_id, category, signals in per_incident:
@@ -267,7 +265,10 @@ def diagnose_agent1_event(
     diagnoses = []
     for task in _incident_tasks(received):
         result = asyncio.run(active_agent.handle(task))
-        if not isinstance(result, DiagnosisAgentResult) or result.status is not ResultStatus.SUCCEEDED:
+        if (
+            not isinstance(result, DiagnosisAgentResult)
+            or result.status is not ResultStatus.SUCCEEDED
+        ):
             raise Agent1InputError(
                 f"Diagnosis failed for incident {task.incident_id} "
                 f"(message {received.message_id}): {result.rationale_summary}"
@@ -376,7 +377,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Diagnose Agent 1 ANOMALY_DETECTED events read from a JSON or JSONL file."
     )
-    parser.add_argument("agent1_file", type=Path, help="Agent 1 events (JSON object, array or JSONL).")
+    parser.add_argument(
+        "agent1_file", type=Path, help="Agent 1 events (JSON object, array or JSONL)."
+    )
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -405,7 +408,9 @@ def main(argv: list[str] | None = None) -> int:
         help="local: lexical search of the JSON corpus; qdrant: in-memory Qdrant vector search.",
     )
     parser.add_argument("--qdrant-url", help="Use an indexed Qdrant server instead.")
-    parser.add_argument("--qdrant-path", type=Path, help="Use an indexed local Qdrant store instead.")
+    parser.add_argument(
+        "--qdrant-path", type=Path, help="Use an indexed local Qdrant store instead."
+    )
     parser.add_argument(
         "--llm",
         nargs="?",
@@ -434,7 +439,9 @@ def main(argv: list[str] | None = None) -> int:
     for item in written:
         result = item.diagnosis.result
         diagnosis = result.diagnosis
-        print(f"Incident {result.incident_id} (Agent 1 message {item.diagnosis.received.message_id})")
+        print(
+            f"Incident {result.incident_id} (Agent 1 message {item.diagnosis.received.message_id})"
+        )
         print(
             f"  Root cause: {diagnosis.primary_root_cause} (heuristic score {result.confidence}, "
             f"evidence strength {result.evidence_strength})"
@@ -442,7 +449,10 @@ def main(argv: list[str] | None = None) -> int:
         for call in result.tool_calls:
             print(f"  - tool {call.tool}.{call.operation}: {call.status}")
         for hypothesis in diagnosis.hypotheses:
-            print(f"  - hypothesis {hypothesis.rank}: {hypothesis.code} ({hypothesis.probability:.2f})")
+            print(
+                f"  - hypothesis {hypothesis.rank}: {hypothesis.code} "
+                f"({hypothesis.probability:.2f})"
+            )
         for recommendation in result.explainability.recommendation_explanations:
             print(f"  - recommendation: {recommendation.action}")
         for document in result.knowledge.similar_incidents:

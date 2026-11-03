@@ -3,17 +3,20 @@ from pathlib import Path
 
 import pytest
 
-from src.agents.diagnosis.contracts import DiagnosisInput, KnowledgeDocument, KnowledgeRetrieval
 from src.agents.diagnosis import rag_retriever
+from src.agents.diagnosis.contracts import DiagnosisInput, KnowledgeDocument, KnowledgeRetrieval
 from src.agents.diagnosis.rag_retriever import (
     LocalKnowledgeRetriever,
     retrieve_runbooks,
     retrieve_similar_incidents,
 )
 from src.agents.diagnosis.result_builder import build_result
+from src.contracts.enums import Environment
 
 
-def test_valid_json_corpora_load_and_lexical_ranking_is_exact_and_deterministic(tmp_path: Path) -> None:
+def test_valid_json_corpora_load_and_lexical_ranking_is_exact_and_deterministic(
+    tmp_path: Path,
+) -> None:
     # Exact ranks are checked on the curated corpus; lab captures (*_lab.json) keep growing.
     for path in rag_retriever._DEFAULT_KNOWLEDGE_DIR.glob("*.json"):
         if not path.stem.endswith("_lab"):
@@ -76,7 +79,7 @@ def test_diagnosis_reports_corpus_loading_errors_and_continues(
         incident_id="INC-MISSING-KNOWLEDGE",
         service_id="payments-api",
         namespace="test",
-        environment="test",
+        environment=Environment.TEST,
         issue_summary="CPU is saturated.",
         signals={"cpu_percent": 90},
     )
@@ -91,14 +94,12 @@ def test_diagnosis_reports_corpus_loading_errors_and_continues(
 def test_limit_and_incident_runbook_separation_are_exact() -> None:
     retrieval = LocalKnowledgeRetriever().retrieve("cpu errors saturation", limit=1)
 
-    assert [
-        (item.reference_id, item.kind, item.score)
-        for item in retrieval.similar_incidents
-    ] == [("LOCAL-INC-121", "incident", 0.75)]
-    assert [
-        (item.reference_id, item.kind, item.score)
-        for item in retrieval.runbooks
-    ] == [("LOCAL-RUNBOOK-02", "runbook", 0.6)]
+    assert [(item.reference_id, item.kind, item.score) for item in retrieval.similar_incidents] == [
+        ("LOCAL-INC-121", "incident", 0.75)
+    ]
+    assert [(item.reference_id, item.kind, item.score) for item in retrieval.runbooks] == [
+        ("LOCAL-RUNBOOK-02", "runbook", 0.6)
+    ]
 
 
 def test_empty_unmatched_and_nonpositive_limit_queries_return_no_documents() -> None:
@@ -139,7 +140,7 @@ def test_retrieved_knowledge_never_becomes_current_incident_evidence() -> None:
         incident_id="INC-KNOWLEDGE-BOUNDARY",
         service_id="payments-api",
         namespace="test",
-        environment="test",
+        environment=Environment.TEST,
         issue_summary="Memory usage is elevated and the service restarted.",
         signals={"memory_percent": 88, "restart_count": 1},
     )
@@ -147,9 +148,7 @@ def test_retrieved_knowledge_never_becomes_current_incident_evidence() -> None:
     result = build_result(payload, retriever=KnowledgeOnlyRetriever())
     current_evidence_ids = {item.evidence_id for item in result.evidence}
     hypothesis_evidence_refs = {
-        reference
-        for hypothesis in result.hypotheses
-        for reference in hypothesis.evidence_refs
+        reference for hypothesis in result.hypotheses for reference in hypothesis.evidence_refs
     }
     retrieved_documents = KnowledgeOnlyRetriever().retrieve("memory", 3)
     knowledge_ids = {

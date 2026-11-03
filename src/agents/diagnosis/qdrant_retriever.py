@@ -23,7 +23,6 @@ from uuid import NAMESPACE_URL, uuid5
 from src.agents.diagnosis.contracts import KnowledgeDocument, KnowledgeRetrieval
 from src.agents.diagnosis.rag_retriever import load_corpus
 
-
 COLLECTIONS: dict[Literal["incident", "runbook"], str] = {
     "incident": "incident_summaries",
     "runbook": "runbooks",
@@ -48,7 +47,9 @@ class HashingEmbedder:
     def _features(self, text: str) -> Counter[str]:
         words = [word for word in _WORD.findall(text.casefold()) if len(word) > 1]
         features = Counter(words)
-        features.update(f"{first} {second}" for first, second in zip(words, words[1:]))
+        features.update(
+            f"{first} {second}" for first, second in zip(words, words[1:], strict=False)
+        )
         return features
 
     def embed(self, texts: Sequence[str]) -> list[list[float]]:
@@ -76,12 +77,16 @@ def index_knowledge(
     knowledge_dir: Path | None = None,
 ) -> dict[str, int]:
     """(Re)create both collections and upsert every corpus document; returns counts."""
-    from qdrant_client import models
+    from qdrant_client import models  # type: ignore[import-not-found, unused-ignore]
 
     embedder = embedder or HashingEmbedder()
     incidents, runbooks = load_corpus(knowledge_dir)
     counts = {}
-    for kind, documents in (("incident", incidents), ("runbook", runbooks)):
+    corpora: tuple[tuple[Literal["incident", "runbook"], Sequence[Any]], ...] = (
+        ("incident", incidents),
+        ("runbook", runbooks),
+    )
+    for kind, documents in corpora:
         collection = COLLECTIONS[kind]
         if client.collection_exists(collection):
             client.delete_collection(collection)
@@ -109,7 +114,7 @@ def index_knowledge(
                         "kind": kind,
                     },
                 )
-                for item, vector in zip(documents, vectors)
+                for item, vector in zip(documents, vectors, strict=True)
             ],
         )
         counts[collection] = len(documents)
@@ -140,7 +145,7 @@ class QdrantKnowledgeRetriever:
         embedder: Embedder | None = None,
     ) -> QdrantKnowledgeRetriever:
         """Index the bundled corpus into an in-process Qdrant store (no server needed)."""
-        from qdrant_client import QdrantClient
+        from qdrant_client import QdrantClient  # type: ignore[import-not-found, unused-ignore]
 
         embedder = embedder or HashingEmbedder()
         client = QdrantClient(":memory:")
@@ -157,7 +162,7 @@ class QdrantKnowledgeRetriever:
         embedder: Embedder | None = None,
     ) -> QdrantKnowledgeRetriever:
         """Use an already indexed Qdrant server (``url``) or local store (``path``)."""
-        from qdrant_client import QdrantClient
+        from qdrant_client import QdrantClient  # type: ignore[import-not-found, unused-ignore]
 
         if (url is None) == (path is None):
             raise ValueError("Provide exactly one of url or path")

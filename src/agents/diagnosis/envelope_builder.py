@@ -6,13 +6,13 @@ import json
 from pathlib import Path
 from typing import Any
 
-from jsonschema import Draft202012Validator, FormatChecker
-from jsonschema.exceptions import SchemaError, ValidationError as JsonSchemaValidationError
+from jsonschema import Draft202012Validator, FormatChecker  # type: ignore[import-untyped]
+from jsonschema.exceptions import SchemaError  # type: ignore[import-untyped]
+from jsonschema.exceptions import ValidationError as JsonSchemaValidationError
 from pydantic import ValidationError
 
 from src.agents.diagnosis.contracts import DiagnosisAgentResult
 from src.contracts.events import EventEnvelope
-
 
 DIAGNOSIS_EVENT_VERSION = "1"
 DIAGNOSIS_SCHEMA_PATH = (

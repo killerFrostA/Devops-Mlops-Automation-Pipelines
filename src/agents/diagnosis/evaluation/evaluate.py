@@ -1,7 +1,8 @@
 """Evaluate Agent 2 on labeled scenarios and compare configurations (architecture section 18).
 
     py -3 -m src.agents.diagnosis.evaluation.evaluate --output-dir out\\evaluation
-    py -3 -m src.agents.diagnosis.evaluation.evaluate --output-dir out\\evaluation --llm --scenario-delay 3
+    py -3 -m src.agents.diagnosis.evaluation.evaluate --output-dir out\\evaluation --llm
+        --scenario-delay 3
 
 Each configuration ("mode") diagnoses every scenario. Modes add capabilities one at a time so
 their contribution is measurable against the deterministic baseline:
@@ -42,7 +43,6 @@ from src.agents.diagnosis.result_builder import RELATED_ROOT_CAUSES
 from src.agents.diagnosis.service import DiagnosisAgent
 from src.agents.diagnosis.tools import Toolbox, static_toolbox
 from src.contracts.events import EventEnvelope
-
 
 SCENARIO_DIR = Path(__file__).with_name("scenarios")
 FIXTURE_DIR = Path(__file__).resolve().parents[1] / "tests" / "fixtures"
@@ -182,7 +182,11 @@ def _rag_hit(result: DiagnosisAgentResult, expected: str) -> bool | None:
 
 def _llm_failure(result: DiagnosisAgentResult) -> str | None:
     return next(
-        (item for item in result.diagnosis.limitations if item.startswith("Supplemental analysis failed")),
+        (
+            item
+            for item in result.diagnosis.limitations
+            if item.startswith("Supplemental analysis failed")
+        ),
         "no LLM answer",
     )
 
@@ -193,7 +197,9 @@ def evaluate_scenario(
     qdrant: QdrantKnowledgeRetriever | None,
     analyzer_factory: AnalyzerFactory | None = None,
 ) -> Outcome:
-    toolbox = static_toolbox(scenario.tool_responses) if mode.tools and scenario.tool_responses else None
+    toolbox = (
+        static_toolbox(scenario.tool_responses) if mode.tools and scenario.tool_responses else None
+    )
     if mode.llm and analyzer_factory is None:
         raise ValueError(f"mode {mode.name} needs an analyzer factory")
     analyzer = analyzer_factory(toolbox) if mode.llm and analyzer_factory is not None else None
@@ -208,8 +214,21 @@ def evaluate_scenario(
         diagnosis = diagnose_agent1_event(scenario_event(scenario), agent)[0].result
     except Exception as exc:  # A failing scenario is reported, not fatal for the run.
         return Outcome(
-            scenario.scenario_id, mode.name, "ERROR", expected.root_cause, False, False, False,
-            "NONE", False, [], True, 0.0, None, None, (perf_counter() - started) * 1000,
+            scenario.scenario_id,
+            mode.name,
+            "ERROR",
+            expected.root_cause,
+            False,
+            False,
+            False,
+            "NONE",
+            False,
+            [],
+            True,
+            0.0,
+            None,
+            None,
+            (perf_counter() - started) * 1000,
             error=f"{type(exc).__name__}: {exc}",
         )
     latency_ms = (perf_counter() - started) * 1000
@@ -218,7 +237,9 @@ def evaluate_scenario(
     actions = _actions(diagnosis)
     first_action = _first_action(actions)
     succeeded_calls = {
-        f"{call.tool}.{call.operation}" for call in diagnosis.tool_calls if call.status == "succeeded"
+        f"{call.tool}.{call.operation}"
+        for call in diagnosis.tool_calls
+        if call.status == "succeeded"
     }
     llm_answered = None
     if mode.llm:
@@ -276,7 +297,9 @@ def summarize(outcomes: list[Outcome]) -> dict[str, Any]:
         "mean_decision_latency_ms": round(mean(item.latency_ms for item in outcomes), 1),
         "llm_answer_rate": _rate(answered),
         "llm_retries": sum(item.llm_retries or 0 for item in outcomes) if answered else None,
-        "llm_timeouts": sum("timed out" in (item.llm_failure or "") for item in outcomes) if answered else None,
+        "llm_timeouts": sum("timed out" in (item.llm_failure or "") for item in outcomes)
+        if answered
+        else None,
     }
 
 
@@ -334,15 +357,21 @@ def run_evaluation(
     """
     modes = (*MODES, LLM_MODE) if analyzer_factory is not None else MODES
     qdrant = (
-        QdrantKnowledgeRetriever.connect(url=qdrant_url) if qdrant_url else QdrantKnowledgeRetriever.in_memory()
+        QdrantKnowledgeRetriever.connect(url=qdrant_url)
+        if qdrant_url
+        else QdrantKnowledgeRetriever.in_memory()
     )
+
     def run_mode(mode: Mode) -> list[Outcome]:
         results = []
         for index, item in enumerate(scenarios):
             if mode.llm and index and scenario_delay_seconds > 0:
                 sleep(scenario_delay_seconds)
             if progress is not None:
-                progress(f"[{datetime.now():%H:%M:%S}] {mode.name} {index + 1}/{len(scenarios)} {item.scenario_id}")
+                progress(
+                    f"[{datetime.now():%H:%M:%S}] {mode.name} {index + 1}/{len(scenarios)} "
+                    f"{item.scenario_id}"
+                )
             results.append(evaluate_scenario(item, mode, qdrant, analyzer_factory))
         return results
 
@@ -353,7 +382,12 @@ def run_evaluation(
         baseline = [asdict(item) for item in outcomes[MODES[-1].name]]
         runs = [outcomes[LLM_MODE.name], *(run_mode(LLM_MODE) for _ in range(llm_runs - 1))]
         repeats = [
-            {**summarize(run), "avoided_confident_errors": avoided_confident_errors(baseline, [asdict(i) for i in run])}
+            {
+                **summarize(run),
+                "avoided_confident_errors": avoided_confident_errors(
+                    baseline, [asdict(i) for i in run]
+                ),
+            }
             for run in runs
         ]
     return {
@@ -405,16 +439,20 @@ def _llm_runs_section(report: dict[str, Any]) -> list[str]:
         "",
         f"Comparé à `{MODES[-1].name}` (mêmes outils et même RAG, sans LLM).",
         "",
-        "| Lancement | Bonne cause | 1re action | Erreurs sûres d’elles | Évitées par le LLM | Réponses LLM | Délais dépassés | 429 |",
+        "| Lancement | Bonne cause | 1re action | Erreurs sûres d’elles | Évitées par le LLM "
+        "| Réponses LLM | Délais dépassés | 429 |",
         "|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for index, run in enumerate(runs, 1):
         lines.append(
-            f"| {index} | {_cell(run['rca_accuracy_acceptable'])} | {_cell(run['first_action_accuracy'])} | "
-            f"{run['confident_errors']} sur {total} | {run['avoided_confident_errors']} sur {total} | "
+            f"| {index} | {_cell(run['rca_accuracy_acceptable'])} | "
+            f"{_cell(run['first_action_accuracy'])} | "
+            f"{run['confident_errors']} sur {total} | {run['avoided_confident_errors']} sur "
+            f"{total} | "
             f"{_cell(run['llm_answer_rate'])} | {run['llm_timeouts']} | {run['llm_retries']} |"
         )
     if len(runs) > 1:
+
         def stats(key: str) -> tuple[float, Any]:
             values = [run[key] for run in runs]
             return mean(values), values
@@ -425,15 +463,19 @@ def _llm_runs_section(report: dict[str, Any]) -> list[str]:
         errors, error_counts = stats("confident_errors")
         lines += [
             f"| **Moyenne** | {accuracy:.0%} | {action:.0%} | {errors:.1f} sur {total} | "
-            f"{mean(avoided):.1f} sur {total} | {answers:.0%} | {sum(run['llm_timeouts'] for run in runs)} au total | "
+            f"{mean(avoided):.1f} sur {total} | {answers:.0%} | "
+            f"{sum(run['llm_timeouts'] for run in runs)} au total | "
             f"{sum(run['llm_retries'] for run in runs)} au total |",
-            f"| **Pire cas** | {min(accuracies):.0%} | {min(actions):.0%} | {max(error_counts)} sur {total} | "
-            f"{min(avoided)} sur {total} | {min(answer_rates):.0%} | {max(run['llm_timeouts'] for run in runs)} | "
+            f"| **Pire cas** | {min(accuracies):.0%} | {min(actions):.0%} | "
+            f"{max(error_counts)} sur {total} | "
+            f"{min(avoided)} sur {total} | {min(answer_rates):.0%} | "
+            f"{max(run['llm_timeouts'] for run in runs)} | "
             f"{max(run['llm_retries'] for run in runs)} |",
         ]
     lines += [
         "",
-        f"En résumé : {min(avoided)} à {max(avoided)} erreur(s) sûre(s) d’elle(s) évitée(s) sur {total} "
+        f"En résumé : {min(avoided)} à {max(avoided)} erreur(s) sûre(s) d’elle(s) évitée(s) "
+        f"sur {total} "
         "selon le lancement. Le LLM ne choisit que parmi les causes des règles : il corrige un "
         "classement serré ou signale un désaccord, sans jamais déclencher d’action.",
     ]
@@ -478,13 +520,17 @@ def render_markdown(report: dict[str, Any]) -> str:
             if key in _COUNT_METRICS and value is not None:
                 values.append(f"{value} sur {report['metrics'][mode]['scenarios']}")
             else:
-                values.append(_cell(value) if value is None or key not in _RAW_METRICS else f"{value}")
+                values.append(
+                    _cell(value) if value is None or key not in _RAW_METRICS else f"{value}"
+                )
         lines.append(f"| {label} | " + " | ".join(values) + " |")
     lines.extend(_llm_runs_section(report))
     lines.extend(["", "## Résultat par scénario", ""])
     lines.append("| Scénario | Attendu | " + " | ".join(f"`{mode}`" for mode in modes) + " |")
     lines.append("|---|---|" + "---|" * len(modes))
-    by_mode = {mode: {item["scenario_id"]: item for item in report["outcomes"][mode]} for mode in modes}
+    by_mode = {
+        mode: {item["scenario_id"]: item for item in report["outcomes"][mode]} for mode in modes
+    }
     for scenario_id in report["scenarios"]:
         expected = by_mode[modes[0]][scenario_id]["expected"]
         cells = []
@@ -539,8 +585,12 @@ def main(argv: list[str] | None = None) -> int:
         default=float(os.environ.get("LLM_SCENARIO_DELAY_SECONDS") or 0),
         help="Seconds to wait between LLM scenarios (default: LLM_SCENARIO_DELAY_SECONDS or 0).",
     )
-    parser.add_argument("--qdrant-url", help="Indexed Qdrant server for the qdrant modes (default: in-memory).")
-    parser.add_argument("--repeat", type=int, default=1, help="Run the LLM mode this many times (answers vary).")
+    parser.add_argument(
+        "--qdrant-url", help="Indexed Qdrant server for the qdrant modes (default: in-memory)."
+    )
+    parser.add_argument(
+        "--repeat", type=int, default=1, help="Run the LLM mode this many times (answers vary)."
+    )
     args = parser.parse_args(argv)
     if args.repeat < 1:
         parser.error("--repeat must be at least 1")
@@ -549,19 +599,33 @@ def main(argv: list[str] | None = None) -> int:
     if not scenarios:
         print(f"No scenarios found in {args.scenarios_dir}", file=sys.stderr)
         return 2
-    factory = None
+    factory: AnalyzerFactory | None = None
     model_label = None
     if args.llm:
         try:
             # Built once up front so a configuration error stops the run before any call.
-            model_label = build_analyzer_from_env(provider=args.llm).model_label
+            analyzer = build_analyzer_from_env(provider=args.llm)
         except LLMConfigurationError as exc:
             print(f"LLM configuration error: {exc}", file=sys.stderr)
             return 2
-        factory = lambda toolbox: build_analyzer_from_env(toolbox, provider=args.llm)  # noqa: E731
+        if analyzer is None:
+            print(f"LLM configuration error: provider '{args.llm}' is off", file=sys.stderr)
+            return 2
+        model_label = analyzer.model_label
+
+        def factory(toolbox: Toolbox | None) -> SupplementalAnalyzer:
+            built = build_analyzer_from_env(toolbox, provider=args.llm)
+            assert built is not None
+            return built
+
         print(f"LLM: {model_label}")
     report = run_evaluation(
-        scenarios, factory, model_label, args.scenario_delay, qdrant_url=args.qdrant_url, llm_runs=args.repeat,
+        scenarios,
+        factory,
+        model_label,
+        args.scenario_delay,
+        qdrant_url=args.qdrant_url,
+        llm_runs=args.repeat,
         progress=lambda message: print(message, file=sys.stderr, flush=True),
     )
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -576,7 +640,11 @@ def main(argv: list[str] | None = None) -> int:
             f"acceptable {_cell(metrics['rca_accuracy_acceptable']):>5}  "
             f"action {_cell(metrics['first_action_accuracy']):>5}  "
             f"unsafe {_cell(metrics['unsafe_recommendation_rate']):>5}"
-            + (f"  LLM answers {_cell(metrics['llm_answer_rate'])}" if metrics["llm_answer_rate"] is not None else "")
+            + (
+                f"  LLM answers {_cell(metrics['llm_answer_rate'])}"
+                if metrics["llm_answer_rate"] is not None
+                else ""
+            )
         )
     print(f"Report: {markdown_path}")
     return 0

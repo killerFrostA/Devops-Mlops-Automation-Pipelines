@@ -1,6 +1,7 @@
 import json
 from copy import deepcopy
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -13,18 +14,16 @@ from src.agents.diagnosis.agent1_runner import (
 from src.contracts.enums import ActionType
 from src.contracts.events import EventEnvelope
 
-
 FIXTURES = Path(__file__).parent / "fixtures"
 
 
-def _fixture(name: str) -> dict:
-    return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
+def _fixture(name: str) -> dict[str, Any]:
+    fixture: dict[str, Any] = json.loads((FIXTURES / name).read_text(encoding="utf-8"))
+    return fixture
 
 
-def _write_jsonl(path: Path, *messages: dict) -> Path:
-    path.write_text(
-        "".join(json.dumps(message) + "\n" for message in messages), encoding="utf-8"
-    )
+def _write_jsonl(path: Path, *messages: dict[str, Any]) -> Path:
+    path.write_text("".join(json.dumps(message) + "\n" for message in messages), encoding="utf-8")
     return path
 
 
@@ -48,7 +47,9 @@ def test_architecture_format_with_dated_deployment_recommends_rollback() -> None
     )
     # Past incident with the same root cause is ranked first by the local RAG.
     assert result.knowledge.similar_incidents[0].reference_id == "LOCAL-INC-120"
-    assert "LOCAL-INC-120 (MEMORY_LEAK_POST_DEPLOY, same cause)" in result.diagnosis.rationale_summary
+    assert (
+        "LOCAL-INC-120 (MEMORY_LEAK_POST_DEPLOY, same cause)" in result.diagnosis.rationale_summary
+    )
 
 
 def test_architecture_format_without_change_context_does_not_recommend_rollback() -> None:
@@ -110,7 +111,9 @@ def test_message_with_two_incidents_produces_one_diagnosis_per_incident() -> Non
     ]
     assert diagnoses[1].task.task_context.service_id == "payments-db"
     assert all(
-        len(item.task.task_context.signals["incidents"]) == 1 for item in diagnoses
+        isinstance(incidents := item.task.task_context.signals["incidents"], list)
+        and len(incidents) == 1
+        for item in diagnoses
     )
 
 
@@ -143,13 +146,18 @@ def test_jsonl_file_is_diagnosed_reported_and_idempotent(tmp_path: Path) -> None
     replayed = run_agent1_file(input_path, output_dir)
 
     assert not any(item.jsonl_written for item in replayed)
-    assert len((output_dir / "diagnosis.completed.jsonl").read_text(encoding="utf-8").splitlines()) == 2
+    assert (
+        len((output_dir / "diagnosis.completed.jsonl").read_text(encoding="utf-8").splitlines())
+        == 2
+    )
 
 
 def test_json_array_input_is_accepted(tmp_path: Path) -> None:
     input_path = tmp_path / "agent1.json"
     input_path.write_text(
-        json.dumps([_fixture("agent1_memory_oom.json"), _fixture("agent1_architecture_example.json")]),
+        json.dumps(
+            [_fixture("agent1_memory_oom.json"), _fixture("agent1_architecture_example.json")]
+        ),
         encoding="utf-8",
     )
 

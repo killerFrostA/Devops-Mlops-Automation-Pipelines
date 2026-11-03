@@ -10,7 +10,6 @@ from typing import Any
 
 from src.agents.diagnosis.contracts import DiagnosisInput
 
-
 BURN_RATE_ERROR_RATE_FACTOR = 0.005
 
 _DIRECT_ALIASES: dict[str, tuple[str, ...]] = {
@@ -132,7 +131,9 @@ def adapt_agent1_signals(payload: DiagnosisInput) -> SignalAdaptation:
                     continue
                 for key in suspect:
                     if key not in {"service_id", "probability"}:
-                        limitations.append(f"Unknown Agent 1 suspect key 'suspects[{index}].{key}'.")
+                        limitations.append(
+                            f"Unknown Agent 1 suspect key 'suspects[{index}].{key}'."
+                        )
 
     def add_candidate(target: str, source: str, value: object) -> None:
         numeric = _numeric(value, source, limitations)
@@ -157,15 +158,15 @@ def adapt_agent1_signals(payload: DiagnosisInput) -> SignalAdaptation:
     if root_first_seen is not None and categories.intersection({"memory_oom", "memory_pressure"}):
         parsed_root_first_seen = _aware_datetime(root_first_seen)
         if parsed_root_first_seen is None:
-            limitations.append(
-                "Invalid or timezone-naive Agent 1 'first_seen' was not used."
-            )
+            limitations.append("Invalid or timezone-naive Agent 1 'first_seen' was not used.")
         else:
             first_seen_values.append(("first_seen", parsed_root_first_seen))
 
     incidents = source_signals.get("incidents", [])
     if is_agent1 and not isinstance(incidents, list):
-        limitations.append("Agent 1 'incidents' was not a list; incident facts were not interpreted.")
+        limitations.append(
+            "Agent 1 'incidents' was not a list; incident facts were not interpreted."
+        )
         incidents = []
 
     for index, incident in enumerate(incidents if isinstance(incidents, list) else []):
@@ -186,20 +187,26 @@ def adapt_agent1_signals(payload: DiagnosisInput) -> SignalAdaptation:
         parsed_first_seen = _aware_datetime(first_seen)
         if first_seen is not None:
             if parsed_first_seen is None:
-                limitations.append(f"Invalid or timezone-naive Agent 1 '{location}.first_seen' was not used.")
+                limitations.append(
+                    f"Invalid or timezone-naive Agent 1 '{location}.first_seen' was not used."
+                )
             elif category in ("memory_oom", "memory_pressure"):
                 first_seen_values.append((f"{location}.first_seen", parsed_first_seen))
 
         facts = incident.get("facts", {})
         if not isinstance(facts, dict):
-            limitations.append(f"Agent 1 '{location}.facts' was not an object; facts were not interpreted.")
+            limitations.append(
+                f"Agent 1 '{location}.facts' was not an object; facts were not interpreted."
+            )
             continue
         for key in facts:
             if key not in _KNOWN_FACT_KEYS:
                 limitations.append(f"Unknown Agent 1 fact key '{location}.facts.{key}'.")
 
         if "events.restarts" in facts:
-            add_candidate("restart_count", f"{location}.facts.events.restarts", facts["events.restarts"])
+            add_candidate(
+                "restart_count", f"{location}.facts.events.restarts", facts["events.restarts"]
+            )
 
         if "events.memory_peak_ratio" in facts:
             if category == "memory_oom":
@@ -315,10 +322,7 @@ def adapt_agent1_signals(payload: DiagnosisInput) -> SignalAdaptation:
                 f"Conflicting sources for '{target}' ({sources}); the signal was excluded."
             )
             continue
-        if target == "error_rate":
-            selected = readings[-1][1]
-        else:
-            selected = readings[0][1]
+        selected = readings[-1][1] if target == "error_rate" else readings[0][1]
         adapted_signals[target] = selected
 
     if is_agent1:

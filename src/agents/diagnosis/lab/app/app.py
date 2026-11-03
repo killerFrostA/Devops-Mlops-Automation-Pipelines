@@ -13,6 +13,7 @@ Standard library only; metrics use Prometheus text format on /metrics.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import socket
 import socketserver
@@ -64,16 +65,22 @@ class Metrics:
     def render(self) -> str:
         lines = ["# TYPE http_requests_total counter"]
         with self.lock:
-            lines += [f'http_requests_total{{status="{code}"}} {count}' for code, count in sorted(self.requests.items())]
+            lines += [
+                f'http_requests_total{{status="{code}"}} {count}'
+                for code, count in sorted(self.requests.items())
+            ]
             lines.append("# TYPE http_request_duration_seconds histogram")
             lines += [
                 f'http_request_duration_seconds_bucket{{le="{bound}"}} {count}'
-                for bound, count in zip(BUCKETS, self.bucket_counts)
+                for bound, count in zip(BUCKETS, self.bucket_counts, strict=True)
             ]
             lines.append(f'http_request_duration_seconds_bucket{{le="+Inf"}} {self.duration_count}')
             lines.append(f"http_request_duration_seconds_sum {self.duration_sum}")
             lines.append(f"http_request_duration_seconds_count {self.duration_count}")
-        lines += ["# TYPE process_resident_memory_bytes gauge", f"process_resident_memory_bytes {_rss_bytes()}"]
+        lines += [
+            "# TYPE process_resident_memory_bytes gauge",
+            f"process_resident_memory_bytes {_rss_bytes()}",
+        ]
         return "\n".join(lines) + "\n"
 
 
@@ -105,7 +112,10 @@ def run_api() -> None:
         if leak_kb:
             retained.append(b"\x01" * (leak_kb * 1024))
         if not pool.acquire(timeout=pool_wait_ms / 1000):
-            log("ERROR", f"could not obtain a connection: connection pool exhausted (size={pool_size})")
+            log(
+                "ERROR",
+                f"could not obtain a connection: connection pool exhausted (size={pool_size})",
+            )
             return 503
         try:
             with socket.create_connection((db_host, db_port), timeout=timeout_ms / 1000) as conn:
@@ -113,7 +123,10 @@ def run_api() -> None:
                 time.sleep(query_ms / 1000)
             return 200
         except ConnectionRefusedError:
-            log("ERROR", f"payment failed: dial tcp {db_host}:{db_port}: connect: connection refused")
+            log(
+                "ERROR",
+                f"payment failed: dial tcp {db_host}:{db_port}: connect: connection refused",
+            )
         except TimeoutError:
             log("ERROR", f"payment failed: connect timed out to {db_host}:{db_port}")
         except socket.gaierror:
@@ -169,10 +182,8 @@ def run_loadgen() -> None:
 
     def worker() -> None:
         while True:
-            try:
+            with contextlib.suppress(urllib.error.URLError, OSError):
                 urllib.request.urlopen(target, timeout=5).read()
-            except (urllib.error.URLError, OSError):
-                pass
             time.sleep(interval)
 
     threads = [threading.Thread(target=worker, daemon=True) for _ in range(concurrency)]

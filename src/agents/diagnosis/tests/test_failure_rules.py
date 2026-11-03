@@ -1,14 +1,23 @@
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import pytest
 
-from src.agents.diagnosis.contracts import DiagnosisInput, EvidenceItem, RecentChangeEvent
+from src.agents.diagnosis.contracts import (
+    DiagnosisInput,
+    EvidenceItem,
+    EvidenceType,
+    RecentChangeEvent,
+)
 from src.agents.diagnosis.result_builder import build_result, evidence_strength
 from src.agents.diagnosis.rules import evaluate_hypotheses
 from src.agents.diagnosis.signatures import line_signatures, memory_limit_lowered, signatures_of
+from src.contracts.enums import Environment
 
 
-def _item(evidence_id: str, evidence_type: str, summary: str, **value: object) -> EvidenceItem:
+def _item(
+    evidence_id: str, evidence_type: EvidenceType, summary: str, **value: object
+) -> EvidenceItem:
     return EvidenceItem(
         evidence_id=evidence_id,
         evidence_type=evidence_type,
@@ -18,12 +27,12 @@ def _item(evidence_id: str, evidence_type: str, summary: str, **value: object) -
     )
 
 
-def _payload(evidence: list[EvidenceItem], **kwargs: object) -> DiagnosisInput:
+def _payload(evidence: list[EvidenceItem], **kwargs: Any) -> DiagnosisInput:
     return DiagnosisInput(
         incident_id="INC-RULES",
         service_id="orders-api",
         namespace="prod",
-        environment="production",
+        environment=Environment.PRODUCTION,
         issue_summary="Service degraded.",
         evidence=evidence,
         **kwargs,
@@ -31,9 +40,13 @@ def _payload(evidence: list[EvidenceItem], **kwargs: object) -> DiagnosisInput:
 
 
 def test_signatures_detect_known_failures_and_ignore_negations() -> None:
-    assert line_signatures("dial tcp db:5432: connect: connection refused") == {"connection_refused"}
+    assert line_signatures("dial tcp db:5432: connect: connection refused") == {
+        "connection_refused"
+    }
     assert "pool_exhausted" in line_signatures("HikariPool-1 - connection pool exhausted")
-    assert "config_invalid" in line_signatures("FATAL invalid configuration: missing required env X")
+    assert "config_invalid" in line_signatures(
+        "FATAL invalid configuration: missing required env X"
+    )
     assert "crash_loop" in line_signatures("Back-off restarting failed container")
     assert line_signatures("no OOMKilled event was observed") == frozenset()
     assert signatures_of(_item("E", "log", "lines", signatures=["oom", "made_up"])) == {"oom"}
@@ -43,8 +56,19 @@ def test_crash_loop_with_invalid_config_log_is_a_configuration_error() -> None:
     hypotheses = evaluate_hypotheses(
         _payload(
             [
-                _item("K8S", "k8s_event", "Pods restarting", reason="CrashLoopBackOff", restart_count=7),
-                _item("LOG", "log", "Startup failed", lines=["invalid configuration: missing required env DB"]),
+                _item(
+                    "K8S",
+                    "k8s_event",
+                    "Pods restarting",
+                    reason="CrashLoopBackOff",
+                    restart_count=7,
+                ),
+                _item(
+                    "LOG",
+                    "log",
+                    "Startup failed",
+                    lines=["invalid configuration: missing required env DB"],
+                ),
             ]
         )
     )
@@ -70,13 +94,23 @@ def test_oom_crash_loop_is_left_to_the_memory_rules() -> None:
         )
     )
 
-    assert all(item.code not in ("CONFIG_ERROR_CRASHLOOP", "CRASH_LOOP_UNEXPLAINED") for item in hypotheses)
+    assert all(
+        item.code not in ("CONFIG_ERROR_CRASHLOOP", "CRASH_LOOP_UNEXPLAINED") for item in hypotheses
+    )
 
 
 def test_dependency_and_pool_signatures_outrank_symptom_only_cpu_pressure() -> None:
     dependency = evaluate_hypotheses(
         _payload(
-            [_item("LOG", "log", "Errors", lines=["connect: connection refused"], dependency="payments-db")],
+            [
+                _item(
+                    "LOG",
+                    "log",
+                    "Errors",
+                    lines=["connect: connection refused"],
+                    dependency="payments-db",
+                )
+            ],
             signals={"error_rate": 0.25, "latency_ms": 2400},
         )
     )
@@ -109,15 +143,23 @@ def test_agent1_suspect_alone_gives_a_weak_dependency_hypothesis() -> None:
         )
     )
 
-    assert any(item.code == "DEPENDENCY_UNAVAILABLE" and item.probability == 0.5 for item in hypotheses)
+    assert any(
+        item.code == "DEPENDENCY_UNAVAILABLE" and item.probability == 0.5 for item in hypotheses
+    )
 
 
 def test_traffic_spike_needs_a_request_rate_baseline_ratio() -> None:
     spike = evaluate_hypotheses(
-        _payload([_item("RPS", "metric", "Traffic", rps=1500, rps_baseline=700)], signals={"cpu_percent": 93})
+        _payload(
+            [_item("RPS", "metric", "Traffic", rps=1500, rps_baseline=700)],
+            signals={"cpu_percent": 93},
+        )
     )
     steady = evaluate_hypotheses(
-        _payload([_item("RPS", "metric", "Traffic", rps=720, rps_baseline=700)], signals={"cpu_percent": 93})
+        _payload(
+            [_item("RPS", "metric", "Traffic", rps=720, rps_baseline=700)],
+            signals={"cpu_percent": 93},
+        )
     )
 
     assert "TRAFFIC_SPIKE" in [item.code for item in spike]
@@ -169,7 +211,9 @@ def test_new_causes_get_targeted_recommendations() -> None:
         )
     )
 
-    assert [item.action for item in config.recommended_actions][0] == "ROLLBACK_OR_REVERT_DEPLOYMENT"
+    assert [item.action for item in config.recommended_actions][
+        0
+    ] == "ROLLBACK_OR_REVERT_DEPLOYMENT"
     assert config.recommended_actions[0].parameters["deployment_id"] == "9f2c1ab"
     assert config.requires_additional_evidence is False
     assert dependency.recommended_actions[0].action == "INVESTIGATE_DEPENDENCY"
@@ -197,8 +241,13 @@ def test_evidence_strength_rewards_variety_and_observed_provenance() -> None:
 
 def _change(text: str) -> EvidenceItem:
     return EvidenceItem(
-        evidence_id="EVD-CHANGE", evidence_type="git_change", source="git", provenance="provided",
-        observed_at=datetime(2026, 10, 20, 9, tzinfo=UTC), summary=text, value={"description": text},
+        evidence_id="EVD-CHANGE",
+        evidence_type="git_change",
+        source="git",
+        provenance="provided",
+        observed_at=datetime(2026, 10, 20, 9, tzinfo=UTC),
+        summary=text,
+        value={"description": text},
     )
 
 
@@ -220,11 +269,14 @@ def test_memory_limit_lowered_compares_sizes(text: str, lowered: bool) -> None:
 @pytest.mark.parametrize(
     "line",
     [
-        "upstream connect error or disconnect/reset before headers. reset reason: connection failure",
+        "upstream connect error or disconnect/reset before headers. "
+        "reset reason: connection failure",
         "rpc error: code = Unavailable desc = no healthy upstream",
         '"GET /v2/prices HTTP/1.1" 503 UF,URX upstream_reset_before_response_started',
     ],
 )
 def test_envoy_and_grpc_wording_is_a_dependency_failure(line: str) -> None:
     assert "upstream_unavailable" in line_signatures(line)
-    assert "upstream_unavailable" not in line_signatures("HTTP 503 from our own handler: maintenance mode")
+    assert "upstream_unavailable" not in line_signatures(
+        "HTTP 503 from our own handler: maintenance mode"
+    )

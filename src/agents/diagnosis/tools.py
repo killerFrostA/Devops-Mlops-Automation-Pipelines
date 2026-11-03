@@ -18,7 +18,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 from urllib.error import URLError
 from urllib.parse import urlencode
 from urllib.request import urlopen
@@ -27,7 +27,6 @@ from pydantic import ValidationError
 
 from src.agents.diagnosis.contracts import EvidenceItem, ToolCallRecord
 from src.agents.diagnosis.signatures import DEPENDENCY_SIGNATURES, line_signatures
-
 
 DEFAULT_TOOL_TIMEOUT_SECONDS = 10.0
 DEFAULT_LOOKBACK = timedelta(hours=1)
@@ -70,9 +69,14 @@ class ToolContext:
 
 
 class EvidenceTool(Protocol):
-    name: str
-    description: str
-    operations: Mapping[str, str]
+    @property
+    def name(self) -> str: ...
+
+    @property
+    def description(self) -> str: ...
+
+    @property
+    def operations(self) -> Mapping[str, str]: ...
 
     def run(self, operation: str, context: ToolContext) -> list[EvidenceItem]: ...
 
@@ -104,7 +108,9 @@ def _run_readonly(argv: Sequence[str], timeout: float) -> str:
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise ToolError(f"{argv[0]} failed: {exc}") from exc
     if completed.returncode != 0:
-        raise ToolError(f"{argv[0]} exited with {completed.returncode}: {completed.stderr.strip()[:300]}")
+        raise ToolError(
+            f"{argv[0]} exited with {completed.returncode}: {completed.stderr.strip()[:300]}"
+        )
     return completed.stdout
 
 
@@ -136,15 +142,17 @@ class PrometheusMetricsTool:
     _QUERIES = {
         "memory_percent": (
             "100 * max(container_memory_working_set_bytes{{{pods}}}) / "
-            "max(kube_pod_container_resource_limits{{{pods},resource=\"memory\"}})"
+            'max(kube_pod_container_resource_limits{{{pods},resource="memory"}})'
         ),
         "cpu_percent": (
             "100 * sum(rate(container_cpu_usage_seconds_total{{{pods}}}[5m])) / "
-            "sum(kube_pod_container_resource_limits{{{pods},resource=\"cpu\"}})"
+            'sum(kube_pod_container_resource_limits{{{pods},resource="cpu"}})'
         ),
-        "restart_count": "max(increase(kube_pod_container_status_restarts_total{{{pods}}}[{window}]))",
+        "restart_count": (
+            "max(increase(kube_pod_container_status_restarts_total{{{pods}}}[{window}]))"
+        ),
         "error_rate": (
-            "100 * sum(rate(http_requests_total{{{service},status=~\"5..\"}}[5m])) / "
+            '100 * sum(rate(http_requests_total{{{service},status=~"5.."}}[5m])) / '
             "sum(rate(http_requests_total{{{service}}}[5m]))"
         ),
         "latency_p95_ms": (
@@ -205,7 +213,9 @@ class PrometheusMetricsTool:
         summary = f"Prometheus reports {key}={value:.3g} for {service}."
         if operation == "request_rate":
             # PromQL only accepts offset right after a selector, not after sum(...).
-            baseline_query = self._QUERIES[operation].replace("[5m]", "[5m] offset 1d").format(**selectors)
+            baseline_query = (
+                self._QUERIES[operation].replace("[5m]", "[5m] offset 1d").format(**selectors)
+            )
             baseline = self._query(baseline_query, context)
             if baseline is not None:
                 payload["rps_baseline"] = round(baseline, 3)
@@ -269,7 +279,9 @@ class LokiLogsTool:
             (int(entry[0]), entry[1])
             for stream in data.get("data", {}).get("result", [])
             for entry in stream.get("values", [])
-            if isinstance(entry, list) and len(entry) == 2 and isinstance(entry[1], str)
+            if isinstance(entry, list)
+            and len(entry) == 2
+            and isinstance(entry[1], str)
             and str(entry[0]).isdigit()
         ]
         lines = current_error_episode(entries)
@@ -278,7 +290,9 @@ class LokiLogsTool:
         return [_log_evidence(context, self.name, lines, source="loki")]
 
 
-def current_error_episode(entries: Sequence[tuple[int, str]], gap: timedelta = ERROR_EPISODE_GAP) -> list[str]:
+def current_error_episode(
+    entries: Sequence[tuple[int, str]], gap: timedelta = ERROR_EPISODE_GAP
+) -> list[str]:
     """Lines after the last quiet gap: errors of an earlier, resolved incident are dropped.
 
     ``entries`` are (nanosecond timestamp, line) pairs in any order; newest first in the result.
@@ -286,7 +300,7 @@ def current_error_episode(entries: Sequence[tuple[int, str]], gap: timedelta = E
     ordered = sorted(entries, key=lambda item: item[0], reverse=True)
     gap_ns = int(gap.total_seconds() * 1e9)
     kept = ordered[:1]
-    for previous, current in zip(ordered, ordered[1:]):
+    for previous, current in zip(ordered, ordered[1:], strict=False):
         if previous[0] - current[0] > gap_ns:
             break
         kept.append(current)
@@ -349,12 +363,21 @@ class KubernetesTool:
         argv = [self._kubectl]
         if self._context_name:
             argv += ["--context", self._context_name]
-        argv += ["get", resource, "-n", _safe_name(context.namespace, "namespace"), *extra, "-o", "json"]
+        argv += [
+            "get",
+            resource,
+            "-n",
+            _safe_name(context.namespace, "namespace"),
+            *extra,
+            "-o",
+            "json",
+        ]
         output = self._runner(argv, context.remaining_seconds(self._timeout))
         try:
-            return json.loads(output)
+            parsed: dict[str, Any] = json.loads(output)
         except json.JSONDecodeError as exc:
             raise ToolError(f"kubectl get {resource} returned invalid JSON") from exc
+        return parsed
 
     def _selector(self, context: ToolContext) -> str:
         return f"{self._app_label}={_safe_name(context.service_id, 'service')}"
@@ -368,14 +391,16 @@ class KubernetesTool:
 
     def _pod_status(self, context: ToolContext) -> list[EvidenceItem]:
         pods = self._get("pods", context, "-l", self._selector(context)).get("items", [])
-        restarts, waiting, terminated, exit_codes = 0, Counter(), Counter(), []
+        restarts, exit_codes = 0, []
+        waiting: Counter[str] = Counter()
+        terminated: Counter[str] = Counter()
         for pod in pods:
             for status in pod.get("status", {}).get("containerStatuses", []) or []:
                 restarts = max(restarts, int(status.get("restartCount", 0) or 0))
                 reason = (status.get("state", {}).get("waiting") or {}).get("reason")
                 if reason:
                     waiting[reason] += 1
-                last = (status.get("lastState", {}).get("terminated") or {})
+                last = status.get("lastState", {}).get("terminated") or {}
                 if last.get("reason"):
                     terminated[last["reason"]] += 1
                 if isinstance(last.get("exitCode"), int):
@@ -434,7 +459,9 @@ class KubernetesTool:
         ]
 
     def _deployment_history(self, context: ToolContext) -> list[EvidenceItem]:
-        replica_sets = self._get("replicasets", context, "-l", self._selector(context)).get("items", [])
+        replica_sets = self._get("replicasets", context, "-l", self._selector(context)).get(
+            "items", []
+        )
         cutoff = datetime.now(UTC) - context.lookback * 24
         evidence = []
         for replica_set in replica_sets:
@@ -443,8 +470,11 @@ class KubernetesTool:
             revision = metadata.get("annotations", {}).get("deployment.kubernetes.io/revision")
             if created is None or revision is None or created < cutoff:
                 continue
-            containers = replica_set.get("spec", {}).get("template", {}).get("spec", {}).get(
-                "containers", []
+            containers = (
+                replica_set.get("spec", {})
+                .get("template", {})
+                .get("spec", {})
+                .get("containers", [])
             )
             images = ", ".join(str(container.get("image")) for container in containers)
             evidence.append((created, str(revision), images))
@@ -458,7 +488,8 @@ class KubernetesTool:
                     source="kubernetes",
                     provenance="provided",
                     observed_at=created,
-                    summary=f"Deployment revision {revision} rolled out at {created.isoformat()} ({images}).",
+                    summary=f"Deployment revision {revision} rolled out at "
+                    f"{created.isoformat()} ({images}).",
                     value={
                         "change_id": change_id,
                         "description": f"Deployment revision {revision} ({images})",
@@ -494,14 +525,21 @@ class GitChangesTool:
         since = (datetime.now(UTC) - context.lookback * 24).isoformat()
         output = self._runner(
             [
-                self._git, "-C", str(self._repository), "log", f"--since={since}",
-                f"--max-count={self._max_commits}", "--name-only",
+                self._git,
+                "-C",
+                str(self._repository),
+                "log",
+                f"--since={since}",
+                f"--max-count={self._max_commits}",
+                "--name-only",
                 "--format=%x1e%H%x1f%cI%x1f%s",
             ],
             context.remaining_seconds(self._timeout),
         )
         items = []
-        for index, record in enumerate((part for part in output.split("\x1e") if part.strip()), start=1):
+        for index, record in enumerate(
+            (part for part in output.split("\x1e") if part.strip()), start=1
+        ):
             header, _, files_block = record.partition("\n")
             sha, committed_at, subject = (header.split("\x1f") + ["", "", ""])[:3]
             changed_at = _parse_time(committed_at)
@@ -554,7 +592,9 @@ class StaticEvidenceTool:
             try:
                 items.append(EvidenceItem.model_validate(record))
             except ValidationError as exc:
-                raise ToolError(f"Invalid recorded evidence for {self.name}.{operation}: {exc}") from exc
+                raise ToolError(
+                    f"Invalid recorded evidence for {self.name}.{operation}: {exc}"
+                ) from exc
         return items
 
 
@@ -610,9 +650,13 @@ class Toolbox:
         tool_name: str,
         operation: str,
         context: ToolContext,
-        requested_by: str = "investigation_plan",
+        requested_by: Literal["investigation_plan", "llm"] = "investigation_plan",
     ) -> ToolCallResult:
-        def record(status: str, refs: tuple[str, ...] = (), error: str | None = None) -> ToolCallRecord:
+        def record(
+            status: Literal["succeeded", "failed", "skipped"],
+            refs: tuple[str, ...] = (),
+            error: str | None = None,
+        ) -> ToolCallRecord:
             return ToolCallRecord(
                 tool=tool_name,
                 operation=operation,
@@ -627,7 +671,9 @@ class Toolbox:
         key = (context.incident_id, tool_name, operation)
         if key in self._cache:
             cached = self._cache[key]
-            return ToolCallResult(cached.record.model_copy(update={"requested_by": requested_by}), cached.evidence)
+            return ToolCallResult(
+                cached.record.model_copy(update={"requested_by": requested_by}), cached.evidence
+            )
         if self._failures[tool_name] >= self.max_failures_per_tool:
             return ToolCallResult(record("skipped", error="circuit open after repeated failures"))
         if self._calls[context.incident_id] >= self.max_calls:

@@ -4,8 +4,8 @@ from datetime import UTC, datetime, timedelta
 from math import isfinite
 
 from src.agents.diagnosis.contracts import (
-    DiagnosisInput,
     DiagnosisExplainability,
+    DiagnosisInput,
     DiagnosisRecommendation,
     DiagnosisResult,
     EvidenceItem,
@@ -21,21 +21,21 @@ from src.agents.diagnosis.investigation import change_events_from_evidence, inve
 from src.agents.diagnosis.llm_analyzer import DeterministicSupplementalAnalyzer
 from src.agents.diagnosis.ports import KnowledgeRetriever, SupplementalAnalyzer
 from src.agents.diagnosis.rag_retriever import LocalKnowledgeRetriever
-from src.agents.diagnosis.tools import Toolbox
 from src.agents.diagnosis.rules import (
-    conflicting_metrics,
-    qualifies_as_prior_deployment,
-    evaluate_hypotheses,
-    has_oom_observation,
-    signal_conflicts,
     _suspected_dependency,
     _uncertain_deployment_correlation,
+    conflicting_metrics,
+    evaluate_hypotheses,
+    has_oom_observation,
+    qualifies_as_prior_deployment,
+    signal_conflicts,
 )
+from src.agents.diagnosis.tools import Toolbox
 from src.contracts.actions import ActionIntent, ActionTarget
 from src.contracts.enums import ActionType
-from src.contracts.payloads import DiagnosisCompleted, Hypothesis
+from src.contracts.payloads import DiagnosisCompleted
+from src.contracts.payloads import Hypothesis as SharedHypothesis
 from src.contracts.tasks import AgentTask
-
 
 DEFAULT_INVESTIGATION_TIMEOUT = timedelta(minutes=2)
 # A language model may reorder rule candidates whose scores differ by at most this margin.
@@ -55,7 +55,9 @@ RELATED_ROOT_CAUSES: dict[str, frozenset[str]] = {
     "MEMORY_LEAK_POST_DEPLOY": frozenset({"INSUFFICIENT_MEMORY_LIMIT"}),
     "DEPENDENCY_UNAVAILABLE": frozenset({"CONNECTION_POOL_EXHAUSTION"}),
     "CONNECTION_POOL_EXHAUSTION": frozenset({"DEPENDENCY_UNAVAILABLE"}),
-    "TRAFFIC_SPIKE": frozenset({"RESOURCE_PRESSURE_OR_CPU_STARVATION", "CONNECTION_POOL_EXHAUSTION"}),
+    "TRAFFIC_SPIKE": frozenset(
+        {"RESOURCE_PRESSURE_OR_CPU_STARVATION", "CONNECTION_POOL_EXHAUSTION"}
+    ),
     "RESOURCE_PRESSURE_OR_CPU_STARVATION": frozenset({"TRAFFIC_SPIKE"}),
     "CONFIG_ERROR_CRASHLOOP": frozenset({"CRASH_LOOP_UNEXPLAINED"}),
     "CRASH_LOOP_UNEXPLAINED": frozenset({"CONFIG_ERROR_CRASHLOOP"}),
@@ -64,8 +66,17 @@ RELATED_ROOT_CAUSES: dict[str, frozenset[str]] = {
 
 _NON_SEARCH_SIGNAL_KEYS = frozenset(
     {
-        "agent1_context", "categories", "observed_on", "incidents", "first_seen", "suspects",
-        "decision_reason", "alert_id", "change_context", "detected_at", "baseline",
+        "agent1_context",
+        "categories",
+        "observed_on",
+        "incidents",
+        "first_seen",
+        "suspects",
+        "decision_reason",
+        "alert_id",
+        "change_context",
+        "detected_at",
+        "baseline",
     }
 )
 
@@ -219,10 +230,7 @@ def _validate_analysis(
 def _metric_is_available(payload: DiagnosisInput, *names: str) -> bool:
     signal_values = [payload.signals[name] for name in names if name in payload.signals]
     evidence_values = [
-        item.value[name]
-        for item in payload.evidence
-        for name in names
-        if name in item.value
+        item.value[name] for item in payload.evidence for name in names if name in item.value
     ]
     return any(
         isinstance(value, (int, float)) and not isinstance(value, bool) and isfinite(value)
@@ -239,11 +247,7 @@ def _consistent_measure(
         return None
     for source in (payload.signals, *(item.value for item in payload.evidence)):
         value = source.get(name)
-        if (
-            isinstance(value, (int, float))
-            and not isinstance(value, bool)
-            and isfinite(value)
-        ):
+        if isinstance(value, (int, float)) and not isinstance(value, bool) and isfinite(value):
             return float(value)
     return None
 
@@ -352,8 +356,7 @@ def _hypothesis_missing_information(
                 missing.append(f"No {label} measurement was supplied.")
         if not missing:
             missing.append(
-                "The supplied measurements do not meet any current deterministic rule "
-                "combination."
+                "The supplied measurements do not meet any current deterministic rule combination."
             )
     return tuple(missing)
 
@@ -412,26 +415,18 @@ def _build_explainability(
                 f"score heuristique {hypothesis.probability:.2f}, non calibré."
             )
         else:
-            higher_ranked = [
-                item for item in hypotheses if item.rank < hypothesis.rank
-            ]
-            lower_ranked = [
-                item for item in hypotheses if item.rank > hypothesis.rank
-            ]
+            higher_ranked = [item for item in hypotheses if item.rank < hypothesis.rank]
+            lower_ranked = [item for item in hypotheses if item.rank > hypothesis.rank]
             comparison = []
             if higher_ranked:
                 comparison.append(
                     "classé après "
-                    + ", ".join(
-                        f"{item.code} ({item.probability:.2f})" for item in higher_ranked
-                    )
+                    + ", ".join(f"{item.code} ({item.probability:.2f})" for item in higher_ranked)
                 )
             if lower_ranked:
                 comparison.append(
                     "classé avant "
-                    + ", ".join(
-                        f"{item.code} ({item.probability:.2f})" for item in lower_ranked
-                    )
+                    + ", ".join(f"{item.code} ({item.probability:.2f})" for item in lower_ranked)
                 )
             ranking_reason = (
                 f"Rang {hypothesis.rank} sur {len(hypotheses)} selon le score heuristique "
@@ -462,7 +457,7 @@ def _build_explainability(
                 "une configuration invalide; revenir à la version précédente restaure la "
                 "configuration fonctionnelle."
             )
-            caveats = (
+            caveats: tuple[str, ...] = (
                 "Confirmer le changement concerné; l’exécution reste soumise à la politique de "
                 "risque et à l’approbation humaine.",
             )
@@ -487,7 +482,9 @@ def _build_explainability(
                     "Alternative temporaire au rollback : ajouter de la capacité retarde les "
                     "redémarrages OOM mais ne corrige pas la fuite mémoire."
                 )
-            caveats = ("Action indicative seulement; les paramètres d’exécution restent incomplets.",)
+            caveats = (
+                "Action indicative seulement; les paramètres d’exécution restent incomplets.",
+            )
         elif recommendation.action == "RESTART_TO_CONTAIN_MEMORY_GROWTH":
             justification = (
                 "Un redémarrage progressif libère la mémoire accumulée et contient la croissance "
@@ -620,7 +617,9 @@ def _apply_supplemental_ranking(
             f"The language-model analysis preferred {selected} over {top.code}; their rule "
             f"scores differ by at most {LLM_RERANK_MARGIN}, so the ranking was adjusted."
         )
-        return [item.model_copy(update={"rank": rank}) for rank, item in enumerate(reordered, 1)], False
+        return [
+            item.model_copy(update={"rank": rank}) for rank, item in enumerate(reordered, 1)
+        ], False
     limitations.append(
         f"The language-model analysis preferred {selected}, but the rules rank {top.code} "
         "clearly higher; the rule ranking was kept and the disagreement needs review."
@@ -925,13 +924,16 @@ def build_result(
             )
         )
         limitations.append(
-            "The scaling recommendation does not specify a replica count; it is not an execution plan."
+            "The scaling recommendation does not specify a replica count; "
+            "it is not an execution plan."
         )
     elif primary_root_cause == "RESOURCE_PRESSURE_OR_CPU_STARVATION":
         conflicts = conflicting_metrics(evidence_payload)
         cpu = _consistent_measure(evidence_payload, "cpu_percent", conflicts)
         latency = _consistent_measure(evidence_payload, "latency_ms", conflicts)
-        if cpu is not None and (cpu >= 70 or (cpu >= 50 and latency is not None and latency >= 800)):
+        if cpu is not None and (
+            cpu >= 70 or (cpu >= 50 and latency is not None and latency >= 800)
+        ):
             recommendations.append(
                 DiagnosisRecommendation(
                     action="SCALE_OR_REBALANCE_RESOURCES",
@@ -940,7 +942,8 @@ def build_result(
                 )
             )
             limitations.append(
-                "The scaling recommendation does not specify a replica count; it is not an execution plan."
+                "The scaling recommendation does not specify a replica count; "
+                "it is not an execution plan."
             )
         else:
             recommendations.append(
@@ -951,7 +954,8 @@ def build_result(
                 )
             )
             limitations.append(
-                "A high error rate alone does not justify scaling without CPU or correlated latency evidence."
+                "A high error rate alone does not justify scaling without CPU "
+                "or correlated latency evidence."
             )
     else:
         recommendations.append(
@@ -964,9 +968,7 @@ def build_result(
 
     cited_evidence = tuple(
         dict.fromkeys(
-            evidence_ref
-            for hypothesis in hypotheses
-            for evidence_ref in hypothesis.evidence_refs
+            evidence_ref for hypothesis in hypotheses for evidence_ref in hypothesis.evidence_refs
         )
     )
     summary = f"Deterministic rules ranked {primary_root_cause} as the leading candidate."
@@ -1003,7 +1005,9 @@ def build_result(
         or not actionable
     )
     if additional_evidence:
-        limitations.append("Additional evidence is needed before treating this result as conclusive.")
+        limitations.append(
+            "Additional evidence is needed before treating this result as conclusive."
+        )
 
     return DiagnosisResult(
         diagnosis_id=f"DIAG-{payload.incident_id}",
@@ -1047,7 +1051,8 @@ def to_diagnosis_completed(task: AgentTask, result: DiagnosisResult) -> Diagnosi
         else:
             action_type = None
             limitations.append(
-                f"Recommended action '{recommendation.action}' has no equivalent in the shared action contract."
+                f"Recommended action '{recommendation.action}' has no equivalent in the "
+                "shared action contract."
             )
 
         if action_type is not None:
@@ -1075,7 +1080,7 @@ def to_diagnosis_completed(task: AgentTask, result: DiagnosisResult) -> Diagnosi
     return DiagnosisCompleted(
         diagnosis_id=f"DIAG-{task.incident_id}",
         hypotheses=tuple(
-            Hypothesis(
+            SharedHypothesis(
                 rank=hypothesis.rank,
                 code=hypothesis.code,
                 probability=hypothesis.probability,

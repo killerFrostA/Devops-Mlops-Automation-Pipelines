@@ -22,7 +22,6 @@ from src.agents.diagnosis.contracts import (
 from src.agents.diagnosis.investigation import tool_context
 from src.agents.diagnosis.tools import Toolbox
 
-
 DEFAULT_CLAUDE_MODEL = "claude-opus-5-5"
 DEFAULT_LLM_EFFORT = "high"
 DEFAULT_LLM_BASE_URL = "http://localhost:11434/v1"  # Ollama: local, no API key.
@@ -66,7 +65,11 @@ class LLMConfigurationError(ValueError):
 
 def _compact(value: Any) -> Any:
     text = json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
-    return value if len(text) <= _MAX_EVIDENCE_VALUE_CHARS else text[:_MAX_EVIDENCE_VALUE_CHARS] + "..."
+    return (
+        value
+        if len(text) <= _MAX_EVIDENCE_VALUE_CHARS
+        else text[:_MAX_EVIDENCE_VALUE_CHARS] + "..."
+    )
 
 
 def _incident_prompt(
@@ -86,32 +89,49 @@ def _incident_prompt(
                 {key: value for key, value in payload.signals.items() if key != "agent1_context"}
             ),
             "recent_changes": [
-                {"change_id": event.change_id, "description": event.description,
-                 "changed_at": event.changed_at.isoformat()}
+                {
+                    "change_id": event.change_id,
+                    "description": event.description,
+                    "changed_at": event.changed_at.isoformat(),
+                }
                 for event in payload.recent_change_events
             ],
         },
         "candidates": [
-            {"rank": item.rank, "code": item.code, "rule_score": item.probability,
-             "evidence_refs": list(item.evidence_refs)}
+            {
+                "rank": item.rank,
+                "code": item.code,
+                "rule_score": item.probability,
+                "evidence_refs": list(item.evidence_refs),
+            }
             for item in hypotheses
         ],
         "evidence": [
-            {"evidence_id": item.evidence_id, "type": item.evidence_type, "source": item.source,
-             "provenance": item.provenance, "summary": item.summary, "value": _compact(item.value)}
+            {
+                "evidence_id": item.evidence_id,
+                "type": item.evidence_type,
+                "source": item.source,
+                "provenance": item.provenance,
+                "summary": item.summary,
+                "value": _compact(item.value),
+            }
             for item in evidence
         ],
         "similar_past_incidents": [
-            {"reference_id": item.reference_id, "root_cause": item.root_cause, "summary": item.summary}
+            {
+                "reference_id": item.reference_id,
+                "root_cause": item.root_cause,
+                "summary": item.summary,
+            }
             for item in knowledge.similar_incidents
         ],
         "runbooks": [
-            {"reference_id": item.reference_id, "summary": item.summary} for item in knowledge.runbooks
+            {"reference_id": item.reference_id, "summary": item.summary}
+            for item in knowledge.runbooks
         ],
     }
-    return (
-        "Review this diagnosis and answer in the requested JSON format.\n\n"
-        + json.dumps(document, ensure_ascii=False, indent=1, sort_keys=True, default=str)
+    return "Review this diagnosis and answer in the requested JSON format.\n\n" + json.dumps(
+        document, ensure_ascii=False, indent=1, sort_keys=True, default=str
     )
 
 
@@ -166,7 +186,7 @@ class ClaudeSupplementalAnalyzer:
     def _get_client(self) -> Any:
         if self._client is None:
             try:
-                import anthropic
+                import anthropic  # type: ignore[import-not-found, unused-ignore]
             except ImportError as exc:
                 raise LLMAnalysisError("the 'anthropic' package is not installed") from exc
             self._client = anthropic.Anthropic(timeout=self._timeout_seconds)
@@ -207,8 +227,12 @@ class ClaudeSupplementalAnalyzer:
                         "status": result.record.status,
                         "error": result.record.error,
                         "evidence": [
-                            {"evidence_id": item.evidence_id, "type": item.evidence_type,
-                             "summary": item.summary, "value": _compact(item.value)}
+                            {
+                                "evidence_id": item.evidence_id,
+                                "type": item.evidence_type,
+                                "summary": item.summary,
+                                "value": _compact(item.value),
+                            }
                             for item in result.evidence
                         ],
                     },
@@ -216,7 +240,12 @@ class ClaudeSupplementalAnalyzer:
                     default=str,
                 )
             results.append(
-                {"type": "tool_result", "tool_use_id": block.id, "content": content, "is_error": is_error}
+                {
+                    "type": "tool_result",
+                    "tool_use_id": block.id,
+                    "content": content,
+                    "is_error": is_error,
+                }
             )
         return results
 
@@ -260,9 +289,12 @@ class ClaudeSupplementalAnalyzer:
                 tool_blocks = [block for block in response.content if block.type == "tool_use"]
                 if tool_blocks:
                     messages.append(
-                        {"role": "user", "content": self._run_tools(
-                            tool_blocks, payload, deadline, collected, records
-                        )}
+                        {
+                            "role": "user",
+                            "content": self._run_tools(
+                                tool_blocks, payload, deadline, collected, records
+                            ),
+                        }
                     )
                 continue
             text = next((block.text for block in response.content if block.type == "text"), None)
@@ -289,7 +321,9 @@ class ClaudeSupplementalAnalyzer:
         raise LLMAnalysisError(f"no final answer after {self._max_tool_rounds} tool rounds")
 
 
-Transport = Callable[[str, dict[str, Any], dict[str, str], float], tuple[int, Mapping[str, str], str]]
+Transport = Callable[
+    [str, dict[str, Any], dict[str, str], float], tuple[int, Mapping[str, str], str]
+]
 
 
 def _urllib_transport(
@@ -313,13 +347,15 @@ def retry_delay_seconds(headers: Mapping[str, str], body: str, attempt: int, bas
             return max(float(retry_after), 0.0)
         except ValueError:
             try:
-                return max((parsedate_to_datetime(retry_after) - datetime.now(UTC)).total_seconds(), 0.0)
+                return max(
+                    (parsedate_to_datetime(retry_after) - datetime.now(UTC)).total_seconds(), 0.0
+                )
             except (TypeError, ValueError):
                 pass
     hinted = re.search(r'"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"', body)
     if hinted:
         return float(hinted.group(1))
-    return base * 2**attempt
+    return float(base * 2**attempt)
 
 
 def _json_answer(text: str) -> dict[str, Any]:
@@ -430,7 +466,9 @@ class OpenAICompatibleAnalyzer:
             if remaining <= 0:
                 raise LLMAnalysisError("analysis deadline reached")
             try:
-                status, response_headers, text = self._transport(self._url, body, headers, remaining)
+                status, response_headers, text = self._transport(
+                    self._url, body, headers, remaining
+                )
             except OSError as exc:  # URLError, refused connection, timeout.
                 raise LLMAnalysisError(f"cannot reach {self._base_url}: {exc}") from exc
             if status in RETRYABLE_STATUS and attempt < self._max_retries:
@@ -439,25 +477,34 @@ class OpenAICompatibleAnalyzer:
                     self._retry_max_seconds,
                 )
                 if (deadline - datetime.now(UTC)).total_seconds() <= wait:
-                    raise LLMAnalysisError(f"HTTP {status}: no time left to wait {wait:.0f}s and retry")
+                    raise LLMAnalysisError(
+                        f"HTTP {status}: no time left to wait {wait:.0f}s and retry"
+                    )
                 self.retries += 1
                 self._sleep(wait)
                 continue
             if status in RETRYABLE_STATUS:
-                raise LLMAnalysisError(f"HTTP {status} still returned after {self._max_retries} retries")
+                raise LLMAnalysisError(
+                    f"HTTP {status} still returned after {self._max_retries} retries"
+                )
             if status == 400:
                 try:
                     error = json.loads(text).get("error") or {}
                 except (json.JSONDecodeError, AttributeError):
                     error = {}
                 if isinstance(error, dict) and error.get("code") == "tool_use_failed":
-                    raise _ToolUseFailed(str(error.get("message", "")), str(error.get("failed_generation", "")))
+                    raise _ToolUseFailed(
+                        str(error.get("message", "")), str(error.get("failed_generation", ""))
+                    )
             if status != 200:
-                raise LLMAnalysisError(f"HTTP {status} from {self._base_url}: {' '.join(text.split())[:300]}")
+                raise LLMAnalysisError(
+                    f"HTTP {status} from {self._base_url}: {' '.join(text.split())[:300]}"
+                )
             try:
-                return json.loads(text)
+                reply: dict[str, Any] = json.loads(text)
             except json.JSONDecodeError as exc:
                 raise LLMAnalysisError("the endpoint returned invalid JSON") from exc
+            return reply
         raise AssertionError("unreachable")
 
     def _run_tools(
@@ -480,7 +527,9 @@ class OpenAICompatibleAnalyzer:
             if self._toolbox is None or not isinstance(operation, str):
                 content = "Error: unknown tool or missing operation."
             else:
-                result = self._toolbox.call(function.get("name", ""), operation, context, requested_by="llm")
+                result = self._toolbox.call(
+                    function.get("name", ""), operation, context, requested_by="llm"
+                )
                 records.append(result.record)
                 known = {item.evidence_id for item in collected}
                 collected.extend(item for item in result.evidence if item.evidence_id not in known)
@@ -489,15 +538,21 @@ class OpenAICompatibleAnalyzer:
                         "status": result.record.status,
                         "error": result.record.error,
                         "evidence": [
-                            {"evidence_id": item.evidence_id, "type": item.evidence_type,
-                             "summary": item.summary, "value": _compact(item.value)}
+                            {
+                                "evidence_id": item.evidence_id,
+                                "type": item.evidence_type,
+                                "summary": item.summary,
+                                "value": _compact(item.value),
+                            }
                             for item in result.evidence
                         ],
                     },
                     ensure_ascii=False,
                     default=str,
                 )
-            messages.append({"role": "tool", "tool_call_id": call.get("id", ""), "content": content})
+            messages.append(
+                {"role": "tool", "tool_call_id": call.get("id", ""), "content": content}
+            )
         return messages
 
     def analyze(
@@ -542,7 +597,9 @@ class OpenAICompatibleAnalyzer:
                 # Some models (gpt-oss) emit the final answer as a call to a made-up "json" tool.
                 recovered = _answer_from_failed_generation(exc.failed_generation)
                 if recovered is not None:
-                    response = {"choices": [{"finish_reason": "stop", "message": {"content": recovered}}]}
+                    response = {
+                        "choices": [{"finish_reason": "stop", "message": {"content": recovered}}]
+                    }
                 elif not corrected:
                     corrected = True
                     messages.append({"role": "user", "content": PLAIN_JSON_REMINDER})
@@ -559,7 +616,11 @@ class OpenAICompatibleAnalyzer:
             tool_calls = message.get("tool_calls") or []
             if tool_calls:
                 messages.append(
-                    {"role": "assistant", "content": message.get("content"), "tool_calls": tool_calls}
+                    {
+                        "role": "assistant",
+                        "content": message.get("content"),
+                        "tool_calls": tool_calls,
+                    }
                 )
                 messages.extend(self._run_tools(tool_calls, payload, deadline, collected, records))
                 continue
@@ -575,7 +636,9 @@ class OpenAICompatibleAnalyzer:
             invented = [ref for ref in cited if ref not in known_refs]
             limitations = [str(item) for item in answer.get("limitations") or []]
             if invented:
-                limitations.append("Ignored evidence IDs unknown to this diagnosis: " + ", ".join(invented))
+                limitations.append(
+                    "Ignored evidence IDs unknown to this diagnosis: " + ", ".join(invented)
+                )
             return SupplementalAnalysis(
                 source="llm",
                 summary=answer.get("summary") or "No summary returned.",
@@ -619,7 +682,9 @@ def build_analyzer_from_env(
     ``anthropic`` calls Claude (ANTHROPIC_API_KEY, billed).
     """
     env = os.environ if env is None else env
-    choice = (provider if provider is not None else env.get("PIDS_DIAGNOSIS_LLM", "")).strip().casefold()
+    choice = (
+        (provider if provider is not None else env.get("PIDS_DIAGNOSIS_LLM", "")).strip().casefold()
+    )
     if choice in _DISABLED:
         return None
     if choice in _ANTHROPIC:
@@ -632,7 +697,9 @@ def build_analyzer_from_env(
 
     model = env.get("LLM_MODEL", "").strip()
     if not model:
-        raise LLMConfigurationError("LLM_MODEL is not set (for example llama-3.3-70b-versatile on Groq).")
+        raise LLMConfigurationError(
+            "LLM_MODEL is not set (for example llama-3.3-70b-versatile on Groq)."
+        )
     key_variable = env.get("LLM_API_KEY_ENV", "").strip()
     api_key = None
     if key_variable:

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from src.agents.diagnosis.contracts import DiagnosisInput, EvidenceItem, EvidenceType
 
-
 _AGENT1_EVIDENCE_FACTS = (
     "events.memory_peak_ratio",
     "events.restarts",
@@ -151,7 +150,8 @@ def _change_evidence(payload: DiagnosisInput) -> list[EvidenceItem]:
             source="diagnosis_input",
             provenance="provided",
             observed_at=event.changed_at,
-            summary=f"Input records this change at {event.changed_at.isoformat()}: {event.description}.",
+            summary=f"Input records this change at {event.changed_at.isoformat()}: "
+            f"{event.description}.",
             value={
                 "incident_id": payload.incident_id,
                 "change_id": event.change_id,

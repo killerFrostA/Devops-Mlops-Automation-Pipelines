@@ -19,7 +19,6 @@ from src.agents.diagnosis.signatures import (
     signatures_of,
 )
 
-
 AGENT1_MEMORY_GROWTH_MIN_SLOPE_MO_PER_MIN = 5.0
 AGENT1_MEMORY_OOM_MIN_PEAK_RATIO = 0.95
 AGENT1_DEPLOYMENT_DETECTION_MARGIN = timedelta(minutes=5)
@@ -144,7 +143,8 @@ def _change_evidence(payload: DiagnosisInput) -> list[EvidenceItem]:
             source="diagnosis_input",
             provenance="provided",
             observed_at=event.changed_at,
-            summary=f"Input records this change at {event.changed_at.isoformat()}: {event.description}.",
+            summary=f"Input records this change at {event.changed_at.isoformat()}: "
+            f"{event.description}.",
             value={
                 "incident_id": payload.incident_id,
                 "change_id": event.change_id,
@@ -199,11 +199,14 @@ def has_oom_observation(item: EvidenceItem) -> bool:
     text = f"{item.summary} {item.value.get('reason', '')}".lower()
     if re.search(r"\boom\b|\boomkilled\b|out[- ]of[- ]memory", text) is None:
         return False
-    return re.search(
-        r"\b(?:no|not|without|never)\s+(?:an?\s+)?(?:evidence of\s+)?"
-        r"(?:oom\b|oomkilled\b|out[- ]of[- ]memory)",
-        text,
-    ) is None
+    return (
+        re.search(
+            r"\b(?:no|not|without|never)\s+(?:an?\s+)?(?:evidence of\s+)?"
+            r"(?:oom\b|oomkilled\b|out[- ]of[- ]memory)",
+            text,
+        )
+        is None
+    )
 
 
 def conflicting_metrics(payload: DiagnosisInput) -> tuple[str, ...]:
@@ -326,11 +329,10 @@ def _relevant_evidence(
                 if "error_rate_percent" in conflicts
                 else _numeric_value(item.value.get("error_rate"), "error_rate_percent")
             )
-            if error_rate is None:
-                if "error_rate_percent" not in conflicts:
-                    error_rate = _numeric_value(
-                        item.value.get("error_rate_percent"), "error_rate_percent"
-                    )
+            if error_rate is None and "error_rate_percent" not in conflicts:
+                error_rate = _numeric_value(
+                    item.value.get("error_rate_percent"), "error_rate_percent"
+                )
             supports = (
                 (cpu is not None and cpu >= 70)
                 or (error_rate is not None and error_rate >= 10)
@@ -361,11 +363,13 @@ def _memory_hypothesis(
     score += min(memory_percent / 100.0, 1.0) * 0.35
     score += min(restart_count / 5.0, 1.0) * 0.2
     score += 0.1 if latency_ms >= 500 else 0.0
-    evidence_refs = list(_relevant_evidence(
-        payload.evidence,
-        cause=cause,
-        conflicts=conflicts,
-    ))
+    evidence_refs = list(
+        _relevant_evidence(
+            payload.evidence,
+            cause=cause,
+            conflicts=conflicts,
+        )
+    )
     if cause == "MEMORY_LEAK_POST_DEPLOY":
         if payload.memory_growth_observed:
             growth_ref = f"EVD-{payload.incident_id}-MEMORY-GROWTH"
@@ -517,15 +521,14 @@ def _memory_limit_cut_refs(payload: DiagnosisInput) -> tuple[str, ...]:
     return tuple(
         item.evidence_id
         for item in payload.evidence
-        if item.evidence_type in ("git_change", "config", "k8s_event") and memory_limit_lowered(item)
+        if item.evidence_type in ("git_change", "config", "k8s_event")
+        and memory_limit_lowered(item)
     )
 
 
 def _refs_with_signature(payload: DiagnosisInput, *names: str) -> tuple[str, ...]:
     wanted = set(names)
-    return tuple(
-        item.evidence_id for item in payload.evidence if wanted & signatures_of(item)
-    )
+    return tuple(item.evidence_id for item in payload.evidence if wanted & signatures_of(item))
 
 
 def _suspected_dependency(payload: DiagnosisInput) -> str | None:
@@ -603,11 +606,7 @@ def _dependency_hypotheses(
                 evidence_refs=dependency_refs,
             )
         )
-    elif (
-        not pool_refs
-        and error_rate >= 5
-        and _suspected_dependency(payload) is not None
-    ):
+    elif not pool_refs and error_rate >= 5 and _suspected_dependency(payload) is not None:
         # Agent 1 suspects another service but no log confirms it yet.
         hypotheses.append(
             Hypothesis(
@@ -645,9 +644,7 @@ def evaluate_hypotheses(payload: DiagnosisInput) -> list[Hypothesis]:
     """Rank deterministic heuristic candidates; scores are not calibrated probabilities."""
 
     conflicts = conflicting_metrics(payload)
-    memory_percent = _measure(
-        payload, "memory_percent", "memory_pct", conflicts=conflicts
-    )
+    memory_percent = _measure(payload, "memory_percent", "memory_pct", conflicts=conflicts)
     restart_count = _measure(payload, "restart_count", conflicts=conflicts)
     cpu_percent = _measure(payload, "cpu_percent", conflicts=conflicts)
     latency_ms = _measure(payload, "latency_ms", conflicts=conflicts)
@@ -659,10 +656,7 @@ def evaluate_hypotheses(payload: DiagnosisInput) -> list[Hypothesis]:
         if _agent1_memory_category(payload, "memory_oom")
         else None
     )
-    if (
-        agent1_oom_ratio is not None
-        and agent1_oom_ratio >= AGENT1_MEMORY_OOM_MIN_PEAK_RATIO
-    ):
+    if agent1_oom_ratio is not None and agent1_oom_ratio >= AGENT1_MEMORY_OOM_MIN_PEAK_RATIO:
         hypotheses.append(
             _agent1_hypothesis(
                 payload,
@@ -717,13 +711,14 @@ def evaluate_hypotheses(payload: DiagnosisInput) -> list[Hypothesis]:
         has_memory_failure_signal = (
             payload.memory_growth_observed
             or restart_count > 0
-            or any(
-                has_oom_observation(item)
-                for item in payload.evidence
-            )
+            or any(has_oom_observation(item) for item in payload.evidence)
         )
         qualifying_change = _qualifying_deployment_precedes_memory_rise(payload)
-        if has_memory_failure_signal and _memory_limit_cut_refs(payload) and not payload.memory_growth_observed:
+        if (
+            has_memory_failure_signal
+            and _memory_limit_cut_refs(payload)
+            and not payload.memory_growth_observed
+        ):
             # The release lowered the limit and memory did not grow: the workload no longer
             # fits, it does not leak (raise the limit or revert the change, no restart loop).
             memory_cause = "MEMORY_LIMIT_REACHED"
@@ -736,9 +731,7 @@ def evaluate_hypotheses(payload: DiagnosisInput) -> list[Hypothesis]:
     crash_loop = _crash_loop_hypothesis(payload)
     if crash_loop is not None:
         hypotheses.append(crash_loop)
-    hypotheses.extend(
-        _dependency_hypotheses(payload, error_rate=error_rate, latency_ms=latency_ms)
-    )
+    hypotheses.extend(_dependency_hypotheses(payload, error_rate=error_rate, latency_ms=latency_ms))
     traffic_spike = _traffic_spike_hypothesis(payload, cpu_percent)
     if traffic_spike is not None:
         hypotheses.append(traffic_spike)

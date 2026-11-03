@@ -13,7 +13,7 @@ def test_hypothesis_accepts_empty_evidence_refs() -> None:
 def test_hypothesis_requires_evidence_refs_field() -> None:
     # Le champ doit exister, même s'il peut être vide
     with pytest.raises(ValidationError, match="evidence_refs"):
-        Hypothesis(rank=1, code="MEMORY_LEAK_POST_DEPLOY", probability=0.86)
+        Hypothesis(rank=1, code="MEMORY_LEAK_POST_DEPLOY", probability=0.86)  # type: ignore[call-arg]
 
 
 def test_diagnosis_completed_requires_primary_root_cause_and_hypotheses() -> None:

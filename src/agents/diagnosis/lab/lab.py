@@ -1,10 +1,10 @@
 """Drive the Agent 2 lab: a kind cluster where real faults are injected and diagnosed live.
 
-    py -3 -m src.agents.diagnosis.lab.lab up                 # create cluster, build app, deploy
-    py -3 -m src.agents.diagnosis.lab.lab inject leak        # leak | bad-config | dependency-down | pool
-    py -3 -m src.agents.diagnosis.lab.lab run leak --wait    # Agent 1 stand-in event, then diagnosis
-    py -3 -m src.agents.diagnosis.lab.lab reset              # back to the healthy release
-    py -3 -m src.agents.diagnosis.lab.lab down               # delete the cluster
+    py -3 -m src.agents.diagnosis.lab.lab up               # create cluster, build app, deploy
+    py -3 -m src.agents.diagnosis.lab.lab inject leak      # or bad-config, dependency-down, pool
+    py -3 -m src.agents.diagnosis.lab.lab run leak --wait  # Agent 1 stand-in event, diagnosis
+    py -3 -m src.agents.diagnosis.lab.lab reset            # back to the healthy release
+    py -3 -m src.agents.diagnosis.lab.lab down             # delete the cluster
 
 ``event`` plays Agent 1: it reads the anomaly signals from the lab Prometheus and writes an
 ANOMALY_DETECTED envelope. By default it gives no change context, so Agent 2 must find the
@@ -149,7 +149,9 @@ class LabError(RuntimeError):
     pass
 
 
-def _run(argv: list[str], *, check: bool = True, capture: bool = False, cwd: Path | None = None) -> str:
+def _run(
+    argv: list[str], *, check: bool = True, capture: bool = False, cwd: Path | None = None
+) -> str:
     print("$ " + " ".join(argv), flush=True)
     completed = subprocess.run(argv, check=False, text=True, capture_output=capture, cwd=cwd)  # noqa: S603
     if check and completed.returncode != 0:
@@ -164,14 +166,24 @@ def _kubectl(*args: str, capture: bool = False, check: bool = True) -> str:
 
 def _git(*args: str) -> str:
     return _run(
-        ["git", "-C", str(APP_REPO), "-c", "user.name=pids-lab", "-c", "user.email=lab@localhost", *args],
+        [
+            "git",
+            "-C",
+            str(APP_REPO),
+            "-c",
+            "user.name=pids-lab",
+            "-c",
+            "user.email=lab@localhost",
+            *args,
+        ],
         capture=True,
     )
 
 
 def _load_state() -> dict[str, Any]:
     try:
-        return json.loads(STATE_FILE.read_text(encoding="utf-8"))
+        state: dict[str, Any] = json.loads(STATE_FILE.read_text(encoding="utf-8"))
+        return state
     except (OSError, ValueError):
         return {}
 
@@ -187,7 +199,9 @@ def _init_app_repo() -> None:
     APP_REPO.mkdir(parents=True, exist_ok=True)
     _run(["git", "init", "-q", str(APP_REPO)], capture=True)
     (APP_REPO / "config").mkdir(exist_ok=True)
-    (APP_REPO / "config" / "values.yaml").write_text("paymentTimeoutMs: 500\ndbPoolSize: 10\n", encoding="utf-8")
+    (APP_REPO / "config" / "values.yaml").write_text(
+        "paymentTimeoutMs: 500\ndbPoolSize: 10\n", encoding="utf-8"
+    )
     _git("add", "-A")
     _git("commit", "-q", "-m", "release 1.3.0 (baseline)")
 
@@ -218,7 +232,10 @@ def cmd_check(_: argparse.Namespace) -> None:
     for tool in ("docker", "kind", "kubectl", "git"):
         print(f"{tool:8s} {shutil.which(tool) or 'MISSING'}")
     gib = _docker_gib()
-    print(f"Docker memory: {gib:.1f} GiB" + (f"  (below {MIN_DOCKER_GIB} GiB: the lab may not fit)" if gib < MIN_DOCKER_GIB else ""))
+    print(
+        f"Docker memory: {gib:.1f} GiB"
+        + (f"  (below {MIN_DOCKER_GIB} GiB: the lab may not fit)" if gib < MIN_DOCKER_GIB else "")
+    )
     clusters = _run(["kind", "get", "clusters"], capture=True).split()
     print(f"kind clusters: {clusters or 'none'}")
     print(f"running containers: {_running_containers() or 'none'}")
@@ -229,9 +246,22 @@ def cmd_qdrant(args: argparse.Namespace) -> None:
     if args.action == "stop":
         _run(["docker", "stop", QDRANT_CONTAINER], check=False)
         return
-    if QDRANT_CONTAINER not in _run(["docker", "ps", "-a", "--format", "{{.Names}}"], capture=True).split():
+    if (
+        QDRANT_CONTAINER
+        not in _run(["docker", "ps", "-a", "--format", "{{.Names}}"], capture=True).split()
+    ):
         _run(["docker", "compose", "--profile", "intelligence", "create", "qdrant"], cwd=REPO_ROOT)
-    _run(["docker", "update", "--memory", QDRANT_MEMORY, "--memory-swap", QDRANT_MEMORY, QDRANT_CONTAINER])
+    _run(
+        [
+            "docker",
+            "update",
+            "--memory",
+            QDRANT_MEMORY,
+            "--memory-swap",
+            QDRANT_MEMORY,
+            QDRANT_CONTAINER,
+        ]
+    )
     _run(["docker", "start", QDRANT_CONTAINER])
 
 
@@ -242,28 +272,61 @@ def _load_image(image: str) -> None:
     containerd image store when only the local platform is present ("content digest not found").
     """
     node = f"{CLUSTER}-control-plane"
-    present = _run(["docker", "exec", node, "ctr", "-n", "k8s.io", "images", "ls", "-q"], capture=True).split()
-    if any(name.removeprefix("docker.io/library/").removeprefix("docker.io/") == image for name in present):
+    present = _run(
+        ["docker", "exec", node, "ctr", "-n", "k8s.io", "images", "ls", "-q"], capture=True
+    ).split()
+    if any(
+        name.removeprefix("docker.io/library/").removeprefix("docker.io/") == image
+        for name in present
+    ):
         print(f"{image}: already on {node}")
         return
-    print(f"$ docker save --platform linux/amd64 {image} | docker exec -i {node} ctr images import", flush=True)
-    save = subprocess.Popen(["docker", "save", "--platform", "linux/amd64", image], stdout=subprocess.PIPE)  # noqa: S603
-    load = subprocess.run(  # noqa: S603
-        ["docker", "exec", "-i", node, "ctr", "-n", "k8s.io", "images", "import",
-         "--platform", "linux/amd64", "--digests", "--snapshotter=overlayfs", "-"],
-        stdin=save.stdout, capture_output=True, text=True, check=False,
+    print(
+        f"$ docker save --platform linux/amd64 {image} | docker exec -i {node} ctr images import",
+        flush=True,
     )
-    save.stdout.close()
+    save = subprocess.Popen(
+        ["docker", "save", "--platform", "linux/amd64", image], stdout=subprocess.PIPE
+    )  # noqa: S603
+    load = subprocess.run(  # noqa: S603
+        [
+            "docker",
+            "exec",
+            "-i",
+            node,
+            "ctr",
+            "-n",
+            "k8s.io",
+            "images",
+            "import",
+            "--platform",
+            "linux/amd64",
+            "--digests",
+            "--snapshotter=overlayfs",
+            "-",
+        ],
+        stdin=save.stdout,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if save.stdout is not None:
+        save.stdout.close()
     if save.wait() != 0 or load.returncode != 0:
         raise LabError(f"cannot load {image} into {node}: {load.stderr.strip()[:300]}")
 
 
 def cmd_up(_: argparse.Namespace) -> None:
-    others = [name for name in _run(["kind", "get", "clusters"], capture=True).split() if name != CLUSTER]
+    others = [
+        name for name in _run(["kind", "get", "clusters"], capture=True).split() if name != CLUSTER
+    ]
     if others:
         raise LabError(f"other kind clusters use memory: {others}; delete them first")
     if _docker_gib() < MIN_DOCKER_GIB:
-        print(f"Warning: Docker has {_docker_gib():.1f} GiB; the lab needs about {MIN_DOCKER_GIB} GiB.")
+        print(
+            f"Warning: Docker has {_docker_gib():.1f} GiB; the lab needs about "
+            f"{MIN_DOCKER_GIB} GiB."
+        )
     if CLUSTER not in _run(["kind", "get", "clusters"], capture=True).split():
         _run(["kind", "create", "cluster", "--config", str(LAB_DIR / "kind-cluster.yaml")])
     _run(["docker", "build", "-t", IMAGE, str(LAB_DIR / "app")])
@@ -275,8 +338,12 @@ def cmd_up(_: argparse.Namespace) -> None:
     _kubectl("apply", "-f", str(LAB_DIR / "k8s" / "monitoring.yaml"))
     _kubectl("apply", "-f", str(LAB_DIR / "k8s" / "workload.yaml"))
     for namespace, name in (
-        ("monitoring", "prometheus"), ("monitoring", "kube-state-metrics"), ("monitoring", "loki"),
-        (NAMESPACE, "ledger-db"), (NAMESPACE, SERVICE), (NAMESPACE, "loadgen"),
+        ("monitoring", "prometheus"),
+        ("monitoring", "kube-state-metrics"),
+        ("monitoring", "loki"),
+        (NAMESPACE, "ledger-db"),
+        (NAMESPACE, SERVICE),
+        (NAMESPACE, "loadgen"),
     ):
         _kubectl("-n", namespace, "rollout", "status", f"deployment/{name}", "--timeout=300s")
     _kubectl("-n", "monitoring", "rollout", "status", "daemonset/fluent-bit", "--timeout=300s")
@@ -306,9 +373,15 @@ def cmd_inject(args: argparse.Namespace) -> None:
     if state.get("reset_at"):
         # Series of the replaced pods stay visible ~5 min (staleness) and in the 5m rate windows;
         # injecting earlier mixes the previous fault into the new incident's signals.
-        remaining = SETTLE_MINUTES * 60 - (datetime.now(UTC) - datetime.fromisoformat(state["reset_at"])).total_seconds()
+        remaining = (
+            SETTLE_MINUTES * 60
+            - (datetime.now(UTC) - datetime.fromisoformat(state["reset_at"])).total_seconds()
+        )
         if remaining > 0:
-            print(f"Waiting {remaining / 60:.1f} min for the previous fault's signals to settle...", flush=True)
+            print(
+                f"Waiting {remaining / 60:.1f} min for the previous fault's signals to settle...",
+                flush=True,
+            )
             time.sleep(remaining)
     _init_app_repo()
     print(fault.description)
@@ -316,26 +389,58 @@ def cmd_inject(args: argparse.Namespace) -> None:
         _kubectl("-n", NAMESPACE, "scale", "deployment/ledger-db", "--replicas=0")
     else:
         _commit_change(fault)
-        _kubectl("-n", NAMESPACE, "annotate", f"deployment/{SERVICE}",
-                 f"kubernetes.io/change-cause={fault.change_cause}", "--overwrite")
-        _kubectl("-n", NAMESPACE, "set", "env", f"deployment/{SERVICE}",
-                 *(f"{key}={value}" for key, value in fault.env.items()))
+        _kubectl(
+            "-n",
+            NAMESPACE,
+            "annotate",
+            f"deployment/{SERVICE}",
+            f"kubernetes.io/change-cause={fault.change_cause}",
+            "--overwrite",
+        )
+        _kubectl(
+            "-n",
+            NAMESPACE,
+            "set",
+            "env",
+            f"deployment/{SERVICE}",
+            *(f"{key}={value}" for key, value in fault.env.items()),
+        )
     _save_state({"fault": args.fault, "injected_at": datetime.now(UTC).isoformat()})
-    print(f"Injected {args.fault}. Wait at least {fault.min_minutes_after_inject:g} min, then: run {args.fault} --wait")
+    print(
+        f"Injected {args.fault}. Wait at least {fault.min_minutes_after_inject:g} min, "
+        f"then: run {args.fault} --wait"
+    )
 
 
 def cmd_reset(_: argparse.Namespace) -> None:
     state = _load_state()
     _kubectl("-n", NAMESPACE, "scale", "deployment/ledger-db", "--replicas=1")
     if state.get("fault") not in (None, "dependency-down"):
-        _kubectl("-n", NAMESPACE, "annotate", f"deployment/{SERVICE}",
-                 "kubernetes.io/change-cause=rollback to 1.3.0", "--overwrite")
-        _kubectl("-n", NAMESPACE, "set", "env", f"deployment/{SERVICE}",
-                 *(f"{key}={value}" for key, value in BASELINE_ENV.items()))
+        _kubectl(
+            "-n",
+            NAMESPACE,
+            "annotate",
+            f"deployment/{SERVICE}",
+            "kubernetes.io/change-cause=rollback to 1.3.0",
+            "--overwrite",
+        )
+        _kubectl(
+            "-n",
+            NAMESPACE,
+            "set",
+            "env",
+            f"deployment/{SERVICE}",
+            *(f"{key}={value}" for key, value in BASELINE_ENV.items()),
+        )
         _git("revert", "--no-edit", "HEAD")
-    _kubectl("-n", NAMESPACE, "rollout", "status", f"deployment/{SERVICE}", "--timeout=180s", check=False)
+    _kubectl(
+        "-n", NAMESPACE, "rollout", "status", f"deployment/{SERVICE}", "--timeout=180s", check=False
+    )
     _save_state({"fault": None, "injected_at": None, "reset_at": datetime.now(UTC).isoformat()})
-    print(f"Back to the healthy release. The next inject waits {SETTLE_MINUTES:g} min for the signals to settle.")
+    print(
+        f"Back to the healthy release. The next inject waits {SETTLE_MINUTES:g} min for the "
+        "signals to settle."
+    )
 
 
 def cmd_down(_: argparse.Namespace) -> None:
@@ -379,7 +484,9 @@ def anomaly_present(fault: Fault, signals: dict[str, float]) -> bool:
 
 def latest_rollout() -> tuple[str, datetime] | None:
     """Newest payment-service ReplicaSet revision and creation time, from kubectl."""
-    output = _kubectl("-n", NAMESPACE, "get", "replicasets", "-l", f"app={SERVICE}", "-o", "json", capture=True)
+    output = _kubectl(
+        "-n", NAMESPACE, "get", "replicasets", "-l", f"app={SERVICE}", "-o", "json", capture=True
+    )
     best = None
     for item in json.loads(output).get("items", []):
         metadata = item.get("metadata", {})
@@ -447,7 +554,10 @@ def cmd_event(args: argparse.Namespace) -> Path:
         signals = read_signals()
         elapsed = (datetime.now(UTC) - injected_at).total_seconds() / 60
         ready = elapsed >= fault.min_minutes_after_inject and anomaly_present(fault, signals)
-        print(f"[{elapsed:5.1f} min] {json.dumps(signals)}" + ("  -> anomaly" if ready else ""), flush=True)
+        print(
+            f"[{elapsed:5.1f} min] {json.dumps(signals)}" + ("  -> anomaly" if ready else ""),
+            flush=True,
+        )
         if ready or not args.wait:
             break
         if time.monotonic() > deadline:
@@ -466,7 +576,9 @@ def cmd_event(args: argparse.Namespace) -> Path:
         "expected_root_cause": fault.expected_root_cause,
         "expected_first_action": fault.expected_first_action,
     }
-    path.with_suffix("").with_suffix(".truth.json").write_text(json.dumps(truth, indent=2) + "\n", encoding="utf-8")
+    path.with_suffix("").with_suffix(".truth.json").write_text(
+        json.dumps(truth, indent=2) + "\n", encoding="utf-8"
+    )
     print(f"Agent 1 event: {path}")
     return path
 
@@ -485,14 +597,23 @@ def live_tool_env() -> dict[str, str]:
 
 
 def diagnose(event_path: Path, *, qdrant: bool, llm: str | None) -> None:
-    argv = [sys.executable, "-m", "src.agents.diagnosis.agent1_runner", str(event_path), "--live-tools",
-            "--output-dir", str(event_path.parent / event_path.name.split(".")[0])]
+    argv = [
+        sys.executable,
+        "-m",
+        "src.agents.diagnosis.agent1_runner",
+        str(event_path),
+        "--live-tools",
+        "--output-dir",
+        str(event_path.parent / event_path.name.split(".")[0]),
+    ]
     if qdrant:
         argv += ["--qdrant-url", QDRANT_URL]
     if llm:
         argv += ["--llm", llm]
     print("$ " + " ".join(argv), flush=True)
-    completed = subprocess.run(argv, cwd=REPO_ROOT, env={**os.environ, **live_tool_env()}, check=False)  # noqa: S603
+    completed = subprocess.run(
+        argv, cwd=REPO_ROOT, env={**os.environ, **live_tool_env()}, check=False
+    )  # noqa: S603
     if completed.returncode != 0:
         raise LabError(f"diagnosis exited with {completed.returncode}")
 
@@ -515,15 +636,23 @@ def record_tool_responses(incident_id: str) -> dict[str, dict[str, list[dict[str
     toolbox = build_toolbox_from_env(live_tool_env())
     if toolbox is None:
         raise LabError("no live tool configured")
-    context = ToolContext(incident_id, SERVICE, NAMESPACE, deadline=datetime.now(UTC) + timedelta(minutes=3))
+    context = ToolContext(
+        incident_id, SERVICE, NAMESPACE, deadline=datetime.now(UTC) + timedelta(minutes=3)
+    )
     recorded: dict[str, dict[str, list[dict[str, Any]]]] = {}
     for tool in toolbox.tools:
         for operation in tool.operations:
             result = toolbox.call(tool.name, operation, context)
             if result.record.status != "succeeded":
-                print(f"  {tool.name}.{operation}: {result.record.status} {result.record.error or ''}")
+                print(
+                    f"  {tool.name}.{operation}: {result.record.status} {result.record.error or ''}"
+                )
             items = [
-                {key: value for key, value in item.model_dump(mode="json").items() if key in _RECORDED_KEYS}
+                {
+                    key: value
+                    for key, value in item.model_dump(mode="json").items()
+                    if key in _RECORDED_KEYS
+                }
                 for item in result.evidence
             ]
             if items:
@@ -563,7 +692,10 @@ def scenario_from_lab(
 def rag_document_from_lab(event: dict[str, Any], truth: dict[str, Any]) -> dict[str, Any]:
     return {
         "reference_id": f"LAB-{event['correlation_id'].removeprefix('INC-LAB-')}",
-        "summary": f"{truth['description']} Lab incident on {SERVICE}, injected {truth['injected_at'][:16]}Z.",
+        "summary": (
+            f"{truth['description']} Lab incident on {SERVICE}, "
+            f"injected {truth['injected_at'][:16]}Z."
+        ),
         "tags": FAULT_TAGS.get(truth["fault"], []),
         "root_cause": truth["expected_root_cause"],
         "origin": "lab_observation",
@@ -584,7 +716,9 @@ def capture(event_path: Path, *, rag: bool = True) -> Path:
     scenario_id = _next_scenario_id(truth["fault"])
     scenario_path = SCENARIO_DIR / f"{scenario_id}.json"
     scenario = scenario_from_lab(scenario_id, event, truth, responses)
-    scenario_path.write_text(json.dumps(scenario, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    scenario_path.write_text(
+        json.dumps(scenario, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     print(f"Scenario: {scenario_path}")
     if rag:
         try:
@@ -595,10 +729,14 @@ def capture(event_path: Path, *, rag: bool = True) -> Path:
         corpus["documents"] = [
             item for item in corpus["documents"] if item["reference_id"] != document["reference_id"]
         ] + [document]
-        LAB_KNOWLEDGE.write_text(json.dumps(corpus, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-        print(f"RAG document {document['reference_id']} added to {LAB_KNOWLEDGE.name}; "
-              "re-index Qdrant with: py -3 -m src.agents.diagnosis.knowledge_index --qdrant-url "
-              f"{QDRANT_URL}")
+        LAB_KNOWLEDGE.write_text(
+            json.dumps(corpus, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
+        print(
+            f"RAG document {document['reference_id']} added to {LAB_KNOWLEDGE.name}; "
+            "re-index Qdrant with: py -3 -m src.agents.diagnosis.knowledge_index --qdrant-url "
+            f"{QDRANT_URL}"
+        )
     return scenario_path
 
 
@@ -622,11 +760,17 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Agent 2 live lab on kind.")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("check", help="Check tools and Docker memory.").set_defaults(func=cmd_check)
-    commands.add_parser("up", help="Create the kind cluster and deploy the lab.").set_defaults(func=cmd_up)
-    commands.add_parser("status", help="Pods, endpoints and current signals.").set_defaults(func=cmd_status)
+    commands.add_parser("up", help="Create the kind cluster and deploy the lab.").set_defaults(
+        func=cmd_up
+    )
+    commands.add_parser("status", help="Pods, endpoints and current signals.").set_defaults(
+        func=cmd_status
+    )
     commands.add_parser("reset", help="Remove the active fault.").set_defaults(func=cmd_reset)
     commands.add_parser("down", help="Delete the kind cluster.").set_defaults(func=cmd_down)
-    qdrant = commands.add_parser("qdrant", help=f"Start (capped at {QDRANT_MEMORY}) or stop the compose Qdrant.")
+    qdrant = commands.add_parser(
+        "qdrant", help=f"Start (capped at {QDRANT_MEMORY}) or stop the compose Qdrant."
+    )
     qdrant.add_argument("action", choices=("start", "stop"))
     qdrant.set_defaults(func=cmd_qdrant)
     inject = commands.add_parser("inject", help="Inject a fault.")
@@ -638,17 +782,31 @@ def main(argv: list[str] | None = None) -> int:
     ):
         command = commands.add_parser(name, help=help_text)
         command.add_argument("fault", choices=sorted(FAULTS))
-        command.add_argument("--wait", action="store_true", help="Poll until the anomaly is visible.")
+        command.add_argument(
+            "--wait", action="store_true", help="Poll until the anomaly is visible."
+        )
         command.add_argument("--timeout-minutes", type=float, default=20)
-        command.add_argument("--with-change-context", action="store_true",
-                             help="Let Agent 1 include the latest rollout (default: Agent 2 finds it).")
+        command.add_argument(
+            "--with-change-context",
+            action="store_true",
+            help="Let Agent 1 include the latest rollout (default: Agent 2 finds it).",
+        )
         if name == "run":
-            command.add_argument("--qdrant", action="store_true", help=f"Use the Qdrant server at {QDRANT_URL}.")
-            command.add_argument("--llm", nargs="?", const="openai", choices=("openai", "anthropic"))
-            command.add_argument("--capture", action="store_true",
-                                 help="Also save the incident as an evaluation scenario and a RAG document.")
+            command.add_argument(
+                "--qdrant", action="store_true", help=f"Use the Qdrant server at {QDRANT_URL}."
+            )
+            command.add_argument(
+                "--llm", nargs="?", const="openai", choices=("openai", "anthropic")
+            )
+            command.add_argument(
+                "--capture",
+                action="store_true",
+                help="Also save the incident as an evaluation scenario and a RAG document.",
+            )
         command.set_defaults(func=func)
-    capture_command = commands.add_parser("capture", help="Save a lab event as a scenario and a RAG document.")
+    capture_command = commands.add_parser(
+        "capture", help="Save a lab event as a scenario and a RAG document."
+    )
     capture_command.add_argument("event", type=Path)
     capture_command.add_argument("--no-rag", action="store_true")
     capture_command.set_defaults(func=cmd_capture)

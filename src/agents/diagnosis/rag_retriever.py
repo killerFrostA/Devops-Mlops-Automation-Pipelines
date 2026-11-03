@@ -121,7 +121,11 @@ def load_corpus(
     """Load ``incidents.json``/``runbooks.json`` plus any ``incidents_*``/``runbooks_*`` files."""
     corpus_dir = knowledge_dir or _DEFAULT_KNOWLEDGE_DIR
     loaded: dict[str, list[_CorpusDocument]] = {}
-    for kind, stem in (("incident", "incidents"), ("runbook", "runbooks")):
+    kinds: tuple[tuple[Literal["incident", "runbook"], str], ...] = (
+        ("incident", "incidents"),
+        ("runbook", "runbooks"),
+    )
+    for kind, stem in kinds:
         paths = [corpus_dir / f"{stem}.json", *sorted(corpus_dir.glob(f"{stem}_*.json"))]
         loaded[kind] = [document for path in paths for document in _read_corpus(path, kind)]
 

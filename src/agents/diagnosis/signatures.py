@@ -6,7 +6,6 @@ import re
 
 from src.agents.diagnosis.contracts import EvidenceItem
 
-
 SIGNATURE_PATTERNS: dict[str, re.Pattern[str]] = {
     "oom": re.compile(r"\boomkilled\b|out[- ]of[- ]memory|\boom\b", re.IGNORECASE),
     "crash_loop": re.compile(
@@ -49,7 +48,9 @@ CONFIG_CHANGE_PATTERN = re.compile(
 # Kubelet probe failures hit the pod's own port (normal while a new pod starts), so their
 # "connection refused" / "timeout" says nothing about a dependency.
 _PROBE_FAILURE = re.compile(r"\b(?:readiness|liveness|startup) probe failed\b", re.IGNORECASE)
-DEPENDENCY_SIGNATURES = frozenset({"connection_refused", "dependency_timeout", "upstream_unavailable"})
+DEPENDENCY_SIGNATURES = frozenset(
+    {"connection_refused", "dependency_timeout", "upstream_unavailable"}
+)
 _NEGATION = re.compile(r"\b(?:no|not|without|never)\s+(?:an?\s+)?(?:\w+\s+){0,2}$", re.IGNORECASE)
 _TEXT_FIELDS = ("message", "reason", "description", "change", "termination_reason")
 
@@ -67,11 +68,8 @@ def _texts(item: EvidenceItem) -> list[str]:
 
 
 def _matches(pattern: re.Pattern[str], text: str) -> bool:
-    for match in pattern.finditer(text):
-        # "no OOMKilled event" must not count as an OOM observation.
-        if _NEGATION.search(text[: match.start()]) is None:
-            return True
-    return False
+    # "no OOMKilled event" must not count as an OOM observation.
+    return any(_NEGATION.search(text[: match.start()]) is None for match in pattern.finditer(text))
 
 
 def line_signatures(text: str) -> frozenset[str]:

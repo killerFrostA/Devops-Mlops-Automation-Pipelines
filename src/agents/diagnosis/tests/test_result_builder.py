@@ -1,10 +1,12 @@
 from src.agents.diagnosis.contracts import (
     DiagnosisInput,
     EvidenceItem,
+    Hypothesis,
     KnowledgeRetrieval,
     SupplementalAnalysis,
 )
 from src.agents.diagnosis.result_builder import build_result
+from src.contracts.enums import Environment
 
 
 class FailingRetriever:
@@ -13,7 +15,13 @@ class FailingRetriever:
 
 
 class InvalidAnalyzer:
-    def analyze(self, payload, hypotheses, evidence, knowledge) -> dict[str, str]:
+    def analyze(
+        self,
+        payload: DiagnosisInput,
+        hypotheses: tuple[Hypothesis, ...],
+        evidence: tuple[EvidenceItem, ...],
+        knowledge: KnowledgeRetrieval,
+    ) -> dict[str, str]:
         return {
             "source": "untrusted",
             "summary": (
@@ -27,7 +35,13 @@ class InvalidAnalyzer:
 
 
 class FailingAnalyzer:
-    def analyze(self, payload, hypotheses, evidence, knowledge) -> SupplementalAnalysis:
+    def analyze(
+        self,
+        payload: DiagnosisInput,
+        hypotheses: tuple[Hypothesis, ...],
+        evidence: tuple[EvidenceItem, ...],
+        knowledge: KnowledgeRetrieval,
+    ) -> SupplementalAnalysis:
         evidence_count = len(evidence)
         candidate_count = len(hypotheses)
         retrieved_count = len(knowledge.similar_incidents) + len(knowledge.runbooks)
@@ -43,7 +57,7 @@ def test_build_result_returns_primary_root_cause_and_ranked_hypotheses() -> None
         incident_id="INC-001",
         service_id="payment-api",
         namespace="prod",
-        environment="production",
+        environment=Environment.PRODUCTION,
         issue_summary="Memory usage is high and pods keep restarting after deployment.",
         signals={"memory_percent": 84.0, "restart_count": 5, "latency_ms": 980},
         recent_changes=["deploy v2.6"],
@@ -65,7 +79,7 @@ def test_build_result_degrades_with_explicit_limits_when_adapters_fail() -> None
         incident_id="INC-ADAPTER-FAILURE",
         service_id="payment-api",
         namespace="prod",
-        environment="production",
+        environment=Environment.PRODUCTION,
         issue_summary="Memory usage is high and pods keep restarting after deployment.",
         signals={"memory_percent": 84.0, "restart_count": 5},
         recent_changes=["deploy v2.6"],
@@ -83,12 +97,12 @@ def test_invalid_supplemental_output_cannot_change_rule_candidates() -> None:
         incident_id="INC-INVALID-ANALYZER",
         service_id="payment-api",
         namespace="prod",
-        environment="production",
+        environment=Environment.PRODUCTION,
         issue_summary="CPU is saturated and latency is high.",
         signals={"cpu_percent": 90, "latency_ms": 900},
     )
 
-    result = build_result(payload, analyzer=InvalidAnalyzer())
+    result = build_result(payload, analyzer=InvalidAnalyzer())  # type: ignore[arg-type]
 
     assert result.primary_root_cause == "RESOURCE_PRESSURE_OR_CPU_STARVATION"
     assert all(item.code != "UNSUPPORTED_CAUSE" for item in result.hypotheses)
@@ -100,7 +114,7 @@ def test_memory_candidate_without_deployment_does_not_recommend_rollback() -> No
         incident_id="INC-NO-DEPLOY",
         service_id="payment-api",
         namespace="prod",
-        environment="production",
+        environment=Environment.PRODUCTION,
         issue_summary="Memory is high and the workload restarted.",
         signals={"memory_percent": 88, "restart_count": 3},
         recent_changes=["unrelated config cleanup"],
@@ -114,8 +128,7 @@ def test_memory_candidate_without_deployment_does_not_recommend_rollback() -> No
     assessment = result.explainability.hypothesis_explanations[0]
     assert any("not timestamped" in item.lower() for item in assessment.missing_information)
     assert not any(
-        item.action == "ROLLBACK_OR_REVERT_DEPLOYMENT"
-        for item in result.recommended_actions
+        item.action == "ROLLBACK_OR_REVERT_DEPLOYMENT" for item in result.recommended_actions
     )
 
 
@@ -124,7 +137,7 @@ def test_coincident_deployment_is_not_enough_to_recommend_rollback() -> None:
         incident_id="INC-DEPLOY-COINCIDENCE",
         service_id="payment-api",
         namespace="prod",
-        environment="production",
+        environment=Environment.PRODUCTION,
         issue_summary="Memory is high and the workload restarted after a deployment.",
         signals={"memory_percent": 88, "restart_count": 3},
         recent_changes=["deploy version 2.6"],
@@ -143,7 +156,7 @@ def test_explainability_separates_provided_derived_and_contradictory_data() -> N
         incident_id="INC-EXPLAIN",
         service_id="payment-api",
         namespace="prod",
-        environment="production",
+        environment=Environment.PRODUCTION,
         issue_summary="Memory readings disagree.",
         signals={"memory_percent": 90, "restart_count": 3},
         evidence=[
@@ -171,7 +184,7 @@ def test_non_numeric_evidence_does_not_count_as_a_measured_signal() -> None:
         incident_id="INC-NONNUMERIC",
         service_id="payment-api",
         namespace="prod",
-        environment="production",
+        environment=Environment.PRODUCTION,
         issue_summary="CPU value is not numeric.",
         evidence=[
             EvidenceItem(

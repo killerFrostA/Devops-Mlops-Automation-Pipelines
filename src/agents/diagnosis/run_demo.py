@@ -7,15 +7,14 @@ import json
 import sys
 from pathlib import Path
 
-from src.agents.diagnosis.contracts import DiagnosisAgentResult
 from src.agents.diagnosis.agent1_runner import Agent1InputError, diagnose_agent1_event
+from src.agents.diagnosis.contracts import DiagnosisAgentResult
 from src.agents.diagnosis.envelope_builder import (
     DiagnosisEnvelopeError,
     append_diagnosis_jsonl,
     build_diagnosis_envelope,
 )
 from src.contracts.events import EventEnvelope
-
 
 FIXTURES = Path(__file__).resolve().parent / "tests" / "fixtures"
 DEMO_FIXTURES = ("agent1_memory_oom.json", "agent1_memory_pressure.json")
@@ -25,9 +24,13 @@ def run_demo(output_path: Path) -> int:
     for fixture_name in DEMO_FIXTURES:
         fixture_path = FIXTURES / fixture_name
         try:
-            received = EventEnvelope.model_validate(json.loads(fixture_path.read_text(encoding="utf-8")))
+            received = EventEnvelope.model_validate(
+                json.loads(fixture_path.read_text(encoding="utf-8"))
+            )
         except (OSError, json.JSONDecodeError, ValueError) as exc:
-            raise DiagnosisEnvelopeError(f"Cannot load Agent 1 fixture '{fixture_path}': {exc}") from exc
+            raise DiagnosisEnvelopeError(
+                f"Cannot load Agent 1 fixture '{fixture_path}': {exc}"
+            ) from exc
 
         for diagnosis in diagnose_agent1_event(received):
             _print_diagnosis(fixture_name, received, diagnosis.result, output_path)

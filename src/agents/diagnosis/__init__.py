@@ -6,9 +6,9 @@ from src.agents.diagnosis.contracts import (
     DiagnosisRecommendation,
     DiagnosisResult,
     EvidenceItem,
+    Hypothesis,
     KnowledgeDocument,
     KnowledgeRetrieval,
-    Hypothesis,
     SupplementalAnalysis,
 )
 from src.agents.diagnosis.evidence_collector import collect_evidence

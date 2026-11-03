@@ -72,31 +72,33 @@ class DiagnosisAgent(SkeletonAgent):
             change_events = task_context.signals.get("recent_change_events", [])
             memory_rise_started_at = task_context.signals.get("memory_rise_started_at")
             memory_growth_observed = task_context.signals.get("memory_growth_observed", False)
-            payload = DiagnosisInput(
-                incident_id=task.incident_id,
-                service_id=task_context.service_id,
-                namespace=task_context.namespace,
-                environment=task_context.environment.value,
-                issue_summary=task.objective,
-                signals={
-                    key: value
-                    for key, value in task_context.signals.items()
-                    if key
-                    not in {
-                        "recent_changes",
-                        "recent_change_events",
-                        "memory_rise_started_at",
-                        "memory_growth_observed",
-                        "required_evidence",
-                    }
-                },
-                recent_changes=recent_changes,
-                recent_change_events=change_events,
-                memory_rise_started_at=memory_rise_started_at,
-                memory_growth_observed=memory_growth_observed,
-                evidence=[self._to_evidence_item(item) for item in resolved_evidence],
-                constraints=list(task_context.constraints),
-                required_evidence=required_evidence,
+            payload = DiagnosisInput.model_validate(
+                {
+                    "incident_id": task.incident_id,
+                    "service_id": task_context.service_id,
+                    "namespace": task_context.namespace,
+                    "environment": task_context.environment,
+                    "issue_summary": task.objective,
+                    "signals": {
+                        key: value
+                        for key, value in task_context.signals.items()
+                        if key
+                        not in {
+                            "recent_changes",
+                            "recent_change_events",
+                            "memory_rise_started_at",
+                            "memory_growth_observed",
+                            "required_evidence",
+                        }
+                    },
+                    "recent_changes": recent_changes,
+                    "recent_change_events": change_events,
+                    "memory_rise_started_at": memory_rise_started_at,
+                    "memory_growth_observed": memory_growth_observed,
+                    "evidence": [self._to_evidence_item(item) for item in resolved_evidence],
+                    "constraints": list(task_context.constraints),
+                    "required_evidence": required_evidence,
+                }
             )
         except ValidationError as exc:
             invalid_fields = sorted(

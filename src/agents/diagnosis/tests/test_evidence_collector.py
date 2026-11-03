@@ -1,7 +1,8 @@
 from datetime import UTC, datetime
 
-from src.agents.diagnosis.contracts import DiagnosisInput
+from src.agents.diagnosis.contracts import DiagnosisInput, EvidenceItem
 from src.agents.diagnosis.evidence_collector import collect_evidence
+from src.contracts.enums import Environment
 
 
 def test_collect_evidence_builds_traceable_metric_and_release_items() -> None:
@@ -9,7 +10,7 @@ def test_collect_evidence_builds_traceable_metric_and_release_items() -> None:
         incident_id="INC-001",
         service_id="payment-api",
         namespace="prod",
-        environment="production",
+        environment=Environment.PRODUCTION,
         issue_summary="Memory usage is rising and pods restart after deployment.",
         signals={"memory_percent": 84.0, "restart_count": 5, "latency_ms": 980},
         recent_changes=["deploy v2.6", "config change on limits"],
@@ -30,7 +31,7 @@ def test_collect_evidence_returns_empty_list_for_clean_payload() -> None:
         incident_id="INC-002",
         service_id="auth-api",
         namespace="prod",
-        environment="production",
+        environment=Environment.PRODUCTION,
         issue_summary="No anomalies observed.",
         signals={"memory_percent": 21.0, "cpu_percent": 12.0},
         recent_changes=[],
@@ -46,7 +47,7 @@ def test_derived_metrics_are_not_mislabeled_as_live_source_data() -> None:
         incident_id="INC-DERIVED",
         service_id="payment-api",
         namespace="test",
-        environment="test",
+        environment=Environment.TEST,
         issue_summary="A supplied metric indicates high memory usage.",
         signals={"memory_percent": 84, "restart_count": 3},
     )
@@ -70,7 +71,7 @@ def test_recorded_memory_growth_preserves_its_supplied_timestamp() -> None:
         incident_id="INC-GROWTH-EVIDENCE",
         service_id="payment-api",
         namespace="test",
-        environment="test",
+        environment=Environment.TEST,
         issue_summary="Memory growth was recorded.",
         memory_rise_started_at=rise_started_at,
         memory_growth_observed=True,
@@ -88,13 +89,13 @@ def test_recorded_memory_growth_preserves_its_supplied_timestamp() -> None:
 
 
 def test_fixture_operational_records_remain_explicitly_synthetic(
-    operational_evidence_fixture,
+    operational_evidence_fixture: list[EvidenceItem],
 ) -> None:
     payload = DiagnosisInput(
         incident_id="INC-FIXTURE",
         service_id="payment-api",
         namespace="test",
-        environment="test",
+        environment=Environment.TEST,
         issue_summary="A fixture-backed memory incident.",
         signals={"memory_percent": 88, "restart_count": 3},
         evidence=operational_evidence_fixture,

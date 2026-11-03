@@ -1,7 +1,7 @@
 """Index Agent 2's knowledge corpus into Qdrant and optionally try a search.
 
-    py -3 -m src.agents.diagnosis.knowledge_index --qdrant-url http://localhost:6333
-    py -3 -m src.agents.diagnosis.knowledge_index --qdrant-path .qdrant --query "oom memory limit"
+py -3 -m src.agents.diagnosis.knowledge_index --qdrant-url http://localhost:6333
+py -3 -m src.agents.diagnosis.knowledge_index --qdrant-path .qdrant --query "oom memory limit"
 """
 
 from __future__ import annotations
@@ -14,7 +14,9 @@ from src.agents.diagnosis.qdrant_retriever import QdrantKnowledgeRetriever, inde
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Index the diagnosis knowledge corpus into Qdrant.")
+    parser = argparse.ArgumentParser(
+        description="Index the diagnosis knowledge corpus into Qdrant."
+    )
     target = parser.add_mutually_exclusive_group(required=True)
     target.add_argument("--qdrant-url", help="Qdrant server URL, e.g. http://localhost:6333.")
     target.add_argument("--qdrant-path", type=Path, help="Local on-disk Qdrant store directory.")
@@ -33,7 +35,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.query:
         result = retriever.retrieve(args.query, 3)
         for item in (*result.similar_incidents, *result.runbooks):
-            print(f"- {item.kind} {item.reference_id} ({item.root_cause}) score {item.score:.2f}: {item.summary}")
+            print(
+                f"- {item.kind} {item.reference_id} ({item.root_cause}) score "
+                f"{item.score:.2f}: {item.summary}"
+            )
     return 0
 
 

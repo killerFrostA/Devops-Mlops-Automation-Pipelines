@@ -213,11 +213,15 @@ def render_markdown_report(result: DiagnosisAgentResult, incident: IncidentFile)
         ]
     )
     if result.explainability.contradictions:
-        lines.extend(f"- **Contradiction :** {item}" for item in result.explainability.contradictions)
+        lines.extend(
+            f"- **Contradiction :** {item}" for item in result.explainability.contradictions
+        )
     else:
         lines.append("Aucune contradiction de seuil identifiée.")
     if result.explainability.missing_information:
-        lines.extend(f"- **Manquant :** {item}" for item in result.explainability.missing_information)
+        lines.extend(
+            f"- **Manquant :** {item}" for item in result.explainability.missing_information
+        )
     else:
         lines.append("Aucune information manquante signalée par l’analyse.")
     lines.extend(
@@ -237,7 +241,8 @@ def render_markdown_report(result: DiagnosisAgentResult, incident: IncidentFile)
                     f"- **Source / provenance :** {item.source} / {item.provenance}",
                     f"- **Horodatage :** {observed_at}",
                     f"- **Résumé :** {item.summary}",
-                    f"- **Valeurs :** `{json.dumps(item.value, ensure_ascii=False, sort_keys=True)}`",
+                    "- **Valeurs :** "
+                    f"`{json.dumps(item.value, ensure_ascii=False, sort_keys=True)}`",
                     "",
                 ]
             )
@@ -256,16 +261,15 @@ def render_markdown_report(result: DiagnosisAgentResult, incident: IncidentFile)
         lines.append("Aucune action partagée proposée.")
     if result.explainability.recommendation_explanations:
         lines.append("")
-        for explanation in result.explainability.recommendation_explanations:
-            lines.append(f"- **Justification de {explanation.action} :** {explanation.justification}")
+        for justification in result.explainability.recommendation_explanations:
+            lines.append(
+                f"- **Justification de {justification.action} :** {justification.justification}"
+            )
             lines.append(
                 "- **Preuves liées :** "
-                + (
-                    ", ".join(f"`{ref}`" for ref in explanation.evidence_refs)
-                    or "aucune"
-                )
+                + (", ".join(f"`{ref}`" for ref in justification.evidence_refs) or "aucune")
             )
-            lines.extend(f"- **Limite :** {item}" for item in explanation.limitations)
+            lines.extend(f"- **Limite :** {item}" for item in justification.limitations)
 
     lines.extend(["", "## Connaissances récupérées (RAG local, pas une recherche Qdrant)", ""])
     knowledge = result.knowledge
@@ -280,7 +284,8 @@ def render_markdown_report(result: DiagnosisAgentResult, incident: IncidentFile)
                 ]
             )
             lines.extend(
-                f"| `{item.reference_id}` | `{item.root_cause}` | {item.score:.2f} | {item.summary} |"
+                f"| `{item.reference_id}` | `{item.root_cause}` | {item.score:.2f} | "
+                f"{item.summary} |"
                 for item in knowledge.similar_incidents
             )
             lines.append("")
@@ -311,11 +316,17 @@ def render_markdown_report(result: DiagnosisAgentResult, incident: IncidentFile)
 
     lines.extend(["## Investigation (outils en lecture seule)", ""])
     if result.tool_calls:
-        lines.extend(["| Outil | Opération | Demandé par | Statut | Preuves / erreur |", "|---|---|---|---|---|"])
+        lines.extend(
+            [
+                "| Outil | Opération | Demandé par | Statut | Preuves / erreur |",
+                "|---|---|---|---|---|",
+            ]
+        )
         for call in result.tool_calls:
             detail = ", ".join(f"`{ref}`" for ref in call.evidence_refs) or (call.error or "aucune")
             lines.append(
-                f"| {call.tool} | {call.operation} | {call.requested_by} | {call.status} | {detail} |"
+                f"| {call.tool} | {call.operation} | {call.requested_by} | {call.status} | "
+                f"{detail} |"
             )
         lines.append("")
     else:

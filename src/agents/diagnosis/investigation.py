@@ -13,8 +13,7 @@ from src.agents.diagnosis.contracts import (
     RecentChangeEvent,
     ToolCallRecord,
 )
-from src.agents.diagnosis.tools import ToolContext, Toolbox
-
+from src.agents.diagnosis.tools import Toolbox, ToolContext
 
 # Evidence names used in recommendations and replan requests, mapped to tool operations.
 REQUIRED_EVIDENCE_OPERATIONS: dict[str, tuple[str, str]] = {
@@ -96,7 +95,9 @@ def plan_investigation(payload: DiagnosisInput) -> tuple[list[tuple[str, str]], 
     return list(dict.fromkeys(plan)), unknown
 
 
-def change_events_from_evidence(evidence: tuple[EvidenceItem, ...]) -> tuple[RecentChangeEvent, ...]:
+def change_events_from_evidence(
+    evidence: tuple[EvidenceItem, ...],
+) -> tuple[RecentChangeEvent, ...]:
     """Dated deployments/commits collected by tools become temporal RCA change events."""
     events = []
     for item in evidence:
@@ -144,10 +145,10 @@ def investigate(payload: DiagnosisInput, toolbox: Toolbox, deadline: datetime) -
                 f"Tool {tool}.{operation} {result.record.status}: {result.record.error}."
             )
     for name in payload.required_evidence:
-        operation = REQUIRED_EVIDENCE_OPERATIONS.get(name)
-        if operation is not None and not toolbox.available(*operation):
+        required = REQUIRED_EVIDENCE_OPERATIONS.get(name)
+        if required is not None and not toolbox.available(*required):
             limitations.append(
-                f"Requested evidence '{name}' needs {operation[0]}.{operation[1]}, "
+                f"Requested evidence '{name}' needs {required[0]}.{required[1]}, "
                 "which is not configured."
             )
     collected = tuple(evidence)

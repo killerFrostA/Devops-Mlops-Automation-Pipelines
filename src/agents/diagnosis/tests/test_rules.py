@@ -1,8 +1,9 @@
 from datetime import UTC, datetime
 
-from src.agents.diagnosis.contracts import DiagnosisInput, EvidenceItem
+from src.agents.diagnosis.contracts import DiagnosisInput, EvidenceItem, RecentChangeEvent
 from src.agents.diagnosis.evidence_collector import collect_evidence
 from src.agents.diagnosis.rules import evaluate_hypotheses, signal_conflicts
+from src.contracts.enums import Environment
 
 
 def test_memory_leak_rule_ranked_above_other_causes() -> None:
@@ -40,7 +41,7 @@ def test_memory_leak_rule_ranked_above_other_causes() -> None:
         incident_id="INC-001",
         service_id="payment-api",
         namespace="prod",
-        environment="production",
+        environment=Environment.PRODUCTION,
         issue_summary="Memory usage is high and pods keep restarting after deployment.",
         signals={"memory_percent": 84.0, "restart_count": 5, "latency_ms": 980},
         recent_changes=["deploy v2.6", "config change on limits"],
@@ -51,7 +52,7 @@ def test_memory_leak_rule_ranked_above_other_causes() -> None:
     hypotheses = evaluate_hypotheses(payload)
     assert hypotheses[0].code == "MEMORY_PRESSURE"
     assert hypotheses[0].probability >= 0.7
-    assert any("MEMORY_PRESSURE" == h.code for h in hypotheses)
+    assert any(h.code == "MEMORY_PRESSURE" for h in hypotheses)
 
 
 def test_insufficient_evidence_keeps_additional_evidence_flag() -> None:
@@ -59,7 +60,7 @@ def test_insufficient_evidence_keeps_additional_evidence_flag() -> None:
         incident_id="INC-002",
         service_id="auth-api",
         namespace="prod",
-        environment="production",
+        environment=Environment.PRODUCTION,
         issue_summary="Service is slow but evidence is minimal.",
         signals={"latency_ms": 120},
         evidence=[],
@@ -71,13 +72,13 @@ def test_insufficient_evidence_keeps_additional_evidence_flag() -> None:
 
 
 def test_rules_return_multiple_ranked_causes_with_cause_relevant_evidence(
-    operational_evidence_fixture,
+    operational_evidence_fixture: list[EvidenceItem],
 ) -> None:
     payload = DiagnosisInput(
         incident_id="INC-MULTI",
         service_id="payment-api",
         namespace="prod",
-        environment="production",
+        environment=Environment.PRODUCTION,
         issue_summary="Memory growth, CPU pressure, and restarts followed a deployment.",
         signals={
             "memory_percent": 88,
@@ -89,7 +90,9 @@ def test_rules_return_multiple_ranked_causes_with_cause_relevant_evidence(
         evidence=operational_evidence_fixture,
     )
 
-    hypotheses = evaluate_hypotheses(payload.model_copy(update={"evidence": collect_evidence(payload)}))
+    hypotheses = evaluate_hypotheses(
+        payload.model_copy(update={"evidence": collect_evidence(payload)})
+    )
 
     assert len(hypotheses) == 2
     assert [item.rank for item in hypotheses] == [1, 2]
@@ -111,7 +114,7 @@ def test_conflicting_memory_readings_do_not_support_memory_cause() -> None:
         incident_id="INC-CONFLICT",
         service_id="payment-api",
         namespace="prod",
-        environment="production",
+        environment=Environment.PRODUCTION,
         issue_summary="Conflicting memory measurements were supplied.",
         signals={"memory_percent": 92, "memory_pct": 28, "restart_count": 4},
         recent_changes=["deploy v2.6"],
@@ -127,7 +130,7 @@ def test_unrelated_evidence_is_not_cited_as_support_for_a_memory_candidate() -> 
         incident_id="INC-TRACE",
         service_id="payment-api",
         namespace="test",
-        environment="test",
+        environment=Environment.TEST,
         issue_summary="Memory is high and the process restarted.",
         signals={"memory_percent": 88, "restart_count": 3},
         recent_changes=["unrelated config cleanup"],
@@ -162,7 +165,7 @@ def test_contradictions_on_cpu_measurement_suppress_resource_candidate() -> None
         incident_id="INC-CPU-CONFLICT",
         service_id="payment-api",
         namespace="test",
-        environment="test",
+        environment=Environment.TEST,
         issue_summary="CPU measurements disagree.",
         signals={"cpu_percent": 94},
         evidence=[
@@ -187,7 +190,7 @@ def test_conflicted_cpu_evidence_is_not_cited_when_error_rate_supports_candidate
         incident_id="INC-CPU-ERROR-CONFLICT",
         service_id="payment-api",
         namespace="test",
-        environment="test",
+        environment=Environment.TEST,
         issue_summary="CPU readings disagree while error rate is high.",
         signals={"cpu_percent": 94, "error_rate": 15},
         evidence=[
@@ -214,7 +217,7 @@ def test_deployment_and_high_memory_without_independent_failure_signal_are_insuf
         incident_id="INC-DEPLOY-ONLY",
         service_id="payment-api",
         namespace="test",
-        environment="test",
+        environment=Environment.TEST,
         issue_summary="Memory is high after a deployment.",
         signals={"memory_percent": 88},
         recent_changes=["deploy version 2.6"],
@@ -228,20 +231,24 @@ def test_memory_leak_requires_high_memory_failure_signal_and_prior_dated_change(
         incident_id="INC-MEMORY-LEAK",
         service_id="payment-api",
         namespace="test",
-        environment="test",
+        environment=Environment.TEST,
         issue_summary="Memory rose and the workload restarted after a dated deployment.",
         signals={"memory_percent": 88, "restart_count": 1},
         memory_rise_started_at=datetime(2026, 10, 19, 12, 0, tzinfo=UTC),
         recent_change_events=[
-            {
-                "change_id": "DEPLOY-26",
-                "description": "Deployment v2.6",
-                "changed_at": datetime(2026, 10, 19, 11, 45, tzinfo=UTC),
-            }
+            RecentChangeEvent.model_validate(
+                {
+                    "change_id": "DEPLOY-26",
+                    "description": "Deployment v2.6",
+                    "changed_at": datetime(2026, 10, 19, 11, 45, tzinfo=UTC),
+                }
+            ),
         ],
     )
 
-    hypotheses = evaluate_hypotheses(payload.model_copy(update={"evidence": collect_evidence(payload)}))
+    hypotheses = evaluate_hypotheses(
+        payload.model_copy(update={"evidence": collect_evidence(payload)})
+    )
 
     assert hypotheses[0].code == "MEMORY_LEAK_POST_DEPLOY"
     assert "EVD-INC-MEMORY-LEAK-CHANGE-01" in hypotheses[0].evidence_refs
@@ -259,16 +266,18 @@ def test_memory_leak_boundary_requires_change_strictly_before_rise() -> None:
             incident_id="INC-MEMORY-BOUNDARY",
             service_id="payment-api",
             namespace="test",
-            environment="test",
+            environment=Environment.TEST,
             issue_summary="Memory is high with a restart, but temporal order is not prior.",
             signals={"memory_percent": 88, "restart_count": 1},
             memory_rise_started_at=rise_started_at,
             recent_change_events=[
-                {
-                    "change_id": "DEPLOY-26",
-                    "description": "Deployment v2.6",
-                    "changed_at": change_at,
-                }
+                RecentChangeEvent.model_validate(
+                    {
+                        "change_id": "DEPLOY-26",
+                        "description": "Deployment v2.6",
+                        "changed_at": change_at,
+                    }
+                ),
             ],
         )
 
@@ -284,7 +293,7 @@ def test_memory_leak_requires_a_timestamped_rise_even_with_dated_change_and_oom(
         incident_id="INC-MEMORY-NO-RISE-TIME",
         service_id="payment-api",
         namespace="test",
-        environment="test",
+        environment=Environment.TEST,
         issue_summary="High memory, OOM, and a dated deployment; no rise start time.",
         signals={"memory_percent": 90},
         evidence=[
@@ -296,11 +305,13 @@ def test_memory_leak_requires_a_timestamped_rise_even_with_dated_change_and_oom(
             )
         ],
         recent_change_events=[
-            {
-                "change_id": "DEPLOY-27",
-                "description": "Deployment v2.7",
-                "changed_at": datetime(2026, 10, 19, 11, 45, tzinfo=UTC),
-            }
+            RecentChangeEvent.model_validate(
+                {
+                    "change_id": "DEPLOY-27",
+                    "description": "Deployment v2.7",
+                    "changed_at": datetime(2026, 10, 19, 11, 45, tzinfo=UTC),
+                }
+            ),
         ],
     )
 
@@ -312,16 +323,18 @@ def test_high_memory_without_failure_signal_remains_memory_pressure() -> None:
         incident_id="INC-MEMORY-HIGH-ONLY",
         service_id="payment-api",
         namespace="test",
-        environment="test",
+        environment=Environment.TEST,
         issue_summary="Memory is high but no growth, restart, or OOM is reported.",
         signals={"memory_percent": 88},
         memory_rise_started_at=datetime(2026, 10, 19, 12, 0, tzinfo=UTC),
         recent_change_events=[
-            {
-                "change_id": "DEPLOY-28",
-                "description": "Deployment v2.8",
-                "changed_at": datetime(2026, 10, 19, 11, 45, tzinfo=UTC),
-            }
+            RecentChangeEvent.model_validate(
+                {
+                    "change_id": "DEPLOY-28",
+                    "description": "Deployment v2.8",
+                    "changed_at": datetime(2026, 10, 19, 11, 45, tzinfo=UTC),
+                }
+            ),
         ],
     )
 
@@ -333,17 +346,19 @@ def test_oom_observation_and_prior_change_qualify_without_restart_count() -> Non
         incident_id="INC-MEMORY-OOM",
         service_id="payment-api",
         namespace="test",
-        environment="test",
+        environment=Environment.TEST,
         issue_summary="High memory and OOM event after a dated change.",
         signals={"memory_percent": 91},
         memory_rise_started_at=datetime(2026, 10, 19, 12, 0, tzinfo=UTC),
         recent_change_events=[
+            RecentChangeEvent.model_validate(
                 {
                     "change_id": "DEPLOY-LIMITS-CHANGE",
                     "description": "Deployment changed the container memory limit",
                     "changed_at": datetime(2026, 10, 19, 11, 30, tzinfo=UTC),
                 }
-            ],
+            ),
+        ],
         evidence=[
             EvidenceItem(
                 evidence_id="OOM-2",
@@ -362,17 +377,19 @@ def test_recorded_memory_growth_and_prior_change_qualify_without_restart_or_oom(
         incident_id="INC-MEMORY-GROWTH",
         service_id="payment-api",
         namespace="test",
-        environment="test",
+        environment=Environment.TEST,
         issue_summary="Memory growth followed a dated change.",
         signals={"memory_percent": 88},
         memory_rise_started_at=datetime(2026, 10, 19, 12, 0, tzinfo=UTC),
         memory_growth_observed=True,
         recent_change_events=[
-            {
-                "change_id": "DEPLOY-GROWTH",
-                "description": "Deployment v2.10",
-                "changed_at": datetime(2026, 10, 19, 11, 45, tzinfo=UTC),
-            }
+            RecentChangeEvent.model_validate(
+                {
+                    "change_id": "DEPLOY-GROWTH",
+                    "description": "Deployment v2.10",
+                    "changed_at": datetime(2026, 10, 19, 11, 45, tzinfo=UTC),
+                }
+            ),
         ],
     )
 
@@ -388,16 +405,18 @@ def test_explicit_absence_of_oom_does_not_count_as_failure_indicator() -> None:
         incident_id="INC-NO-OOM",
         service_id="payment-api",
         namespace="test",
-        environment="test",
+        environment=Environment.TEST,
         issue_summary="High memory but no OOM was observed.",
         signals={"memory_percent": 88},
         memory_rise_started_at=datetime(2026, 10, 19, 12, 0, tzinfo=UTC),
         recent_change_events=[
-            {
-                "change_id": "DEPLOY-NO-OOM",
-                "description": "Deployment v2.9",
-                "changed_at": datetime(2026, 10, 19, 11, 45, tzinfo=UTC),
-            }
+            RecentChangeEvent.model_validate(
+                {
+                    "change_id": "DEPLOY-NO-OOM",
+                    "description": "Deployment v2.9",
+                    "changed_at": datetime(2026, 10, 19, 11, 45, tzinfo=UTC),
+                }
+            ),
         ],
         evidence=[
             EvidenceItem(

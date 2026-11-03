@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from src.agents.diagnosis.contracts import DiagnosisInput, EvidenceItem
+from src.contracts.enums import Environment
 
 
 def test_diagnosis_input_accepts_incident_signals_and_evidence() -> None:
@@ -21,7 +22,7 @@ def test_diagnosis_input_accepts_incident_signals_and_evidence() -> None:
         incident_id="INC-001",
         service_id="payment-api",
         namespace="prod",
-        environment="production",
+        environment=Environment.PRODUCTION,
         issue_summary="Memory usage is rising and pods restart.",
         signals={"memory_percent": 84.0, "restart_count": 5},
         recent_changes=["deploy v2.6", "config change on limits"],
@@ -39,7 +40,7 @@ def test_diagnosis_input_requires_nonempty_incident_id() -> None:
             incident_id="",
             service_id="payment-api",
             namespace="prod",
-            environment="production",
+            environment=Environment.PRODUCTION,
             issue_summary="Memory issue",
             signals={},
             evidence=[],
@@ -51,7 +52,7 @@ def test_diagnosis_input_defaults_optional_collections() -> None:
         incident_id="INC-DEFAULTS",
         service_id="payment-api",
         namespace="test",
-        environment="test",
+        environment=Environment.TEST,
         issue_summary="A minimal valid incident input.",
     )
 
@@ -78,7 +79,7 @@ def test_diagnosis_input_rejects_invalid_known_signals(signal: str, value: objec
             incident_id="INC-INVALID-SIGNAL",
             service_id="payment-api",
             namespace="test",
-            environment="test",
+            environment=Environment.TEST,
             issue_summary="An invalid signal should fail validation.",
             signals={signal: value},
         )
@@ -90,7 +91,7 @@ def test_diagnosis_input_rejects_empty_change_entries() -> None:
             incident_id="INC-EMPTY-CHANGE",
             service_id="payment-api",
             namespace="test",
-            environment="test",
+            environment=Environment.TEST,
             issue_summary="Recent change entry is empty.",
             recent_changes=[" "],
         )
@@ -102,7 +103,7 @@ def test_diagnosis_input_rejects_unknown_environment() -> None:
             incident_id="INC-BAD-ENV",
             service_id="payment-api",
             namespace="test",
-            environment="not-a-real-environment",
+            environment="not-a-real-environment",  # type: ignore[arg-type]
             issue_summary="The environment must use the shared enum values.",
         )
 
@@ -120,7 +121,7 @@ def test_diagnosis_input_rejects_duplicate_evidence_ids() -> None:
             incident_id="INC-DUPLICATE",
             service_id="payment-api",
             namespace="test",
-            environment="test",
+            environment=Environment.TEST,
             issue_summary="Duplicate evidence identifiers are ambiguous.",
             evidence=[evidence, evidence],
         )
